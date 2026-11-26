@@ -1,16 +1,15 @@
-/* Safari na Nuru · Saladi ya Tembo */
-const storyText = (sw, en) => I18N.lang === 'en' ? en : sw;
-const saladTitle = () => storyText('Saladi ya Tembo', 'Tembo’s Fruit Salad');
+/* Safari with Nuru: Tembo’s Fruit Salad. */
+const saladTitle = () => 'Tembo’s Fruit Salad';
 const saladRecipe = ['embe', 'embe', 'ndizi'];
 const saladGuests = ['twiga', 'kobe', 'simba'];
 
 function saladHomeCard(c) {
   const saved = c.saladStory;
-  const action = saved?.stage === 'done' ? storyText('Tazama stika', 'View sticker') :
-    saved && saved.stage !== 'intro' ? storyText('Endelea', 'Continue') : storyText('Anza hadithi', 'Start story');
-  return `<button class="salad-home" data-go="${saved?.stage === 'done' ? 'safariPassport' : 'saladStory'}">
-    ${mascot('tembo', 80)}<span><small>${storyText('Safari na Nuru', 'Safari with Nuru')}</small>
-    <strong>${saladTitle()}</strong><span>${action} →</span></span></button>`;
+  const action = saved?.earned ? 'Explore all six episodes' :
+    saved && saved.stage !== 'intro' ? 'Continue' : 'Start story';
+  return `<button class="salad-home" data-go="safariSeries">
+    ${mascot('tembo', 80)}<span><small>Adventure series</small>
+    <strong>Safari with Nuru</strong><span>${action} →</span></span></button>`;
 }
 
 function newSaladStory(child) {
@@ -18,68 +17,36 @@ function newSaladStory(child) {
 }
 
 const SALAD_LINES = {
-  "intro": ["Leo natengeneza saladi ya matunda. Utanisaidia kuchagua maembe mawili?", "I’m making a fruit salad today. Will you help me pick two mangoes?"],
-  "letter": ["Maembe! Neno maembe linaanza na herufi gani?", "Mango! Which letter starts the word mango?"],
-  "first": ["Gusa embe moja uliweke kikapuni.", "Tap a mango to put it in the basket."],
-  "second": ["Ongeza embe moja zaidi.", "Add one more mango."],
-  "banana": ["Sasa chagua ndizi moja.", "Now pick one banana."],
-  "change": ["Maembe mawili kwa shilingi 400 kila moja na ndizi ya shilingi 200. Ukitoa shilingi 1,500, utapokea chenji kiasi gani?", "Two mangoes cost 400 shillings each and one banana costs 200. What is your change from 1,500 shillings?"],
-  "mix": ["Buruta tunda hadi kwenye bakuli, au liguse ili uliweke ndani.", "Drag a fruit to the bowl, or tap it to put it in."],
-  "invite": ["Saladi iko tayari! Ungependa kumwalika nani mezani?", "The salad is ready! Who would you like to invite to the table?"],
-  "done": ["Rafiki yako amekuja kula saladi. Asante! Umepata stika ya saladi.", "Your friend is here to share your salad. Thank you! You earned a salad sticker."],
-  "added": ["Tunda limeingia!", "Into the bowl!"],
-  "letter-hint": ["Sikiliza: Mmm, maembe. Gusa M.", "Listen: mmm, mango. Tap M."],
-  "retry": ["Jaribu tena.", "Try again."],
-  "one": ["Moja!", "One!"],
-  "two": ["Mbili!", "Two!"],
-  "change-hint": ["Gharama yote ni shilingi 1,000. Toa 1,000 kutoka 1,500.", "The total is 1,000 shillings. Subtract 1,000 from 1,500."],
-  "drop": ["Weka tunda ndani ya bakuli.", "Drop the fruit in the bowl."],
-  "recap": ["Ulimsaidia Tembo kununua maembe mawili na ndizi moja sokoni. Mkaviweka kwenye bakuli, mkatengeneza saladi na kumkaribisha rafiki mezani.", "You helped Tembo buy two mangoes and one banana at the market. Together you put them in the bowl, made a salad and invited a friend to eat."],
+  "intro": "I’m making a fruit salad today. Will you help me pick two mangoes?",
+  "letter": "Mango! Which letter starts the word mango?",
+  "first": "Tap a mango to put it in the basket.",
+  "second": "Add one more mango.",
+  "banana": "Now pick one banana.",
+  "change": "Two mangoes cost 400 shillings each and one banana costs 200. What is your change from 1,500 shillings?",
+  "mix": "Drag a fruit to the bowl, or tap it to put it in.",
+  "invite": "The salad is ready! Who would you like to invite to the table?",
+  "done": "Your friend is here to share your salad. Thank you! You earned a salad sticker.",
+  "added": "Into the bowl!",
+  "letter-hint": "Listen: mmm, mango. Tap M.",
+  "retry": "Try again.",
+  "one": "One!",
+  "two": "Two!",
+  "change-hint": "The total is 1,000 shillings. Subtract 1,000 from 1,500.",
+  "drop": "Drop the fruit in the bowl.",
+  "recap": "You helped Tembo buy two mangoes and one banana at the market. Together you put them in the bowl, made a salad and invited a friend to eat.",
 };
-const saladLine = key => storyText(...SALAD_LINES[key]);
+const saladLine = key => SALAD_LINES[key];
 
-let saladAudio = null;
-function narrateSalad(...lines) {
-  stopSaladVoice();
-  const phrases = lines.filter(Boolean);
-  const fallback = () => speak(phrases.join(' '), I18N.lang === 'en' ? 'en' : 'sw-raw');
-  /* sauti ya Nuru (Rehema / Imani) ikiwepo, ndiyo inayosimulia */
-  if (I18N.lang === 'en' || (Voice.enabled && navigator.onLine !== false)) return fallback();
-  // Use a local Swahili voice when the browser provides one. The bundled
-  // narration also works on devices without a Swahili voice installed.
-  const voice = window.speechSynthesis?.getVoices().find(v => v.localService && /^sw(?:-|$)/i.test(v.lang));
-  if (voice) {
-    const utterance = new SpeechSynthesisUtterance(phrases.join(' '));
-    utterance.voice = voice; utterance.lang = voice.lang; utterance.rate = .92;
-    window.speechSynthesis.speak(utterance);
-    return;
-  }
-  const clips = phrases.map(phrase => Object.keys(SALAD_LINES).find(k => SALAD_LINES[k][0] === phrase));
-  if (clips.some(key => !key)) return fallback();
-  const play = i => {
-    if (i >= clips.length) { saladAudio = null; return; }
-    const audio = new Audio('audio/salad/' + clips[i] + '.mp3');
-    saladAudio = audio;
-    audio.onended = () => { if (saladAudio === audio) play(i + 1); };
-    audio.play().catch(() => { if (saladAudio === audio) fallback(); });
-  };
-  play(0);
-}
-
+function narrateSalad(...lines) { speak(lines.filter(Boolean).join(' ')); }
 function stopSaladVoice() {
   Voice.stop();
-  if (saladAudio) {
-    saladAudio.onended = null;
-    saladAudio.pause();
-    saladAudio = null;
-  }
   window.speechSynthesis?.cancel();
-  if (window.HugoNative?.stopSpeaking) HugoNative.stopSpeaking();
+  window.HugoNative?.stopSpeaking?.();
 }
 
 function saladFruitName(key) {
-  return {embe: storyText('Embe', 'Mango'), ndizi: storyText('Ndizi', 'Banana'),
-    chungwa: storyText('Chungwa', 'Orange')}[key];
+  return {embe: 'Mango', ndizi: 'Banana',
+    chungwa: 'Orange'}[key];
 }
 
 function saladVessel(kind, fruits, label) {
@@ -103,9 +70,8 @@ HK.screens.saladStory = (el, params = {}) => {
     if (current) Store.saveChild({ ...current, saladStory: state });
   };
   save();
-  const text = storyText;
   const older = ['explorer', 'advanced'].includes(state.mode);
-  const guestName = key => ({twiga: text('Twiga', 'Giraffe'), kobe: text('Kobe', 'Tortoise'), simba: text('Simba', 'Lion')})[key];
+  const guestName = key => ({twiga: 'Giraffe', kobe: 'Tortoise', simba: 'Lion'})[key];
   let instruction = '', drag = null;
   const action = (value, label, art = '') =>
     `<button class="salad-choice" data-action="${value}">${art}<span>${label}</span></button>`;
@@ -121,10 +87,10 @@ HK.screens.saladStory = (el, params = {}) => {
     switch (state.stage) {
       case 'intro':
         instruction = saladLine('intro');
-        controls = action('start', text('Twende sokoni', 'Go to the market'), icon('chevR', 28));
+        controls = action('start', 'Go to the market', icon('chevR', 28));
         break;
       case 'letter':
-        heading = text('Herufi ya kwanza', 'First letter');
+        heading = 'First letter';
         guide = 'nuru';
         instruction = saladLine('letter');
         props = pic('embe', 72);
@@ -132,53 +98,53 @@ HK.screens.saladStory = (el, params = {}) => {
         break;
       case 'market': {
         guide = 'nuru';
-        heading = text('Soko Dogo', 'Little Market');
+        heading = 'Little Market';
         instruction = [
           saladLine('first'),
           saladLine('second'),
           saladLine('banana'),
         ][state.picked] || '';
-        props = saladVessel('basket', saladRecipe.slice(0, state.picked), text('Kikapu', 'Basket'));
-        if (older) receipt = `<div class="salad-receipt">${text('Bajeti','Budget')} <b>TSh 1,500</b></div>`;
+        props = saladVessel('basket', saladRecipe.slice(0, state.picked), 'Basket');
+        if (older) receipt = `<div class="salad-receipt">${'Budget'} <b>TSh 1,500</b></div>`;
         controls = ['chungwa','ndizi','embe'].map(k => action('buy-' + k, saladFruitName(k) + (older ? ' · ' + ({embe:400, ndizi:200, chungwa:300})[k] : ''), pic(k, 58))).join('');
         break;
       }
       case 'pay':
-        heading = text('Chenji sokoni', 'Market change');
+        heading = 'Market change';
         guide = 'nuru';
         instruction = saladLine('change');
-        props = saladVessel('basket', saladRecipe, text('Kikapu', 'Basket'));
+        props = saladVessel('basket', saladRecipe, 'Basket');
         receipt = '<div class="salad-receipt">2 × 400 + 1 × 200</div>';
         controls = [300,500,700].map(n => action('pay-' + n, 'TSh ' + n)).join('');
         break;
       case 'kitchen':
-        heading = text('Jikoni na Tembo', 'In Tembo’s kitchen');
+        heading = 'In Tembo’s kitchen';
         scene = 'kitchen';
         instruction = saladLine('mix');
-        props = saladVessel('bowl', state.mixed.map(i => saladRecipe[i]), text('Bakuli', 'Bowl'));
+        props = saladVessel('bowl', state.mixed.map(i => saladRecipe[i]), 'Bowl');
         controls = saladRecipe.map((k,i) => state.mixed.includes(i) ? '' :
           action('mix-' + i, saladFruitName(k), pic(k, 60))).join('');
         break;
       case 'invite':
-        heading = text('Karibu mezani', 'Come to the table');
+        heading = 'Come to the table';
         scene = 'kitchen';
         instruction = saladLine('invite');
-        props = saladVessel('bowl', saladRecipe, text('Saladi', 'Salad'));
+        props = saladVessel('bowl', saladRecipe, 'Salad');
         controls = saladGuests.map(k => action('invite-' + k, guestName(k), mascot(k, 62))).join('');
         break;
       case 'done':
         scene = 'kitchen';
         guide = state.guest;
-        heading = text('Saladi iko tayari!', 'The salad is ready!');
+        heading = 'The salad is ready!';
         instruction = saladLine('done');
         props = saladSticker();
-        controls = action('passport', text('Fungua pasipoti yangu', 'Open my passport'), icon('book', 26));
+        controls = action('next-episode', 'Next episode', icon('chevR', 22)) + action('passport', 'Open my passport', icon('book', 26));
         break;
       default:
         state = newSaladStory(child); return advance('intro');
     }
-    el.innerHTML = `<div class="topbar"><button class="icon-btn" data-action="back" aria-label="${text('Nyuma','Back')}">${icon('back')}</button>
-      <h1>${text('Safari na Nuru', 'Safari with Nuru')}</h1><button class="icon-btn" data-action="listen" aria-label="${text('Sikiliza tena','Listen again')}">${icon('volume')}</button></div>
+    el.innerHTML = `<div class="topbar"><button class="icon-btn" data-action="back" aria-label="${'Back'}">${icon('back')}</button>
+      <h1>${'Safari with Nuru'}</h1><button class="icon-btn" data-action="listen" aria-label="${'Listen again'}">${icon('volume')}</button></div>
       <div class="scroll salad-page notr"><div class="salad-stage scene-${scene}">${receipt}
       <div class="salad-hero-pair">${kidAvatar(child, 66)}${mascot(guide, 105)}</div>
       <div class="salad-props">${props}</div></div>
@@ -213,15 +179,16 @@ HK.screens.saladStory = (el, params = {}) => {
       const first = !state.earned;
       state.guest = value; state.earned = true;
       advance('done'); confetti(el);
-      /* mara ya kwanza: nyota 3, sarafu 10 na misheni ya somo */
+
       if (first) {
         const cur = Store.child(child.id);
         if (cur) { cur.stars = (cur.stars || 0) + 3; cur.coins = (cur.coins || 0) + 10; Store.saveChild(cur); }
         if (typeof markMission === 'function') markMission('lesson');
-        toast(text('Nyota 3 na sarafu 10!', '3 stars and 10 coins!'));
+        toast('3 stars and 10 coins!');
       }
       return;
     }
+    if (cmd === 'next') return safariGo(1, true);
     if (cmd === 'passport') {
       if (HK.stack[HK.stack.length - 2]?.name === 'safariPassport') return HK.back();
       HK.go('safariPassport', {}, {replace: true});
@@ -280,15 +247,18 @@ HK.screens.safariPassport = el => {
   const child = Store.active();
   if (!child) return HK.boot();
   const earned = !!child.saladStory?.earned;
-  const text = storyText;
-  el.innerHTML = `<div class="topbar"><button class="icon-btn" id="pb" aria-label="${text('Nyuma','Back')}">${icon('back')}</button>
-    <h1>${text('Pasipoti yangu ya Safari', 'My Safari Passport')}</h1></div>
+  el.innerHTML = `<div class="topbar"><button class="icon-btn" id="pb" aria-label="${'Back'}">${icon('back')}</button>
+    <h1>${'My Safari Passport'}</h1></div>
     <div class="scroll salad-page notr"><div class="salad-pass">
     ${kidAvatar(child, 72)}<h2>${esc(child.name)}</h2>
     ${earned ? `<button class="salad-seal" id="sticker">${saladSticker()}<strong>${saladTitle()}</strong>${icon('volume', 20)}</button>` :
-      `<p>${text('Saidia Tembo kutengeneza saladi ili upate stika yako ya kwanza.', 'Help Tembo make a fruit salad to earn your first sticker.')}</p>`}
-    <button class="btn" id="play-story">${icon('play', 22)}${earned ? text('Cheza hadithi tena', 'Play the story again') : saladTitle()}</button></div></div>`;
+      `<p>${'Help Tembo make a fruit salad to earn your first sticker.'}</p>`}
+    ${SAFARI_STORIES.slice(1).map((story, i) => child.safariSeries?.[i + 1]?.done ? `<button class="salad-seal" data-replay="${i+1}">${mascot(story.guide, 65)}<strong>${story.title}</strong><small>Replay episode</small></button>` : '').join('')}
+    <button class="btn ghost" id="all-stories">All episodes</button>
+    <button class="btn" id="play-story">${icon('play', 22)}${earned ? 'Play the story again' : saladTitle()}</button></div></div>`;
   $('#pb', el).onclick = () => HK.back();
+  $('#all-stories', el).onclick = () => HK.go('safariSeries');
+  $$('[data-replay]', el).forEach(button => button.onclick = () => safariGo(Number(button.dataset.replay)));
   $('#play-story', el).onclick = () => HK.go('saladStory', {replay: earned && child.saladStory?.stage === 'done'});
   if (earned) $('#sticker', el).onclick = () => narrateSalad(saladLine('recap'));
   return stopSaladVoice;

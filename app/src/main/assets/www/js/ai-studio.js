@@ -1,4 +1,4 @@
-/* HUGO KID - ai-studio.js : Studio ya AI kwa watoto wa miaka 8-12 */
+
 
 LESSONS.ai = {
   name: 'AI ni nini?', icon: 'robot', color: 'var(--navy)', hidden: true,
@@ -38,7 +38,7 @@ async function askJSON(text, maxTokens = 900) {
   if (!m) throw new Error('Jibu la AI halikueleweka');
   return JSON.parse(m[0]);
 }
-/* SVG salama: hakuna script, link wala matukio */
+
 function safeSVG(src) {
   const m = String(src).match(/<svg[\s\S]*<\/svg>/i);
   if (!m) return '';
@@ -56,14 +56,14 @@ HK.screens.aiStudio = (el) => {
   const c = Store.active();
   const mine = creations(c);
   el.innerHTML = `
-    <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Studio ya AI</h1></div>
+    <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>AI Studio</h1></div>
     <div class="scroll">
       <div class="hero" style="margin:4px 0 0;background:linear-gradient(135deg,#7B61FF,#1EA7F0)">
-        <div class="row"><span>${mascot('nuru', 64)}</span><div><div class="nm" style="font-size:20px">Unda na Nuru</div><div class="hi">Jifunze kutumia AI kuunda hadithi, michezo, picha na video.</div></div></div>
+        <div class="row"><span>${mascot('nuru', 64)}</span><div><div class="nm" style="font-size:20px">Create with Nuru</div><div class="hi">Learn to use AI to create stories, games, pictures and videos.</div></div></div>
       </div>
-      <div class="section-title">Anza hapa</div>
+      <div class="section-title">Start here</div>
       <button class="item" data-lesson="1"><div class="i-ic" style="background:var(--navy)">${icon('robot', 26)}</div>
-        <div class="grow"><div class="i-title">AI ni nini?</div><div class="i-sub">Somo fupi na maswali 5</div></div>${icon('chevR', 22)}</button>
+        <div class="grow"><div class="i-title">What is AI?</div><div class="i-sub">A short lesson and 5 questions</div></div>${icon('chevR', 22)}</button>
       <div class="section-title">Miradi</div>
       ${PROJECTS.map(p => `<button class="item" data-p="${p.id}"><div class="i-ic" style="background:${p.color}">${icon(p.icon, 26)}</div>
         <div class="grow"><div class="i-title">${p.name}</div><div class="i-sub">${p.sub}</div></div>${icon('chevR', 22)}</button>`).join('')}
@@ -74,13 +74,12 @@ HK.screens.aiStudio = (el) => {
   $('#bk', el).onclick = () => HK.back();
   $('[data-lesson]', el).onclick = () => HK.go('cardLesson', { key: 'ai' });
   $$('[data-p]', el).forEach(b => b.onclick = () => {
-    if (!AI.ready()) return modal(el, { iconName: 'nuru', title: 'Muombe mzazi', text: 'Studio ya AI inahitaji mzazi aweke AI kwenye Mipangilio.', buttons: [{ label: 'Sawa' }] });
+    if (!AI.ready()) return modal(el, { iconName: 'nuru', title: "Ask your parent", text: 'Studio ya AI inahitaji mzazi aweke AI kwenye Mipangilio.', buttons: [{ label: 'Sawa' }] });
     HK.go('proj_' + b.dataset.p);
   });
   $$('[data-m]', el).forEach(b => b.onclick = () => HK.go('creation', { id: b.dataset.m }));
 };
 
-/* msaada: fremu ya mradi */
 function projFrame(el, title, intro) {
   const c = Store.active();
   const t0 = Date.now();
@@ -91,7 +90,7 @@ function projFrame(el, title, intro) {
   return { c, body: $('#pw', el), done: () => HK.addLearnTime(c, Math.round((Date.now() - t0) / 1000)) };
 }
 const busyBtn = (b, on, label) => { b.disabled = on; b.innerHTML = on ? 'Nuru anaunda...' : label; };
-const promptTip = (txt) => `<div class="card" style="background:#F2EEFF;border-color:#E2DAFF"><b style="font-size:13px;color:#5A43D6">Agizo lako kwa AI</b><p style="font-size:14px;margin-top:4px;font-style:italic">${esc(txt)}</p></div>`;
+const promptTip = (txt) => `<div class="card" style="background:#F2EEFF;border-color:#E2DAFF"><b style="font-size:13px;color:#5A43D6">Your instruction to the AI</b><p style="font-size:14px;margin-top:4px;font-style:italic">${esc(txt)}</p></div>`;
 
 /* ---------- 1. Hadithi ---------- */
 HK.screens.proj_story = (el) => {
@@ -100,7 +99,7 @@ HK.screens.proj_story = (el) => {
   P.body.innerHTML = `
     <label class="label">Mhusika mkuu</label><input class="field" id="who" placeholder="Mfano: Twiga mdogo anayeitwa Zuri">
     <label class="label">Mahali</label><input class="field" id="where" placeholder="Mfano: Mlima Kilimanjaro">
-    <label class="label">Tatizo au changamoto</label><input class="field" id="prob" placeholder="Mfano: amepoteza rafiki yake">
+    <label class="label">Problem or challenge</label><input class="field" id="prob" placeholder="Mfano: amepoteza rafiki yake">
     <div style="height:16px"></div><button class="btn block" id="go">${icon('send', 20)} Anza hadithi</button><div id="out"></div>`;
   let round = 0;
   const step = async (choice) => {
@@ -124,29 +123,28 @@ HK.screens.proj_story = (el) => {
           `<button class="btn block" id="save">${icon('check', 20)} Hifadhi hadithi yangu</button>`);
       $$('.choice', el).forEach(x => x.onclick = () => step(x.textContent));
       const sv = $('#save', el);
-      if (sv) sv.onclick = () => { saveCreation(P.c, { type: 'story', title: story.title, data: story.map(s => s.text), summary: story.map(s => s.text).join(' ').slice(0, 300) }); Sfx.win(); confetti(el); toast('Hadithi imehifadhiwa'); HK.back(); };
+      if (sv) sv.onclick = () => { saveCreation(P.c, { type: 'story', title: story.title, data: story.map(s => s.text), summary: story.map(s => s.text).join(' ').slice(0, 300) }); Sfx.win(); confetti(el); toast("Story saved"); HK.back(); };
       const go = $('#go', el); if (go) go.remove();
       $$('#who, #where, #prob', el).forEach(i => i.disabled = true);
-    } catch (e) { toast('Nuru hakuweza kuandika. Jaribu tena'); if (b) busyBtn(b, false, 'Jaribu tena'); }
+    } catch (e) { toast("Nuru couldn't write it. Try again"); if (b) busyBtn(b, false, 'Jaribu tena'); }
   };
   $('#go', el).onclick = () => {
-    if (!$('#who', el).value.trim() || !$('#where', el).value.trim()) return toast('Jaza mhusika na mahali');
+    if (!$('#who', el).value.trim() || !$('#where', el).value.trim()) return toast("Fill in the character and the place");
     step('');
   };
   return P.done;
 };
 
-/* ---------- 2. Mchezo wa maswali ---------- */
 HK.screens.proj_quiz = (el) => {
   const P = projFrame(el, 'Mchezo wa maswali', 'Chagua mada unayoipenda. Nitatengeneza maswali, wewe utayakagua kisha utacheza mchezo wako!');
   P.body.innerHTML = `
     <label class="label">Mada</label><input class="field" id="topic" placeholder="Mfano: Wanyama wa Serengeti">
-    <label class="label">Ugumu</label><div class="chips" id="lvl"><button class="chip on">Rahisi</button><button class="chip">Wastani</button><button class="chip">Mgumu</button></div>
+    <label class="label">Ugumu</label><div class="chips" id="lvl"><button class="chip on">Easy</button><button class="chip">Wastani</button><button class="chip">Mgumu</button></div>
     <div style="height:16px"></div><button class="btn block" id="go">${icon('send', 20)} Tengeneza maswali</button><div id="out"></div>`;
   let lvl = 'Rahisi';
   $$('#lvl .chip', el).forEach(b => b.onclick = () => { lvl = b.textContent; $$('#lvl .chip', el).forEach(x => x.classList.toggle('on', x === b)); });
   $('#go', el).onclick = async () => {
-    const topic = $('#topic', el).value.trim(); if (!topic) return toast('Andika mada');
+    const topic = $('#topic', el).value.trim(); if (!topic) return toast("Enter a topic");
     const b = $('#go', el); busyBtn(b, true);
     try {
       const qs = await askJSON(`Tengeneza maswali 5 ya chaguo kuhusu "${topic}" kwa mtoto wa miaka ${ageYears(P.c.birth)}, kiwango ${lvl}. Ukweli uwe sahihi. Rudisha [{"q":"swali","opts":["a","b","c"],"a":0}] ambapo a ni namba ya jibu sahihi.`);
@@ -155,7 +153,7 @@ HK.screens.proj_quiz = (el) => {
       $('#out', el).innerHTML = promptTip(`Maswali 5 kuhusu ${topic}, kiwango ${lvl}`) +
         `<div class="section-title">Kagua maswali yako</div>` +
         list.map((q, i) => `<div class="card"><b>${i + 1}. ${esc(q.q)}</b><p style="margin-top:6px">${q.opts.map((o, k) => `${k === q.a ? '<b style="color:var(--teal-d)">' + esc(o) + ' (sahihi)</b>' : esc(o)}`).join(' · ')}</p></div>`).join('') +
-        `<div class="card" style="background:#FFF4D2"><p>Je, majibu yote ni sahihi? AI inaweza kukosea. Ukiona kosa, tengeneza upya.</p></div>
+        `<div class="card" style="background:#FFF4D2"><p>Are all the answers correct? AI can make mistakes. If you see an error, create again.</p></div>
         <div class="btn-row"><button class="btn ghost" id="again">${icon('repeat', 20)} Upya</button><button class="btn" id="save" style="flex:2">${icon('play', 20)} Hifadhi na ucheze</button></div>`;
       $('#again', el).onclick = () => $('#go', el).click();
       $('#save', el).onclick = () => {
@@ -164,7 +162,7 @@ HK.screens.proj_quiz = (el) => {
         HK.go('playQuiz', { title, list }, { replace: true });
       };
       busyBtn(b, false, icon('send', 20) + ' Tengeneza tena');
-    } catch (e) { toast('Haikufanikiwa. Jaribu mada nyingine'); busyBtn(b, false, icon('send', 20) + ' Jaribu tena'); }
+    } catch (e) { toast("That didn't work. Try another topic"); busyBtn(b, false, icon('send', 20) + ' Jaribu tena'); }
   };
   return P.done;
 };
@@ -176,7 +174,6 @@ HK.screens.playQuiz = (el, p) => {
   return () => HK.addLearnTime(c, Math.round((Date.now() - t0) / 1000));
 };
 
-/* ---------- 3. Chora kwa maneno ---------- */
 HK.screens.proj_draw = (el) => {
   const P = projFrame(el, 'Chora kwa maneno', 'Eleza picha unayotaka: nini kiwepo, rangi zake, na kiko wapi. Kadiri unavyoeleza vizuri, ndivyo picha inavyokuwa bora!');
   P.body.innerHTML = `
@@ -186,7 +183,7 @@ HK.screens.proj_draw = (el) => {
     <div style="height:16px"></div><button class="btn block" id="go">${icon('image', 20)} Chora</button><div id="out"></div>`;
   $$('.add', el).forEach(b => b.onclick = () => { const t = $('#d', el); t.value = (t.value ? t.value + ', ' : '') + b.textContent.slice(2); });
   $('#go', el).onclick = async () => {
-    const d = $('#d', el).value.trim(); if (d.length < 8) return toast('Eleza picha zaidi kidogo');
+    const d = $('#d', el).value.trim(); if (d.length < 8) return toast("Describe the picture a little more");
     const b = $('#go', el); busyBtn(b, true);
     try {
       const raw = await AI.ask({ system: STUDIO_RULES, maxTokens: 2500, text: `Chora picha hii kama SVG rahisi ya mtindo wa katuni kwa watoto: "${d}". Tumia viewBox="0 0 300 300", maumbo (rect, circle, ellipse, path, polygon) na rangi angavu. Usitumie maandishi, picha za nje wala script. Kisha mstari mmoja baada ya SVG: TIP: kidokezo kimoja cha kuboresha maelezo.` });
@@ -196,10 +193,10 @@ HK.screens.proj_draw = (el) => {
       $('#out', el).innerHTML = promptTip(d) + `<div class="lesson-card" style="padding:12px;margin:12px 0">${svg}</div>` +
         (tip ? `<div class="card"><b style="font-size:13px">Kidokezo cha Nuru</b><p>${esc(tip)}</p></div>` : '') +
         `<div class="btn-row"><button class="btn ghost" id="again">${icon('repeat', 20)} Badilisha</button><button class="btn" id="save" style="flex:2">${icon('check', 20)} Hifadhi picha</button></div>`;
-      $('#again', el).onclick = () => { $('#d', el).focus(); toast('Ongeza maelezo, kisha Chora tena'); };
-      $('#save', el).onclick = () => { saveCreation(P.c, { type: 'draw', title: d.slice(0, 40), data: svg, summary: d }); Sfx.win(); toast('Picha imehifadhiwa'); HK.back(); };
+      $('#again', el).onclick = () => { $('#d', el).focus(); toast("Add details, then Draw again"); };
+      $('#save', el).onclick = () => { saveCreation(P.c, { type: 'draw', title: d.slice(0, 40), data: svg, summary: d }); Sfx.win(); toast("Picture saved"); HK.back(); };
       busyBtn(b, false, icon('image', 20) + ' Chora tena');
-    } catch (e) { toast('Haikuchora vizuri. Jaribu tena'); busyBtn(b, false, icon('image', 20) + ' Jaribu tena'); }
+    } catch (e) { toast("It didn't draw well. Try again"); busyBtn(b, false, icon('image', 20) + ' Jaribu tena'); }
   };
   return P.done;
 };
@@ -214,7 +211,7 @@ HK.screens.proj_video = (el) => {
   let kind = 'Ya kufundisha';
   $$('#kind .chip', el).forEach(b => b.onclick = () => { kind = b.textContent; $$('#kind .chip', el).forEach(x => x.classList.toggle('on', x === b)); });
   $('#go', el).onclick = async () => {
-    const idea = $('#idea', el).value.trim(); if (!idea) return toast('Andika wazo');
+    const idea = $('#idea', el).value.trim(); if (!idea) return toast("Write an idea");
     const b = $('#go', el); busyBtn(b, true);
     try {
       const j = await askJSON(`Panga video fupi (dakika 1) ${kind.toLowerCase()} ambayo mtoto anaweza kurekodi nyumbani na mzazi: "${idea}". Rudisha {"title":"...","scenes":[{"scene":"Tukio 1: ...","action":"anachofanya","say":"maneno ya kusema"}],"tip":"kidokezo kimoja cha kurekodi vizuri"} na matukio 4.`);
@@ -222,21 +219,20 @@ HK.screens.proj_video = (el) => {
         (j.scenes || []).map((s, i) => `<div class="card"><span class="chip-tag teal">Tukio ${i + 1}</span><h3 style="margin-top:8px">${esc(s.scene)}</h3><p>${esc(s.action)}</p>${s.say ? `<p style="margin-top:6px;font-style:italic">"${esc(s.say)}"</p>` : ''}</div>`).join('') +
         (j.tip ? `<div class="card" style="background:#FFF4D2"><b style="font-size:13px">Kidokezo</b><p>${esc(j.tip)}</p></div>` : '') +
         `<button class="btn block" id="save">${icon('check', 20)} Hifadhi mpango</button>`;
-      $('#save', el).onclick = () => { saveCreation(P.c, { type: 'video', title: j.title || idea, data: j, summary: idea }); Sfx.win(); toast('Mpango umehifadhiwa. Mwombe mzazi mrekodi pamoja!'); HK.back(); };
+      $('#save', el).onclick = () => { saveCreation(P.c, { type: 'video', title: j.title || idea, data: j, summary: idea }); Sfx.win(); toast("Plan saved. Ask your parent to record it with you!"); HK.back(); };
       busyBtn(b, false, icon('camera', 20) + ' Panga upya');
-    } catch (e) { toast('Haikufanikiwa. Jaribu tena'); busyBtn(b, false, icon('camera', 20) + ' Jaribu tena'); }
+    } catch (e) { toast("That didn't work. Try again"); busyBtn(b, false, icon('camera', 20) + ' Jaribu tena'); }
   };
   return P.done;
 };
 
-/* ---------- 5. Buni mchezo ---------- */
 HK.screens.proj_design = (el) => {
   const P = projFrame(el, 'Buni mchezo', 'Kila mchezo una lengo, sheria na ngazi. Niambie wazo lako, tutaujenga pamoja!');
   P.body.innerHTML = `
     <label class="label">Wazo la mchezo</label><textarea class="field" id="idea" placeholder="Mfano: Kobe anakusanya matunda msituni huku akiepuka mvua"></textarea>
     <div style="height:16px"></div><button class="btn block" id="go">${icon('robot', 20)} Buni mchezo</button><div id="out"></div>`;
   $('#go', el).onclick = async () => {
-    const idea = $('#idea', el).value.trim(); if (idea.length < 8) return toast('Eleza wazo zaidi kidogo');
+    const idea = $('#idea', el).value.trim(); if (idea.length < 8) return toast("Describe the idea a little more");
     const b = $('#go', el); busyBtn(b, true);
     try {
       const j = await askJSON(`Msaidie mtoto kubuni mchezo wa simu kutokana na wazo hili: "${idea}". Rudisha {"name":"jina la mchezo","goal":"lengo","controls":"jinsi ya kucheza kwa kugusa","rules":["sheria 3"],"levels":["ngazi 1","ngazi 2","ngazi 3"],"twist":"kitu kimoja cha kushangaza","learn":"mtoto atajifunza nini","question":"swali moja la kumfanya mtoto afikiri zaidi kuhusu mchezo wake"}`);
@@ -251,14 +247,13 @@ HK.screens.proj_design = (el) => {
         (j.question ? `<div class="card" style="background:#F2EEFF"><b style="font-size:13px;color:#5A43D6">Nuru anakuuliza</b><p>${esc(j.question)}</p></div>` : '') +
         `<button class="btn block" id="save">${icon('check', 20)} Hifadhi mchezo wangu</button>`;
       if (j.question) speak(j.question);
-      $('#save', el).onclick = () => { saveCreation(P.c, { type: 'design', title: j.name, data: j, summary: idea }); Sfx.win(); confetti(el); toast('Mchezo wako umehifadhiwa'); HK.back(); };
+      $('#save', el).onclick = () => { saveCreation(P.c, { type: 'design', title: j.name, data: j, summary: idea }); Sfx.win(); confetti(el); toast("Your game is saved"); HK.back(); };
       busyBtn(b, false, icon('robot', 20) + ' Buni upya');
-    } catch (e) { toast('Haikufanikiwa. Jaribu tena'); busyBtn(b, false, icon('robot', 20) + ' Jaribu tena'); }
+    } catch (e) { toast("That didn't work. Try again"); busyBtn(b, false, icon('robot', 20) + ' Jaribu tena'); }
   };
   return P.done;
 };
 
-/* ---------- Kuangalia kazi iliyohifadhiwa ---------- */
 HK.screens.creation = (el, p) => {
   const c = Store.active();
   const m = creations(c).find(x => x.id === p.id);
@@ -273,5 +268,5 @@ HK.screens.creation = (el, p) => {
     <div style="height:14px"></div><button class="btn block ghost" id="del">${icon('trash', 20)} Futa</button></div>`;
   $('#bk', el).onclick = () => HK.back();
   const pl = $('#play', el); if (pl) pl.onclick = () => HK.go('playQuiz', { title: m.title, list: m.data });
-  $('#del', el).onclick = () => confirmBox(el, 'Futa kazi hii?', '', 'Futa', () => { Store.set('creations_' + c.id, creations(c).filter(x => x.id !== m.id)); HK.back(); });
+  $('#del', el).onclick = () => confirmBox(el, "Delete this task?", '', "Delete", () => { Store.set('creations_' + c.id, creations(c).filter(x => x.id !== m.id)); HK.back(); });
 };

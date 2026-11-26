@@ -1,4 +1,4 @@
-/* HUGO KID - i18n-en.js : tafsiri ya Kiingereza ya maandishi ya programu */
+/* English translations for legacy strings. */
 const I18N_EN = {
 "! Gusa picha kuanza.": "! Tap a picture to start.",
 "! Kazi yako imetumwa kwa mwalimu.": "! Your work has been sent to the teacher.",

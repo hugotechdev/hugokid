@@ -1,4 +1,4 @@
-/* HUGO KID - content.js : maudhui ya masomo, lugha na imani */
+/* Vocabulary, lessons and quiz data. */
 
 const LANGS = {
   en: { name: 'English', tts: 'en' },
@@ -81,7 +81,6 @@ function vocabWord(row, lang) {
   return { word: row[5], sub: row[6], say: row[5] };
 }
 
-/* Kadi za masomo: { t: kichwa, x: maelezo, q: [swali, [chaguo], indexSahihi] } */
 const LESSONS = {
   sayansi: {
     name: 'Sayansi', icon: 'sunrise', color: 'var(--teal)',
@@ -121,7 +120,6 @@ const LESSONS = {
   },
 };
 
-/* ---------- Imani (mzazi amechagua) ---------- */
 const FAITH = {
   islam: {
     name: 'Uislamu',

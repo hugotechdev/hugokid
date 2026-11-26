@@ -1,4 +1,4 @@
-/* HUGO KID - school.js : dashboards za mkuu wa shule (msimamizi) na mwalimu */
+
 
 const isAdmin = () => Net.role() === 'school_admin';
 const dash = (el, title, sub, body, back = true, actions = '') => {
@@ -15,14 +15,13 @@ const pct = v => v == null ? '-' : v + '%';
 const fmtDate = t => t ? new Date(t).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'short' }) : '';
 const statCard = (n, v, ic, col) => `<div class="stat-card" style="--sc:${col}"><span class="sc-ic">${icon(ic, 22)}</span><b>${v ?? '-'}</b><span>${esc(n)}</span></div>`;
 
-/* ---------- Mwanzo wa shule / mwalimu ---------- */
 HK.screens.schoolHome = (el) => {
   const u = Net.user();
   if (!u) return HK.boot();
   const admin = isAdmin();
   const body = dash(el, u.school ? u.school.name : 'Shule', (admin ? (u.school && u.school.type === 'tutor' ? 'Mwalimu binafsi' : 'Mkuu wa shule') : 'Mwalimu') + ' · ' + u.name, loading, false,
     `<button class="icon-btn" id="out" title="Toka">${icon('logout', 20)}</button>`);
-  $('#out', el).onclick = () => confirmBox(el, 'Toka kwenye akaunti?', '', 'Toka', () => { Net.logout(); HK.go('welcome', {}, { reset: true }); });
+  $('#out', el).onclick = () => confirmBox(el, "Sign out of the account?", '', "Exit", () => { Net.logout(); HK.go('welcome', {}, { reset: true }); });
   HK.setBack(() => true);
   Net.connect();
   const off = Net.on(m => { if (m.t === 'refresh') HK.render(); });
@@ -47,7 +46,7 @@ HK.screens.schoolHome = (el) => {
           <div class="i-ic" style="background:var(--blue)">${icon('build', 24)}</div>
           <div class="grow"><div class="i-title">${esc(c.name)}</div><div class="i-sub">Wanafunzi ${c.students}${c.teacher ? ' · Mwl. ' + esc(c.teacher) : ''}</div></div>${icon('chevR', 20)}</button>`).join('')}</div>`
         : `<div class="empty">${admin ? 'Bado hakuna madarasa. Fungua "Madarasa" uanze.' : 'Bado hujapangiwa darasa. Mwombe mkuu wa shule.'}</div>`}
-        ${admin && an.classes.length ? `<div class="section-title">Utendaji kwa darasa</div><div class="card table-card"><table><tr><th>Darasa</th><th>Wanafunzi</th><th>Ufaulu</th><th>Homework</th><th>Mahudhurio</th></tr>
+        ${admin && an.classes.length ? `<div class="section-title">Performance by class</div><div class="card table-card"><table><tr><th>Class</th><th>Wanafunzi</th><th>Ufaulu</th><th>Homework</th><th>Mahudhurio</th></tr>
           ${an.classes.map(c => `<tr><td>${esc(c.name)}</td><td>${c.students}</td><td>${pct(c.performance)}</td><td>${pct(c.completion)}</td><td>${pct(c.attendance)}</td></tr>`).join('')}</table></div>` : ''}
         ${anns.length ? `<div class="section-title">Matangazo</div>${anns.slice(0, 3).map(a => `<div class="card"><h3>${esc(a.title)}</h3><p>${esc(a.body || '')}</p><p class="muted" style="font-size:12px">${fmtDate(a.created)}</p></div>`).join('')}` : ''}`;
       $$('[data-go]', body).forEach(b => b.onclick = () => HK.go(b.dataset.go));
@@ -65,7 +64,7 @@ HK.screens.aClasses = (el) => {
       const [classes, teachers, me] = await Promise.all([Net.get('/api/classes'), Net.get('/api/teachers'), Net.get('/api/me')]);
       const levels = (Net.user().school || {}).levels || me.levels;
       body.innerHTML = `<div class="card">
-          <h3>Ongeza darasa</h3>
+          <h3>Add class</h3>
           <div class="form-row"><select class="field" id="lv">${levels.map(l => `<option>${esc(l)}</option>`).join('')}</select>
           <input class="field" id="st" placeholder="Mkondo (mf. A)" style="max-width:140px">
           <select class="field" id="tc"><option value="">Mwalimu wa darasa</option>${teachers.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('')}<option value="${Net.user().id}">Mimi (${esc(Net.user().name)})</option></select></div>
@@ -74,8 +73,8 @@ HK.screens.aClasses = (el) => {
           <div class="grow"><div class="i-title">${esc(c.name)}</div><div class="i-sub">Wanafunzi ${c.students}</div></div>
           <select class="field" data-tc="${c.id}" style="max-width:190px;padding:10px">${['<option value="">Hakuna mwalimu</option>', ...teachers.map(t => `<option value="${t.id}" ${c.teacher_id === t.id ? 'selected' : ''}>${esc(t.name)}</option>`), `<option value="${Net.user().id}" ${c.teacher_id === Net.user().id ? 'selected' : ''}>Mimi</option>`].join('')}</select>
           <button class="icon-btn" data-open="${c.id}">${icon('chevR', 20)}</button></div>`).join('')}`;
-      $('#add', body).onclick = async () => { try { await Net.post('/api/classes', { level: $('#lv', body).value, stream: $('#st', body).value, teacher_id: $('#tc', body).value || null }); toast('Darasa limeongezwa'); HK.render(); } catch (e) { toast(e.message); } };
-      $$('[data-tc]', body).forEach(s => s.onchange = async () => { const c = classes.find(x => x.id === +s.dataset.tc); try { await Net.put('/api/classes/' + c.id, { level: c.level, stream: c.stream, teacher_id: s.value || null }); toast('Imehifadhiwa'); } catch (e) { toast(e.message); } });
+      $('#add', body).onclick = async () => { try { await Net.post('/api/classes', { level: $('#lv', body).value, stream: $('#st', body).value, teacher_id: $('#tc', body).value || null }); toast("Class added"); HK.render(); } catch (e) { toast(e.message); } };
+      $$('[data-tc]', body).forEach(s => s.onchange = async () => { const c = classes.find(x => x.id === +s.dataset.tc); try { await Net.put('/api/classes/' + c.id, { level: c.level, stream: c.stream, teacher_id: s.value || null }); toast("Saved"); } catch (e) { toast(e.message); } });
       $$('[data-open]', body).forEach(b => b.onclick = () => HK.go('tClass', { id: +b.dataset.open }));
     } catch (e) { body.innerHTML = errBox(e); }
   })();
@@ -84,11 +83,11 @@ HK.screens.aClasses = (el) => {
 /* ---------- Walimu ---------- */
 HK.screens.aTeachers = (el) => {
   const body = dash(el, 'Walimu', '', loading);
-  const showCreds = r => modal(null, { iconName: 'key', title: 'Taarifa za kuingia', html: `<div class="card" style="text-align:left"><p>Simu/barua pepe: <b>${esc(r.login)}</b></p><p>Nenosiri la muda: <b style="font-size:20px;letter-spacing:1px">${esc(r.password)}</b></p></div><p style="font-size:13px">Mpe mwalimu taarifa hizi. Atabadilisha nenosiri akiingia mara ya kwanza.</p>`, buttons: [{ label: 'Sawa' }] });
+  const showCreds = r => modal(null, { iconName: 'key', title: 'Taarifa za kuingia', html: `<div class="card" style="text-align:left"><p>Simu/barua pepe: <b>${esc(r.login)}</b></p><p>Nenosiri la muda: <b style="font-size:20px;letter-spacing:1px">${esc(r.password)}</b></p></div><p style="font-size:13px">Give the teacher these details. They will change the password on first sign-in.</p>`, buttons: [{ label: 'Sawa' }] });
   (async () => {
     try {
       const list = await Net.get('/api/teachers');
-      body.innerHTML = `<div class="card"><h3>Ongeza mwalimu</h3>
+      body.innerHTML = `<div class="card"><h3>Add teacher</h3>
           <div class="form-row"><input class="field" id="n" placeholder="Jina kamili"><input class="field" id="p" placeholder="Namba ya simu" inputmode="tel"><input class="field" id="e" placeholder="Barua pepe (si lazima)"></div>
           <button class="btn" id="add" style="margin-top:12px">${icon('plus', 20)} Ongeza</button></div>
         ${list.length ? list.map(t => `<div class="item" style="cursor:default"><div class="i-ic" style="background:var(--teal)">${icon('user', 22)}</div>
@@ -96,7 +95,7 @@ HK.screens.aTeachers = (el) => {
           <button class="btn small ghost" data-reset="${t.id}">${icon('key', 16)} Nenosiri</button><button class="icon-btn" data-del="${t.id}">${icon('trash', 18)}</button></div>`).join('') : '<div class="empty">Bado hakuna walimu.</div>'}`;
       $('#add', body).onclick = async () => { try { const r = await Net.post('/api/teachers', { name: $('#n', body).value, phone: $('#p', body).value, email: $('#e', body).value }); HK.render(); showCreds(r); } catch (e) { toast(e.message); } };
       $$('[data-reset]', body).forEach(b => b.onclick = async () => { try { showCreds(await Net.post(`/api/teachers/${b.dataset.reset}/reset`)); } catch (e) { toast(e.message); } });
-      $$('[data-del]', body).forEach(b => b.onclick = () => confirmBox(el, 'Ondoa mwalimu?', 'Hataweza kuingia tena.', 'Ondoa', async () => { await Net.del('/api/teachers/' + b.dataset.del); HK.render(); }));
+      $$('[data-del]', body).forEach(b => b.onclick = () => confirmBox(el, "Remove teacher?", "They will not be able to sign in again.", "Remove", async () => { await Net.del('/api/teachers/' + b.dataset.del); HK.render(); }));
     } catch (e) { body.innerHTML = errBox(e); }
   })();
 };
@@ -105,14 +104,13 @@ HK.screens.aTeachers = (el) => {
 HK.screens.aParents = (el) => {
   const body = dash(el, 'Wazazi', 'Wazazi walioungana na wanafunzi wa shule', loading);
   Net.get('/api/parents').then(list => {
-    body.innerHTML = list.length ? `<input class="field" id="f" placeholder="Tafuta jina au simu" style="margin-bottom:12px"><div class="card table-card"><table id="t"><tr><th>Mzazi</th><th>Simu</th><th>Watoto</th></tr>
+    body.innerHTML = list.length ? `<input class="field" id="f" placeholder="Tafuta jina au simu" style="margin-bottom:12px"><div class="card table-card"><table id="t"><tr><th>Parent</th><th>Simu</th><th>Watoto</th></tr>
       ${list.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.phone || p.email || '')}</td><td>${p.children.map(c => esc(c.name) + ' (' + esc(c.class_name) + ')').join('<br>')}</td></tr>`).join('')}</table></div>`
       : '<div class="empty">Bado hakuna mzazi aliyeunganisha. Wazazi wanaunganisha kwa msimbo wa mwanafunzi.</div>';
     const f = $('#f', body); if (f) f.oninput = () => $$('#t tr', body).forEach((r, i) => { if (i) r.style.display = r.textContent.toLowerCase().includes(f.value.toLowerCase()) ? '' : 'none'; });
   }).catch(e => { body.innerHTML = errBox(e); });
 };
 
-/* ---------- Masomo ya shule ---------- */
 HK.screens.aSubjects = (el) => {
   const body = dash(el, 'Masomo', '', loading);
   Net.get('/api/subjects').then(list => {
@@ -123,7 +121,6 @@ HK.screens.aSubjects = (el) => {
   }).catch(e => { body.innerHTML = errBox(e); });
 };
 
-/* ---------- Mipangilio ya shule / akaunti ---------- */
 HK.screens.aSettings = (el) => {
   const u = Net.user();
   const body = dash(el, 'Mipangilio', '', loading);
@@ -142,7 +139,7 @@ HK.screens.aSettings = (el) => {
       $$('#lv .chip', body).forEach(b => b.onclick = () => b.classList.toggle('on'));
       $('#save', body).onclick = async () => {
         const levels = $$('#lv .chip.on', body).map(b => b.dataset.l);
-        try { await Net.put('/api/school', { name: $('#n', body).value, region: $('#r', body).value, district: $('#d', body).value, levels }); const a = Net.acct(); a.user.school.levels = levels; a.user.school.name = $('#n', body).value; Net.setAcct(a); toast('Imehifadhiwa'); } catch (e) { toast(e.message); }
+        try { await Net.put('/api/school', { name: $('#n', body).value, region: $('#r', body).value, district: $('#d', body).value, levels }); const a = Net.acct(); a.user.school.levels = levels; a.user.school.name = $('#n', body).value; Net.setAcct(a); toast("Saved"); } catch (e) { toast(e.message); }
       };
     }
     $('#pw', body).onclick = () => HK.go('changePass');
@@ -151,7 +148,6 @@ HK.screens.aSettings = (el) => {
   })();
 };
 
-/* ---------- Darasa (mwalimu / msimamizi) ---------- */
 HK.screens.tClass = (el, p) => {
   let tab = p.tab || 'hw';
   const body = dash(el, 'Darasa', '', loading);
@@ -176,7 +172,7 @@ HK.screens.tClass = (el, p) => {
         html = `<div class="card"><h3>Ongeza wanafunzi</h3><p style="font-size:13px">Andika jina moja kwa kila mstari.</p>
           <textarea class="field" id="names" placeholder="Amani Juma&#10;Neema Ali"></textarea>
           <div class="btn-row" style="margin-top:12px"><button class="btn" id="add">${icon('plus', 20)} Ongeza</button><button class="btn ghost" id="print">${icon('file', 20)} Chapisha misimbo</button></div></div>
-          <div class="card table-card"><table><tr><th>Mwanafunzi</th><th>Msimbo wa mzazi</th><th>Mzazi</th>${isAdmin() ? '<th></th>' : ''}</tr>
+          <div class="card table-card"><table><tr><th>Mwanafunzi</th><th>Parent code</th><th>Parent</th>${isAdmin() ? '<th></th>' : ''}</tr>
           ${list.map(s => `<tr><td>${esc(s.name)}</td><td><b class="code">${esc(s.link_code || '-')}</b></td><td>${s.parent ? esc(s.parent.name) + '<br><span class="muted">' + esc(s.parent.phone || '') + '</span><br><button class="btn small ghost" data-msg="' + s.id + '" data-n="' + esc(s.name) + '" style="margin-top:6px;padding:6px 10px">Ujumbe</button>' : '<span class="muted">Bado</span>'}</td>
             ${isAdmin() ? `<td><button class="icon-btn" data-del="${s.id}" style="width:36px;height:36px">${icon('trash', 16)}</button></td>` : ''}</tr>`).join('')}</table></div>`;
         body.dataset.students = JSON.stringify(list);
@@ -205,17 +201,17 @@ HK.screens.tClass = (el, p) => {
       const nb = $('#new', body); if (nb) nb.onclick = () => HK.go('tHwNew', { classId: c.id, className: c.name });
       $$('[data-hw]', body).forEach(b => b.onclick = () => HK.go('tHw', { id: +b.dataset.hw }));
       const add = $('#add', body);
-      if (add) add.onclick = async () => { const names = $('#names', body).value.split('\n').map(x => x.trim()).filter(Boolean); if (!names.length) return toast('Andika majina'); try { await Net.post(`/api/classes/${c.id}/students`, { names }); toast('Wameongezwa'); draw(); } catch (e) { toast(e.message); } };
+      if (add) add.onclick = async () => { const names = $('#names', body).value.split('\n').map(x => x.trim()).filter(Boolean); if (!names.length) return toast("Enter names"); try { await Net.post(`/api/classes/${c.id}/students`, { names }); toast("Added"); draw(); } catch (e) { toast(e.message); } };
       const pr = $('#print', body);
       if (pr) pr.onclick = () => printCodes(c, JSON.parse(body.dataset.students || '[]'));
-      $$('[data-del]', body).forEach(b => b.onclick = () => confirmBox(el, 'Ondoa mwanafunzi?', '', 'Ondoa', async () => { await Net.del('/api/students/' + b.dataset.del); draw(); }));
+      $$('[data-del]', body).forEach(b => b.onclick = () => confirmBox(el, "Remove student?", '', "Remove", async () => { await Net.del('/api/students/' + b.dataset.del); draw(); }));
       $$('[data-msg]', body).forEach(b => b.onclick = () => HK.go('thread', { childId: +b.dataset.msg, name: b.dataset.n }));
       if (tab === 'at') {
         const att = JSON.parse(body.dataset.att || '{}');
         $('#day', body).onchange = e => { p.day = e.target.value; draw(); };
         $$('[data-p]', body).forEach(b => b.onclick = () => { att[b.dataset.p] = b.dataset.v === '1'; $$(`[data-p="${b.dataset.p}"]`, body).forEach(x => x.classList.toggle('on', x === b)); b.classList.toggle('no', b.dataset.v === '0'); });
         $('#all', body).onclick = () => $$('[data-v="1"]', body).forEach(b => b.click());
-        $('#saveat', body).onclick = async () => { try { await Net.post(`/api/classes/${c.id}/attendance`, { day: $('#day', body).value, present: att }); toast('Mahudhurio yamehifadhiwa'); } catch (e) { toast(e.message); } };
+        $('#saveat', body).onclick = async () => { try { await Net.post(`/api/classes/${c.id}/attendance`, { day: $('#day', body).value, present: att }); toast("Attendance saved"); } catch (e) { toast(e.message); } };
       }
     } catch (e) { body.innerHTML = errBox(e); }
   };
@@ -229,10 +225,9 @@ function printCodes(c, list) {
     <h2>${esc((Net.user().school || {}).name || '')} · ${esc(c.name)}</h2>
     ${list.map(s => `<div class="k">Mzazi wa <strong>${esc(s.name)}</strong><br>Pakua HUGO KID, fungua Mipangilio, kisha "Unganisha na shule" na uweke msimbo:<br><b>${esc(s.link_code || '')}</b></div>`).join('')}
     <script>window.print()<\/script></body></html>`;
-  if (w) { w.document.write(html); w.document.close(); } else toast('Ruhusu madirisha mapya ili kuchapisha');
+  if (w) { w.document.write(html); w.document.close(); } else toast("Allow pop-up windows to print");
 }
 
-/* ---------- Kutengeneza homework (mwalimu) ---------- */
 HK.screens.tHwNew = (el, p) => {
   const st = { kind: 'paper', attachments: [], pages: [], questions: [] };
   const body = dash(el, 'Homework mpya', p.className, loading);
@@ -243,7 +238,7 @@ HK.screens.tHwNew = (el, p) => {
       <button class="icon-btn" data-rmq="${i}" style="width:34px;height:34px">${icon('x', 16)}</button></div>`;
     const draw = () => {
       body.innerHTML = `
-        <label class="label">Aina ya homework</label>
+        <label class="label">Homework type</label>
         <div class="seg" style="margin:0">${[['paper', 'Karatasi (kuandika/kuchora)'], ['quiz', 'Quiz (inasahihishwa na AI)'], ['open', 'Kazi ya wazi (insha, mradi)']].map(([k, n]) => `<button data-k="${k}" class="${st.kind === k ? 'on' : ''}">${n}</button>`).join('')}</div>
         <div class="form-row"><div class="grow"><label class="label">Kichwa</label><input class="field" id="title" value="${esc(st.title || '')}" placeholder="Mfano: Sentensi 5 kuhusu familia"></div>
           <div><label class="label">Somo</label><select class="field" id="subj"><option value="">Chagua somo</option>${subjects.map(s => `<option ${st.subject === s.name ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></div></div>
@@ -251,14 +246,14 @@ HK.screens.tHwNew = (el, p) => {
         <div class="form-row"><div class="grow"><label class="label">Mwisho (deadline)</label><input class="field" type="date" id="due" value="${esc(st.due || '')}"></div>
           <div class="grow"><label class="label">Alama za juu</label><input class="field" type="number" id="max" value="${st.max || 10}" min="1" max="100"></div></div>
 
-        <label class="label">Faili (PDF, picha, sauti)</label>
+        <label class="label">File (PDF, image, audio)</label>
         <div class="chips">${st.attachments.map((a, i) => `<span class="chip">${esc(a.label)} <button data-rma="${i}" style="border:0;background:none;padding:0">${icon('x', 14)}</button></span>`).join('')}
           <button class="chip" id="addfile">${icon('plus', 16)} Ongeza faili</button></div>
 
-        ${st.kind === 'paper' ? `<label class="label">Kurasa za kuandikia (picha za worksheet)</label>
+        ${st.kind === 'paper' ? `<label class="label">Pages to write on (worksheet images)</label>
           <div class="pages-grid">${st.pages.map((pg, i) => `<div class="page-thumb"><img src="${pg.bg}"><span class="num">${i + 1}</span><button class="rm" data-rmp="${i}">${icon('x', 16)}</button></div>`).join('')}</div>
           <button class="btn small ghost" id="addpage" style="margin-top:10px">${icon('camera', 18)} Ongeza ukurasa</button>
-          <p class="muted" style="font-size:12px;margin-top:6px">Bila picha, mwanafunzi atapata karatasi yenye mistari na maelekezo yako juu.</p>` : ''}
+          <p class="muted" style="font-size:12px;margin-top:6px">Without a picture, the student gets a lined paper with your instructions on top.</p>` : ''}
 
         ${st.kind === 'quiz' ? `<label class="label">Maswali (${st.questions.length})</label>
           <div class="card">${st.questions.map(qRow).join('') || '<p class="muted">Ongeza maswali au tumia AI.</p>'}</div>
@@ -270,7 +265,7 @@ HK.screens.tHwNew = (el, p) => {
 
         <div class="card ai-card"><div class="row"><span>${mascot('nuru', 44)}</span><div class="grow"><h3 style="margin:0">Msaidizi wa AI wa mwalimu</h3><p style="font-size:13px">Mfano: "quiz ya hesabu ya kujumlisha" au "worksheet ya English kuhusu familia"</p></div></div>
           <div class="form-row" style="margin-top:10px"><input class="field" id="topic" placeholder="Mada"><input class="field" id="cnt" type="number" value="5" style="max-width:90px">
-            <select class="field" id="lang" style="max-width:140px"><option>Kiswahili</option><option>English</option></select></div>
+            <select class="field" id="lang" style="max-width:140px"><option>English</option></select></div>
           <div class="btn-row" style="margin-top:10px"><button class="btn small blue" id="genq">${icon('check', 16)} Tengeneza quiz</button><button class="btn small ghost" id="genw">${icon('file', 16)} Tengeneza worksheet</button></div></div>
 
         <button class="btn block" id="save">${icon('send', 20)} Tuma kwa ${esc(p.className || 'darasa')}</button>`;
@@ -283,11 +278,11 @@ HK.screens.tHwNew = (el, p) => {
       if (aq) aq.onclick = () => {
         keep();
         const t = qt.value, q = $('#qq', body).value.trim(), a = qa.value.trim();
-        if (!q && t !== 'match') return toast('Andika swali');
+        if (!q && t !== 'match') return toast("Enter a question");
         const item = { type: t, q, points: 1 };
-        if (t === 'mcq') { const o = a.split('|').map(x => x.trim()).filter(Boolean); if (o.length < 2) return toast('Weka chaguo angalau 2'); const right = o[0]; item.options = shuffle(o); item.answer = item.options.indexOf(right); }
-        else if (t === 'match') { item.pairs = a.split('|').map(x => x.split('=').map(y => y.trim())).filter(x => x.length === 2 && x[0] && x[1]); if (item.pairs.length < 2) return toast('Weka jozi angalau 2'); item.q = q || 'Unganisha'; }
-        else if (t !== 'text') { if (!a) return toast('Weka jibu sahihi'); item.answer = a; }
+        if (t === 'mcq') { const o = a.split('|').map(x => x.trim()).filter(Boolean); if (o.length < 2) return toast("Add at least 2 choices"); const right = o[0]; item.options = shuffle(o); item.answer = item.options.indexOf(right); }
+        else if (t === 'match') { item.pairs = a.split('|').map(x => x.split('=').map(y => y.trim())).filter(x => x.length === 2 && x[0] && x[1]); if (item.pairs.length < 2) return toast("Add at least 2 pairs"); item.q = q || 'Unganisha'; }
+        else if (t !== 'text') { if (!a) return toast("Enter the correct answer"); item.answer = a; }
         st.questions.push(item); draw();
       };
       $$('[data-rmq]', body).forEach(b => b.onclick = () => { keep(); st.questions.splice(+b.dataset.rmq, 1); draw(); });
@@ -302,24 +297,24 @@ HK.screens.tHwNew = (el, p) => {
       if (ap) ap.onclick = () => pickFile('image/*', async f => { keep(); const r = await fileToImageData(f); st.pages.push({ bg: r.data, w: r.w, h: r.h }); draw(); }, true);
       const gen = async task => {
         keep();
-        const topic = $('#topic', body).value.trim(); if (!topic) return toast('Andika mada');
+        const topic = $('#topic', body).value.trim(); if (!topic) return toast("Enter a topic");
         const w = modal(el, { iconName: 'nuru', title: 'AI inatengeneza...', text: 'Subiri kidogo', buttons: [] });
         try {
           const r = await Net.post('/api/ai/generate', { task, topic, count: +$('#cnt', body).value || 5, subject: st.subject, level: p.className, lang: $('#lang', body).value });
           w.remove();
           if (task === 'quiz') { st.kind = 'quiz'; st.questions = st.questions.concat((Array.isArray(r) ? r : []).filter(x => x && x.q)); if (!st.title) st.title = 'Quiz: ' + topic; }
           else { st.instructions = r.text; if (!st.title) st.title = 'Worksheet: ' + topic; }
-          toast('Imetengenezwa. Kagua kabla ya kutuma'); draw();
+          toast("Created. Check before sending"); draw();
         } catch (e) { w.remove(); toast(e.message); }
       };
       $('#genq', body).onclick = () => gen('quiz');
       $('#genw', body).onclick = () => gen('worksheet');
       $('#save', body).onclick = async () => {
         keep();
-        if (!st.subject) return toast('Chagua somo');
+        if (!st.subject) return toast("Choose a subject");
         try {
           await Net.post('/api/homework', { class_id: p.classId, title: st.title, subject: st.subject, kind: st.kind, instructions: st.instructions, due: st.due || null, max_score: st.max, attachments: st.attachments, pages: st.pages, questions: st.questions });
-          Sfx.good(); toast('Homework imetumwa kwa wanafunzi'); HK.back();
+          Sfx.good(); toast("Homework sent to students"); HK.back();
         } catch (e) { toast(e.message); }
       };
     };
@@ -332,7 +327,6 @@ function pickFile(accept, fn, multiple) {
   i.click();
 }
 
-/* ---------- Homework moja: hali ya kila mwanafunzi ---------- */
 HK.screens.tHw = (el, p) => {
   const body = dash(el, 'Homework', '', loading);
   const draw = () => Net.get('/api/homework/' + p.id).then(h => {
@@ -344,7 +338,7 @@ HK.screens.tHw = (el, p) => {
       <button class="btn block ghost" id="del">${icon('trash', 18)} Futa homework</button>`;
     bindAttachments(body, h.attachments);
     $$('[data-s]', body).forEach(b => b.onclick = () => HK.go('tReview', { id: +b.dataset.s }));
-    $('#del', body).onclick = () => confirmBox(el, 'Futa homework?', 'Majibu yote ya wanafunzi yatafutika.', 'Futa', async () => { await Net.del('/api/homework/' + h.id); HK.back(); });
+    $('#del', body).onclick = () => confirmBox(el, "Delete homework?", "All student answers will be deleted.", "Delete", async () => { await Net.del('/api/homework/' + h.id); HK.back(); });
   }).catch(e => { body.innerHTML = errBox(e); });
   draw();
   return Net.on(m => { if (m.t === 'refresh') draw(); });
@@ -358,7 +352,7 @@ HK.screens.tReview = (el, p) => {
     $('.dash-top h1', el).textContent = s.child;
     $('.dash-top .sub', el) && ($('.dash-top .sub', el).textContent = s.homework.title);
     const h = s.homework;
-    const answersHTML = h.kind === 'quiz' ? `<div class="card"><h3>Majibu (yamesahihishwa na AI)</h3>${(h.questions || []).map((qn, i) => {
+    const answersHTML = h.kind === 'quiz' ? `<div class="card"><h3>Answers (marked by AI)</h3>${(h.questions || []).map((qn, i) => {
       const a = (s.answers || [])[i]; const ok = s.detail ? s.detail[i] : null;
       const shown = qn.type === 'mcq' ? (qn.options || [])[a] : qn.type === 'match' ? (qn.pairs || []).map((pr, k) => pr[0] + ' = ' + ((qn.pairs[(a || [])[k]] || [])[1] || '?')).join(', ') : a;
       return `<div class="qrow"><span class="grow"><b>${i + 1}. ${esc(qn.q)}</b><br>${esc(shown ?? '-')}</span>${ok === true ? `<span class="chip-tag teal">${icon('check', 14)}</span>` : ok === false ? `<span class="chip-tag coral">${icon('x', 14)}</span>` : '<span class="chip-tag sun">Kagua</span>'}</div>`;
@@ -370,16 +364,15 @@ HK.screens.tReview = (el, p) => {
         <button class="tool" data-m="tick" title="Vema">${icon('check', 22)}</button><button class="tool" data-m="cross" title="Kosa">${icon('x', 22)}</button>
         <button class="tool" id="mundo">${icon('undo', 22)}</button></div>
         <div id="pages">${s.pages.map((pg, i) => `<div class="mark-wrap" data-i="${i}"><img src="${pg}" class="review-page" style="margin:0"><canvas></canvas></div>`).join('')}</div>` : ''}
-      ${(s.attachments || []).length ? `<div class="card"><h3>Majibu ya ziada</h3>${(s.attachments || []).map(a => /^audio/.test(a.mime) ? `<p>${esc(a.label)}</p><audio controls src="${Net.fileUrl(a.file)}" style="width:100%"></audio>` : /^video/.test(a.mime) ? `<p>${esc(a.label)}</p><video controls playsinline src="${Net.fileUrl(a.file)}" style="width:100%;border-radius:12px"></video>` : `<img class="review-page" src="${Net.fileUrl(a.file)}">`).join('')}</div>` : ''}
+      ${(s.attachments || []).length ? `<div class="card"><h3>Extra answers</h3>${(s.attachments || []).map(a => /^audio/.test(a.mime) ? `<p>${esc(a.label)}</p><audio controls src="${Net.fileUrl(a.file)}" style="width:100%"></audio>` : /^video/.test(a.mime) ? `<p>${esc(a.label)}</p><video controls playsinline src="${Net.fileUrl(a.file)}" style="width:100%;border-radius:12px"></video>` : `<img class="review-page" src="${Net.fileUrl(a.file)}">`).join('')}</div>` : ''}
       <div class="card ai-card"><div class="row"><span>${mascot('nuru', 40)}</span><div class="grow"><h3 style="margin:0">Pendekezo la AI</h3>
         <p id="aitext">${s.ai_score != null ? `Alama inayopendekezwa: <b>${s.ai_score}/${s.max_score}</b><br>${esc(s.ai_comment || '')}` : s.auto_score != null ? `Alama ya moja kwa moja: <b>${s.auto_score}/${s.max_score}</b>` : 'Bado hakuna pendekezo.'}</p></div></div>
         <button class="btn small ghost" id="ask">${icon('help', 16)} Omba AI ipendekeze</button></div>
-      <div class="card"><h3>Alama ya mwisho (mwalimu)</h3>
+      <div class="card"><h3>Final score (teacher)</h3>
         <div class="form-row"><input class="field" type="number" id="score" min="0" max="${s.max_score}" step="0.5" value="${s.score ?? s.ai_score ?? s.auto_score ?? ''}" style="max-width:120px"><span style="font-weight:700;font-size:18px">/ ${s.max_score}</span></div>
         <label class="label">Maoni kwa mwanafunzi na mzazi</label><textarea class="field" id="fb" placeholder="Mfano: Kazi nzuri! Rekebisha herufi kubwa mwanzoni mwa sentensi.">${esc(s.feedback || '')}</textarea>
         <div class="btn-row" style="margin-top:12px"><button class="btn sun" id="ret">${icon('repeat', 18)} Arekebishe</button><button class="btn" id="ok" style="flex:2">${icon('check', 18)} Thibitisha alama</button></div></div>`;
 
-    // turubai za kusahihisha juu ya kila ukurasa
     let tool = 'pen';
     $$('.mark-wrap', body).forEach(w => {
       const img = $('img', w), cv = $('canvas', w), item = { cv, strokes: [], img };
@@ -423,7 +416,7 @@ HK.screens.tReview = (el, p) => {
     });
     const send = async status => {
       const score = $('#score', body).value;
-      if (status === 'marked' && score === '') return toast('Weka alama ya mwisho');
+      if (status === 'marked' && score === '') return toast("Set the final score");
       try {
         await Net.post(`/api/submissions/${s.id}/review`, { status, score: score === '' ? null : +score, feedback: $('#fb', body).value, marked: marks.length ? merged() : undefined });
         Sfx.good(); toast(status === 'marked' ? 'Alama imetumwa kwa mzazi na mwanafunzi' : 'Imerudishwa kwa mwanafunzi'); HK.back();
@@ -447,12 +440,11 @@ HK.screens.announce = (el) => {
       ${list.length ? list.map(a => `<div class="card"><div class="row"><h3 class="grow">${esc(a.title)}</h3><span class="chip-tag">${{ all: 'Wote', parents: 'Wazazi', teachers: 'Walimu', students: 'Wanafunzi' }[a.audience]}</span>${admin ? `<button class="icon-btn" data-del="${a.id}" style="width:34px;height:34px">${icon('trash', 16)}</button>` : ''}</div><p>${esc(a.body || '')}</p><p class="muted" style="font-size:12px">${fmtDate(a.created)}${a.school ? ' · ' + esc(a.school) : ''}</p></div>`).join('') : '<div class="empty">Hakuna matangazo.</div>'}`;
     let aud = 'all';
     $$('#aud .chip', body).forEach(b => b.onclick = () => { aud = b.dataset.a; $$('#aud .chip', body).forEach(x => x.classList.toggle('on', x === b)); });
-    const sb = $('#send', body); if (sb) sb.onclick = async () => { try { await Net.post('/api/announcements', { title: $('#t', body).value, body: $('#b', body).value, audience: aud }); toast('Tangazo limetumwa'); HK.render(); } catch (e) { toast(e.message); } };
+    const sb = $('#send', body); if (sb) sb.onclick = async () => { try { await Net.post('/api/announcements', { title: $('#t', body).value, body: $('#b', body).value, audience: aud }); toast("Announcement sent"); HK.render(); } catch (e) { toast(e.message); } };
     $$('[data-del]', body).forEach(b => b.onclick = async () => { await Net.del('/api/announcements/' + b.dataset.del); HK.render(); });
   }).catch(e => { body.innerHTML = errBox(e); });
 };
 
-/* ---------- Ujumbe (mwalimu na mzazi) ---------- */
 HK.screens.inbox = (el) => {
   const body = dash(el, 'Ujumbe', '', loading);
   Net.get('/api/inbox').then(list => {
@@ -475,14 +467,13 @@ HK.screens.thread = (el, p) => {
   return Net.on(m => { if (m.t === 'message' && m.child_id === p.childId) draw(); });
 };
 
-/* ---------- Malipo (shule na mzazi) ---------- */
 HK.screens.billing = (el) => {
   const body = dash(el, 'Malipo', '', loading);
   Net.get('/api/billing').then(b => {
     const st = { unpaid: ['coral', 'Haijalipwa'], pending: ['sun', 'Inathibitishwa'], paid: ['teal', 'Imelipwa'] };
-    body.innerHTML = `${b.plans.pay_info ? `<div class="card"><h3>Jinsi ya kulipa</h3><p>${esc(b.plans.pay_info)}</p></div>` : ''}
+    body.innerHTML = `${b.plans.pay_info ? `<div class="card"><h3>How to pay</h3><p>${esc(b.plans.pay_info)}</p></div>` : ''}
       ${b.invoices.length ? b.invoices.map(i => `<div class="card"><div class="row"><div class="grow"><h3 style="margin:0">${esc(i.plan)} · ${esc(i.period)}</h3><p>TSh ${Number(i.amount).toLocaleString()}</p></div><span class="chip-tag ${st[i.status][0]}">${st[i.status][1]}</span></div>
         ${i.status === 'unpaid' ? `<div class="form-row" style="margin-top:10px"><input class="field" placeholder="Namba ya muamala (mf. M-Pesa)" data-ref="${i.id}"><button class="btn small" data-pay="${i.id}">Tuma</button></div>` : i.reference ? `<p class="muted" style="font-size:12px">Muamala: ${esc(i.reference)}</p>` : ''}</div>`).join('') : '<div class="empty">Hakuna ankara kwa sasa.</div>'}`;
-    $$('[data-pay]', body).forEach(btn => btn.onclick = async () => { try { await Net.post(`/api/billing/${btn.dataset.pay}/pay`, { reference: $(`[data-ref="${btn.dataset.pay}"]`, body).value }); toast('Imetumwa. HUGO TECH itathibitisha'); HK.render(); } catch (e) { toast(e.message); } });
+    $$('[data-pay]', body).forEach(btn => btn.onclick = async () => { try { await Net.post(`/api/billing/${btn.dataset.pay}/pay`, { reference: $(`[data-ref="${btn.dataset.pay}"]`, body).value }); toast("Sent. HUGO TECH will confirm"); HK.render(); } catch (e) { toast(e.message); } });
   }).catch(e => { body.innerHTML = errBox(e); });
 };

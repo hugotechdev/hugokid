@@ -1,6 +1,5 @@
-/* HUGO KID - tutorial.js : mafunzo ya jinsi ya kucheza + msaada wa Nuru ndani ya mchezo */
 
-/* g: ishara ya mkono -> tap | lr | hold | drag | none */
+
 const TUT = {
   racing: { rules: 'Gusa kushoto au kulia kuhamisha gari. Epuka magari na mawe. Okota sarafu. Swali likitokea, pita kwenye lango lenye jibu sahihi.', steps: () => [
     { t: 'Gusa upande wa kushoto au kulia wa skrini kuhamisha gari lako.', g: 'lr', ic: 'car' },
@@ -94,7 +93,6 @@ const GT = {
     c.tut = c.tut || {}; c.tut[id] = true; Store.saveChild(c);
   },
 
-  /* Onyesha mafunzo. root: skrini; onClose: baada ya kufunga */
   show(root, id, group, onClose) {
     const T = TUT[id]; if (!T) { onClose && onClose(); return; }
     const steps = T.steps(group || 0);
@@ -129,7 +127,6 @@ const GT = {
     draw();
   },
 
-  /* Msaada wa Nuru: AI ikiwa imewekwa, vinginevyo maelezo ya ndani */
   async askHugo(root, id, current) {
     const T = TUT[id] || { rules: '' };
     const c = Store.active();
@@ -154,7 +151,6 @@ ${current ? 'Swali la sasa: ' + current + '\n' : ''}Mweleze kwa sentensi 2-3 rah
     } catch (e) { wait.remove(); fallback(); }
   },
 
-  /* Mkono unaoonyesha kitu halisi kwenye skrini (mfano wa kujibu) */
   pointAt(target, root) {
     const r = target.getBoundingClientRect(), rr2 = root.getBoundingClientRect();
     const h = document.createElement('div');

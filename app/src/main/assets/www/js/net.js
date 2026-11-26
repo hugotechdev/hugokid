@@ -1,6 +1,5 @@
-/* HUGO KID - net.js : mawasiliano na server (akaunti, API, faili, WebSocket) */
 
-/* Anwani ya server. Kwenye web app ni ileile; kwenye APK weka anwani ya Railway hapa. */
+
 const HK_SERVER_DEFAULT = 'https://kid.hugotech.co.tz';
 const IS_WEB = /^https?:$/.test(location.protocol) && location.hostname !== 'appassets.androidplatform.net';
 
@@ -68,7 +67,6 @@ const Net = {
   on(fn) { this.handlers.add(fn); return () => this.handlers.delete(fn); },
 };
 
-/* Taarifa za papo hapo kwa wote */
 Net.on(m => {
   if (m.t === 'announcement') toast('Tangazo jipya: ' + m.title);
   if (m.t === 'message') toast('Ujumbe mpya kutoka kwa ' + m.from);

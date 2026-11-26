@@ -1,4 +1,4 @@
-/* HUGO KID - app.js : njia za skrini (router), muda wa michezo, kuanza */
+
 
 const ADULT_SCREENS = ['parentHome', 'childForm', 'aiSettings', 'aiLog', 'learningMode', 'hwNew', 'hwReview', 'parentResults', 'parentSub', 'friends', 'changePass'];
 
@@ -10,7 +10,6 @@ const HK = {
 
   root() { return document.getElementById('app'); },
 
-  /* fungua skrini mpya */
   go(name, params = {}, opts = {}) {
     if (opts.reset) this.stack = [];
     else if (opts.replace) this.stack.pop();
@@ -34,11 +33,10 @@ const HK = {
     if (typeof out === 'function') this._cleanup = out;
     const dash = el.classList.contains('dash-screen');
     document.body.classList.toggle('is-dash', dash);
-    /* skrini za watu wazima (mzazi, mwalimu, shule): muonekano tulivu wa kazi */
+
     document.body.classList.toggle('is-adult', dash || ADULT_SCREENS.includes(cur.name));
   },
 
-  /* skrini inaweza kuzuia kitufe cha nyuma */
   setBack(fn) { this._onBack = fn; },
 
   back() {
@@ -48,12 +46,10 @@ const HK = {
     return false;
   },
 
-  /* ondoka kwenye skrini bila kupitia kizuizi cha kitufe cha nyuma */
   leave() { this._onBack = null; return this.back(); },
 
   onPause() { if (this._pauseHook) this._pauseHook(); },
 
-  /* ---------- muda wa michezo ---------- */
   gameLimit(child) {
     const s = Store.settings();
     const u = Store.usage(child.id);
@@ -97,12 +93,11 @@ const HK = {
     if (!par.pinHash) return this.go('pin', { mode: 'create' }, { reset: true });
     const kids = Store.children();
     if (!kids.length) return this.go('childForm', { first: true }, { reset: true });
-    /* watoto wengi: kila mmoja anaingia kwa kugusa jina au avatar yake (bila nenosiri) */
+
     if (kids.length > 1 || !Store.active()) return this.go('pickChild', {}, { reset: true });
     this.go('home', {}, { reset: true });
   },
 
-  /* rudi kwa mtoto (mwanzo) */
   toChild() {
     const kids = Store.children();
     if (!kids.length) return this.go('childForm', { first: true }, { reset: true });
@@ -111,7 +106,6 @@ const HK = {
     this.go('home', {}, { reset: true });
   },
 
-  /* fungua eneo la mzazi kwa PIN */
   askParent(next = 'parentHome', params = {}) {
     this.go('pin', { mode: 'verify', next, nextParams: params });
   },

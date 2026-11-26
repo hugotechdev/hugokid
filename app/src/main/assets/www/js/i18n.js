@@ -1,20 +1,7 @@
-/* HUGO KID - i18n.js : lugha ya programu (Kiswahili / English) */
+/* English UI support for older labels and saved records. */
 
-const I18N = {
-  lang: (() => {
-    try { const v = localStorage.getItem('hk_uilang'); if (v === 'sw' || v === 'en') return v; } catch (e) {}
-    return /^sw/i.test(navigator.language || '') ? 'sw' : 'en';
-  })(),
-  locale() { return this.lang === 'en' ? 'en-GB' : 'sw-TZ'; },
-  set(lang) {
-    this.lang = lang;
-    try { localStorage.setItem('hk_uilang', lang); } catch (e) {}
-    document.documentElement.lang = lang;
-    HK.render();
-  },
-};
+const I18N = Object.freeze({ lang: 'en', locale: () => 'en-GB' });
 
-/* kamusi: maneno kamili, na mifumo yenye {0} kwa maandishi yanayobadilika */
 const I18N_EXACT = new Map();
 const I18N_PATTERNS = [];
 (() => {
@@ -52,7 +39,7 @@ function _translate(s, depth) {
   if (!core) return s;
   const hit = I18N_EXACT.get(core);
   if (hit != null) return lead + hit + trail;
-  /* neno moja kwa herufi ndogo (mf. "chungwa" ndani ya sentensi) */
+
   if (/^[a-z]+$/.test(core)) { const cap = I18N_EXACT.get(core[0].toUpperCase() + core.slice(1)); if (cap != null && !/\s/.test(cap)) return lead + cap.toLowerCase() + trail; }
   if (depth < 3) {
     for (const p of I18N_PATTERNS) {
@@ -72,7 +59,6 @@ function _translate(s, depth) {
   return s;
 }
 
-/* majina ya watu (mf. mtoto anaitwa Zawadi au Imani) yasitafsiriwe */
 function i18nIsName(v) {
   const k = String(v).trim();
   if (!k || k.length > 40) return false;
@@ -84,7 +70,6 @@ function i18nIsName(v) {
   return false;
 }
 
-/* tafsiri ukurasa wenyewe (maandishi na alama za fomu) */
 const I18N_ATTRS = ['placeholder', 'title', 'aria-label', 'alt'];
 function i18nNode(node) {
   if (I18N.lang === 'sw') return;
@@ -113,40 +98,17 @@ function i18nNode(node) {
   }
 }
 
-/* kitufe cha lugha kwenye skrini za mzazi, shule na kuingia */
-const I18N_SCREENS = ['welcome', 'acctAuth', 'terms', 'pin', 'changePass', 'parentHome', 'pickChild', 'childForm', 'schoolHome', 'superHome'];
-function i18nSwitch() {
-  const top = HK.stack[HK.stack.length - 1];
-  const scr = $('#app > .screen');
-  if (!scr || !top || !I18N_SCREENS.includes(top.name) || $('.lang-switch', scr)) return;
-  const b = document.createElement('div');
-  b.className = 'lang-switch notr';
-  b.innerHTML = `<button data-l="sw" class="${I18N.lang === 'sw' ? 'on' : ''}">SW</button><button data-l="en" class="${I18N.lang === 'en' ? 'on' : ''}">EN</button>`;
-  b.onclick = e => { const l = e.target.dataset && e.target.dataset.l; if (l && l !== I18N.lang) { Sfx.tap(); I18N.set(l); } };
-  const bar = $('.topbar', scr);
-  if (bar) { b.classList.add('in-bar'); bar.appendChild(b); } else scr.appendChild(b);
-}
-
 new MutationObserver(list => {
   if (I18N.lang !== 'sw') list.forEach(m => {
     if (m.type === 'characterData') i18nNode(m.target);
     else if (m.type === 'attributes') i18nNode(m.target);
     else m.addedNodes.forEach(i18nNode);
   });
-  i18nSwitch();
   enhancePasswords(document.getElementById('app'));
 }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: I18N_ATTRS });
 
-/* sauti, michoro ya canvas na tarehe zifuate lugha */
 const _speakI18n = speak;
-speak = function (text, lang) {
-  if (lang === 'sw-raw') return _speakI18n(text, 'sw');
-  if (I18N.lang === 'en' && (!lang || lang === 'sw')) {
-    const t = T(text);
-    if (t !== text || !lang) return _speakI18n(t, 'en');
-  }
-  return _speakI18n(text, lang);
-};
+speak = function (text) { return _speakI18n(T(text), 'en'); };
 ['fillText', 'strokeText'].forEach(fn => {
   const orig = CanvasRenderingContext2D.prototype[fn];
   CanvasRenderingContext2D.prototype[fn] = function (text, ...rest) { return orig.call(this, I18N.lang === 'en' ? T(text) : text, ...rest); };

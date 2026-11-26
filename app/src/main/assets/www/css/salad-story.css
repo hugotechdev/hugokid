@@ -50,3 +50,16 @@
   .salad-contents .pic:last-child { animation: salad-arrive .32s ease-out; }
   @keyframes salad-arrive { from { opacity: .2; translate: 0 -10px; } to { opacity: 1; translate: 0 0; } }
 }
+.safari-list { margin: 10px 14px 25px; padding: 12px; }
+.safari-episode-card {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 94px;
+  border-radius: 18px; border: 1px solid #cbd9bf; padding: 10px; text-align: left;
+  background: linear-gradient(90deg,#f8ffef 58%,#f8ffefbd),var(--scene) center / cover;
+  color: #203d30; box-shadow: 0 3px 0 #c3d1ba;
+}
+.safari-episode-card span:nth-child(2) { flex: 1; }
+.safari-episode-card small { display: block; margin-top: 4px; color: #426052; }
+.safari-episode-card:disabled { opacity:.72; }
+.episode-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 16px; }
+.episode-grid .lv-stars { min-height: 15px; }
+.token-challenge .token-feedback { min-height: 20px; }

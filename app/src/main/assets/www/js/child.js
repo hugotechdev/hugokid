@@ -1,4 +1,4 @@
-/* HUGO KID - child.js : upande wa mtoto (home, michezo, muda) */
+
 
 const GAMES = [
   // Burudani
@@ -20,27 +20,25 @@ const GAMES = [
   { id: 'faith', name: 'Safari ya Imani', icon: 'sunrise', color: '#D9A100', kind: 'learn' },
 ];
 
-/* Michezo inayofaa kila modi (watoto wadogo hawapewi michezo inayohitaji kusoma) */
 const GAMES_FOR = {
   toddler: ['racing', 'runner', 'pilot', 'bubbles', 'balloons', 'memory', 'shapes', 'kitchen'],
   beginner: ['racing', 'runner', 'pilot', 'bubbles', 'balloons', 'memory', 'shapes', 'kitchen', 'letters', 'market', 'robot', 'penalty', 'speak', 'village'],
 };
 function gamesFor(c) { const allow = GAMES_FOR[kidMode(c)]; return GAMES.filter(g => (!allow || allow.includes(g.id)) && (g.id !== 'faith' || faithOn(c))); }
 
-/* Kumchagua mtoto (kama wapo zaidi ya mmoja) */
 HK.screens.pickChild = (el) => {
   const kids = Store.children();
   el.innerHTML = `
     <div class="topbar"><img src="img/mark.png" style="width:40px;height:40px;object-fit:contain"><h1>Nani anatumia?</h1>
       <button class="icon-btn" id="par">${icon('lock')}</button></div>
-    <div class="scroll"><p class="muted pick-hint">Gusa picha yako kuingia</p><div class="tiles pick-kids">
+    <div class="scroll"><p class="muted pick-hint">Tap your picture to sign in</p><div class="tiles pick-kids">
       ${kids.map(c => `<button class="tile" data-id="${c.id}" style="--c:#fff;--cd:var(--line);color:var(--navy);align-items:center;text-align:center;min-height:180px">
         ${kidAvatar(c, 96)}<div class="t-name">${esc(c.name)}</div></button>`).join('')}
     </div></div>`;
   $$('.tile', el).forEach(b => b.onclick = () => {
     Sfx.tap(); Store.setActive(b.dataset.id);
     const k = Store.active();
-    /* mara ya kwanza mtoto anaingia: maswali mafupi ya kupima kiwango chake */
+
     if (!k.place && !k.placeAsked) { k.placeAsked = true; Store.saveChild(k); return HK.go('placement', {}, { reset: true }); }
     HK.go('home', {}, { reset: true });
   });
@@ -55,10 +53,10 @@ HK.screens.kidProfile = (el) => {
     <div class="scroll">
       <div class="card profile-preview"><div id="avatar-now">${kidAvatar(c, 106)}</div>
         <h2>${esc(c.name)}</h2></div>
-      <div class="section-title">Chagua avatar</div>
+      <div class="section-title">Choose an avatar</div>
       <div class="profile-avatars">
         ${KID_AVATARS.map(id => `<button data-avatar="${id}" aria-label="${caption} ${id}" aria-pressed="${c.avatar === id}">${kidAvatar({ ...c, avatar: id }, 84)}</button>`).join('')}
-        <button class="avatar-reset" data-avatar="" aria-pressed="${!kidAvatarSrc(c)}">${kidAvatar({ ...c, avatar: '' }, 52)}<span>Picha ya awali</span></button>
+        <button class="avatar-reset" data-avatar="" aria-pressed="${!kidAvatarSrc(c)}">${kidAvatar({ ...c, avatar: '' }, 52)}<span>Original avatar</span></button>
       </div>
       ${Store.children().length > 1 ? `<button class="btn ghost block" id="switch-kid">${icon('users', 22)} Badilisha mtoto</button>` : ''}
     </div>`;
@@ -75,7 +73,6 @@ HK.screens.kidProfile = (el) => {
   });
 };
 
-/* ---------- Menyu ya chini ---------- */
 function kidNav(el, active) {
   el.classList.add('has-nav');
   const items = [['home', 'home', 'Nyumbani'], ['games', 'game', 'Michezo'], ['lessons', 'book', 'Masomo'], ['rewards', 'trophy', 'Zawadi']];
@@ -91,13 +88,11 @@ function kidNav(el, active) {
   });
 }
 
-/* Ngazi ya mtoto: kila nyota 10 = ngazi moja */
 function kidLevel(c) {
   const s = c.stars || 0;
   return { level: Math.floor(s / 10) + 1, pct: (s % 10) * 10, left: 10 - (s % 10) };
 }
 
-/* ---------- Michezo 15 ---------- */
 HK.screens.games = (el) => {
   const c = Store.active();
   const left = HK.gameLeft(c);
@@ -105,10 +100,10 @@ HK.screens.games = (el) => {
   const card = gm => `<button class="game-card" data-id="${gm.id}">
       <div class="g-ic scene-${GAME_SCENES[gm.id]}" style="--gc:${gm.color}"><span>${icon(gm.icon, 28)}</span></div>
       <div class="g-name">${esc(gm.name)}</div>
-      <span class="chip-tag ${gm.kind === 'fun' ? 'blue' : 'teal'}">${best(gm.id) ? 'Ngazi ' + best(gm.id) : 'Mpya'}</span>
+      <span class="chip-tag ${gm.kind === 'fun' ? 'blue' : 'teal'}">${best(gm.id)} / ${gm.id === 'racing' ? RACE_EPISODES : GAME_EPISODES} episodes</span>
     </button>`;
   el.innerHTML = `
-    <div class="topbar"><h1 style="font-size:24px">Michezo</h1>
+    <div class="topbar"><h1 style="font-size:24px">Games</h1>
       <span class="hud-pill" style="background:#fff">${icon('clock', 18)} ${Math.ceil(left / 60)} dk</span></div>
     <div class="scroll">
       ${sceneBanner('serengeti', 'simba')}
@@ -123,15 +118,14 @@ HK.screens.games = (el) => {
     const gm = GAMES.find(x => x.id === b.dataset.id);
     if (gm.kind === 'fun' && HK.gameLeft(c) <= 0) return HK.go('timeUp');
     Sfx.tap();
-    if (gm.id === 'racing') HK.go('raceMenu'); else HK.go('g_' + gm.id);
+    if (gm.id === 'racing') HK.go('raceMenu'); else HK.go('gameEpisodes', { id: gm.id });
   });
 };
 
-/* ---------- Zawadi: nyota, ngazi na medali ---------- */
 HK.screens.rewards = (el) => {
   const c = Store.active();
   const lv = kidLevel(c);
-  el.innerHTML = `<div class="topbar"><h1 style="font-size:24px">Zawadi</h1></div><div class="scroll"><button class="item" id="open-passport">${icon('book', 30)}<b class="grow">${storyText('Pasipoti yangu ya Safari', 'My Safari Passport')}</b>${icon('chevR', 20)}</button><div id="rw"></div></div>`;
+  el.innerHTML = `<div class="topbar"><h1 style="font-size:24px">Zawadi</h1></div><div class="scroll"><button class="item" id="open-passport">${icon('book', 30)}<b class="grow">${'My Safari Passport'}</b>${icon('chevR', 20)}</button><div id="rw"></div></div>`;
   $('#open-passport', el).onclick = () => HK.go('safariPassport');
   kidNav(el, 'rewards');
   HK.setBack(() => { HK.go('home', {}, { reset: true }); return true; });
@@ -163,9 +157,9 @@ HK.screens.rewards = (el) => {
         <div class="lvl-bar" style="margin:14px 10px 4px;background:rgba(255,255,255,.3)"><i style="width:${Math.max(4, lv.pct)}%;background:#fff"></i></div>
         <div style="font-size:12px;font-weight:500">Nyota ${lv.left} kufika ngazi ${lv.level + 1}</div>
       </div>
-      ${kidMode(c) !== 'toddler' ? `<button class="item" id="rep" style="margin-top:14px"><div class="i-ic" style="background:var(--teal)">${icon('trophy', 24)}</div><div class="grow"><div class="i-title">Ripoti yangu</div><div class="i-sub">Ujuzi, masomo na alama za shule</div></div>${icon('chevR', 20)}</button>` : ''}
+      ${kidMode(c) !== 'toddler' ? `<button class="item" id="rep" style="margin-top:14px"><div class="i-ic" style="background:var(--teal)">${icon('trophy', 24)}</div><div class="grow"><div class="i-title">Ripoti yangu</div><div class="i-sub">Skills, lessons and school scores</div></div>${icon('chevR', 20)}</button>` : ''}
       <div class="section-title">Mhusika wangu</div>
-      <div class="card"><div class="row" style="gap:16px">${kidAvatar(c, 84)}<div class="grow"><p style="font-size:13px">Nunua vitu kwa sarafu zako na umvalishe mhusika wako.</p><p><b>${c.coins || 0}</b> sarafu</p></div></div>
+      <div class="card"><div class="row" style="gap:16px">${kidAvatar(c, 84)}<div class="grow"><p style="font-size:13px">Buy things with your coins and dress up your character.</p><p><b>${c.coins || 0}</b> sarafu</p></div></div>
         <div class="acc-grid">${['', ...Object.keys(ACCESSORIES)].map(k => { const a = ACCESSORIES[k]; const own = !k || (c.accOwned || []).includes(k); return `<button class="acc ${c.acc === k || (!k && !c.acc) ? 'on' : ''}" data-acc="${k}">${kidAvatar(c, 54, 'happy', k)}<span>${a ? a.name : 'Bila kitu'}</span><span class="muted">${own ? (c.acc === k || (!k && !c.acc) ? 'Amevaa' : 'Vaa') : icon('coin', 12) + ' ' + a.cost}</span></button>`; }).join('')}</div></div>
       <div class="section-title">Medali · ${got} kati ya ${B.length}</div>
       <div class="badges">${B.map(([n, d, ic, col, ok]) => `<div class="badge-c ${ok ? '' : 'locked'}" style="--mc:${col}">
@@ -175,7 +169,14 @@ HK.screens.rewards = (el) => {
       const k = b.dataset.acc, cc = Store.active(), a = ACCESSORIES[k];
       cc.accOwned = cc.accOwned || [];
       if (k && !cc.accOwned.includes(k)) {
-        if ((cc.coins || 0) < a.cost) { Sfx.bad(); speak('Unahitaji sarafu ' + a.cost); return toast('Unahitaji sarafu ' + a.cost); }
+        const missing = a.cost - (cc.coins || 0);
+        if (missing > 0) return tokenChallenge(el, missing, tokens => {
+          const current = Store.child(cc.id);
+          if (!current || (current.accOwned || []).includes(k) || (current.coins || 0) < a.cost - tokens) return;
+          current.coins = (current.coins || 0) - (a.cost - tokens);
+          current.accOwned = [...(current.accOwned || []), k]; current.acc = k;
+          Store.saveChild(current); HK.render();
+        }, { title: 'Not enough coins', message: `Earn ${missing} play tokens. A correct answer uses the tokens and your current coins to unlock ${T(a.name)}.` });
         cc.coins -= a.cost; cc.accOwned.push(k); Sfx.win(); confetti(el);
       } else Sfx.tap();
       cc.acc = k; Store.saveChild(cc); HK.render();
@@ -183,7 +184,6 @@ HK.screens.rewards = (el) => {
   });
 };
 
-/* ---------- Muda wa michezo umekwisha ---------- */
 const BREAKS = [
   { t: 'Ruka mara 10', n: 10, say: 'Simama, turuke mara kumi pamoja!' },
   { t: 'Gusa vidole vya miguu mara 8', n: 8, say: 'Inama ugusa vidole vya miguu mara nane' },
@@ -197,8 +197,8 @@ HK.screens.timeUp = (el) => {
   el.innerHTML = `
     <div class="center-col">
       <div style="margin-bottom:8px">${kidAvatar(c, 110)}</div>
-      <h2 style="font-size:26px;margin:6px 0">Muda wa michezo umekwisha!</h2>
-      <p class="muted" style="font-weight:700;margin:0;max-width:310px">Umecheza vizuri leo. Sasa tupumzishe macho na tusogeze mwili.</p>
+      <h2 style="font-size:26px;margin:6px 0">Game time is over!</h2>
+      <p class="muted" style="font-weight:700;margin:0;max-width:310px">You played well today. Now let's rest our eyes and move our bodies.</p>
       <div class="activity">
         <b>${esc(b.t)}</b>
         <div class="count-big" id="cnt">${b.n}</div>
@@ -214,10 +214,10 @@ HK.screens.timeUp = (el) => {
     if (n <= 0) return;
     n--; Sfx.tap(); $('#cnt', el).textContent = n;
     if (n === 0) {
-      Sfx.win(); confetti(el); speak('Hongera! Umefanya vizuri sana.');
+      Sfx.win(); confetti(el); speak("Congratulations! You did very well.");
       $('#tap', el).textContent = 'Hongera!';
       const cc = Store.active(); cc.stars = (cc.stars || 0) + 1; Store.saveChild(cc);
-      toast('Umepata nyota 1 kwa mazoezi');
+      toast("You got 1 star for practice");
     }
   };
   $('#hw', el).onclick = () => HK.go('hwList', {}, { replace: true });
@@ -233,10 +233,10 @@ HK.screens.sleep = (el) => {
       <div style="color:#FFC20E;margin-bottom:10px">${icon('moon', 64, 2)}</div>
       ${avatarSVG(c ? c.color : '#1EA7F0', 120, 'sleep')}
       <h2 style="font-size:28px;margin:18px 0 6px">Usiku mwema${c ? ', ' + esc(c.name) : ''}</h2>
-      <p style="font-weight:700;max-width:300px;margin:0 0 30px">Ni wakati wa kulala. Ubongo unakua vizuri ukilala mapema. Tuonane kesho!</p>
+      <p style="font-weight:700;max-width:300px;margin:0 0 30px">It's bedtime. Your brain grows well when you sleep early. See you tomorrow!</p>
       <button class="btn ghost small" id="par">${icon('lock', 18)} Mzazi</button>
     </div>`;
-  setTimeout(() => speak('Usiku mwema. Ni wakati wa kulala.'), 300);
+  setTimeout(() => speak("Good night. It's time to sleep."), 300);
   $('#par', el).onclick = () => HK.askParent();
   HK.setBack(() => true);
 };

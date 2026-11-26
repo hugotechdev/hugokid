@@ -1,8 +1,7 @@
-/* HUGO KID - schoolhw.js : homework kutoka kwa mwalimu (kupokea, kujibu, kutuma, kuona alama) */
 
-/* Nakala ya maendeleo ya mtoto (inarejeshwa kwenye simu mpya au web) */
+
 const PROFILE_KEYS = ['religion', 'faithOn', 'grade', 'lang', 'needs', 'acc', 'avatar', 'place', 'placeAsked', 'modeOverride'];
-const PROGRESS_KEYS = ['stars', 'coins', 'racing', 'gp', 'learned', 'skillLog', 'tut', 'daily', 'saladStory'];
+const PROGRESS_KEYS = ['stars', 'coins', 'racing', 'gp', 'learned', 'skillLog', 'tut', 'daily', 'saladStory', 'safariSeries'];
 function progressOf(c) {
   const o = { profile: {}, at: Date.now(), lessons: Store.get('lessons_' + c.id, {}), week: Store.weekUsage(c.id).map(w => ({ game: w.game || 0, learn: w.learn || 0 })) };
   PROFILE_KEYS.forEach(k => { if (c[k] !== undefined) o.profile[k] = c[k]; });
@@ -11,7 +10,7 @@ function progressOf(c) {
 }
 
 const SchoolSync = {
-  /* watoto wa simu hii wanapata nakala kwenye server (mzazi) */
+
   async pushChildren() {
     if (!(Net.online() && Net.role() === 'parent')) return;
     for (const c of Store.children()) {
@@ -22,7 +21,7 @@ const SchoolSync = {
     }
     Store.set('lastPush', Date.now());
   },
-  /* simu mpya au web: watoto walio kwenye server wanarudi kwenye kifaa hiki */
+
   async pullChildren() {
     if (!(Net.online() && Net.role() === 'parent')) return 0;
     const list = await Net.get('/api/children');
@@ -40,11 +39,11 @@ const SchoolSync = {
     if (added && !Store.activeId()) Store.setActive(Store.children()[0].id);
     return added;
   },
-  /* kila baada ya muda, maendeleo yanatumwa server (kwa ripoti ya mzazi kwenye web) */
+
   maybePush() {
     if (Date.now() - Store.get('lastPush', 0) > 10 * 60 * 1000) this.pushChildren().catch(() => {});
   },
-  /* pakua homework za shule za mtoto */
+
   async pull(c) {
     if (!(Net.online() && Net.role() === 'parent' && c && c.serverId)) return;
     const list = await Net.get(`/api/children/${c.serverId}/homework`);
@@ -74,7 +73,6 @@ const SchoolSync = {
   },
 };
 
-/* Faili za mwalimu (PDF, picha, sauti, video) */
 function attachmentsHTML(files) {
   if (!files || !files.length) return '';
   return `<div class="att-list">${files.map((f, i) => {
@@ -89,11 +87,10 @@ function bindAttachments(root, files) {
     const media = /^image/.test(f.mime) ? `<img src="${url}" style="width:100%;border-radius:16px">`
       : /^audio/.test(f.mime) ? `<audio controls autoplay src="${url}" style="width:100%"></audio>`
       : `<video controls autoplay playsinline src="${url}" style="width:100%;border-radius:16px;max-height:60vh"></video>`;
-    modal(root, { title: f.label || '', html: media + '<div style="height:14px"></div>', buttons: [{ label: 'Funga', cls: 'ghost' }] });
+    modal(root, { title: f.label || '', html: media + '<div style="height:14px"></div>', buttons: [{ label: "Close", cls: 'ghost' }] });
   });
 }
 
-/* Majibu ya ziada ya mtoto: picha ya daftari, sauti, video */
 async function addResponse(root, hw, type) {
   const c = Store.child(hw.childId);
   if (type === 'audio' && navigator.mediaDevices && window.MediaRecorder) return recordAudio(root, hw);
@@ -123,11 +120,11 @@ async function uploadResponse(root, hw, blob, label, c) {
 const myAttHTML = hw => (hw.attach || []).length ? `<span class="muted" style="font-size:12px;font-weight:600">Umeambatisha: ${hw.attach.map(a => esc(a.label)).join(', ')}</span>` : '';
 function recordAudio(root, hw) {
   let rec, chunks = [], stream, t0;
-  const ov = modal(root, { iconName: 'mic', iconColor: 'var(--coral)', title: 'Rekodi sauti', html: '<p id="rt" style="font-size:28px;font-weight:700">0:00</p>', buttons: [
-    { label: 'Anza kurekodi', cls: 'coral', icon: 'mic', keepOpen: true, onClick: async (o) => {
+  const ov = modal(root, { iconName: 'mic', iconColor: 'var(--coral)', title: "Record audio", html: '<p id="rt" style="font-size:28px;font-weight:700">0:00</p>', buttons: [
+    { label: "Start recording", cls: 'coral', icon: 'mic', keepOpen: true, onClick: async (o) => {
       const btn = $$('.btn', o)[0];
       if (rec && rec.state === 'recording') { rec.stop(); btn.disabled = true; return; }
-      try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { o.remove(); return toast('Ruhusa ya kipaza sauti imekataliwa'); }
+      try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { o.remove(); return toast("Microphone permission was denied"); }
       rec = new MediaRecorder(stream); chunks = [];
       rec.ondataavailable = e => chunks.push(e.data);
       rec.onstop = async () => { stream.getTracks().forEach(t => t.stop()); o.remove(); await uploadResponse(root, hw, new Blob(chunks, { type: rec.mimeType || 'audio/webm' }), 'Sauti', Store.child(hw.childId)); };
@@ -139,7 +136,6 @@ function recordAudio(root, hw) {
   return ov;
 }
 
-/* ---------- Quiz ya mwalimu (inasahihishwa papo hapo) ---------- */
 HK.screens.hwQuiz = (el, p) => {
   const c = Store.active();
   const t0 = Date.now();
@@ -176,13 +172,13 @@ HK.screens.hwQuiz = (el, p) => {
     const send = $('#send', el);
     if (send) send.onclick = () => {
       const empty = hw.questions.filter((_, i) => answers[i] === undefined || answers[i] === '').length;
-      confirmBox(el, 'Tuma majibu?', empty ? `Maswali ${empty} hayajajibiwa.` : 'Majibu yatasahihishwa papo hapo.', 'Tuma', async () => {
+      confirmBox(el, "Send answers?", empty ? `Maswali ${empty} hayajajibiwa.` : 'Majibu yatasahihishwa papo hapo.', "Send", async () => {
         try {
           hw.answers = answers;
           const r = await SchoolSync.submit(hw, { answers });
           Sfx.win(); confetti(el);
           if (r.status === 'marked') { speak(`Umepata ${r.score} kati ya ${r.max_score}`); toast(`Alama: ${r.score}/${r.max_score}`); }
-          else toast('Imetumwa. Mwalimu atasahihisha');
+          else toast("Sent. The teacher will mark it");
           HK.render();
         } catch (e) { toast(e.message); }
       }, '');

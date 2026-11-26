@@ -1,4 +1,4 @@
-/* HUGO KID - racing.js : Mchezo wa Mbio za Magari */
+
 
 const RACE_CARS = [
   { name: 'Duma', color: '#F65B4F', dark: '#C63D33', cost: 0 },
@@ -6,14 +6,19 @@ const RACE_CARS = [
   { name: 'Kifaru', color: '#1EA7F0', dark: '#1381BD', cost: 150 },
   { name: 'Tai', color: '#7B61FF', dark: '#5A43D6', cost: 300 },
 ];
-const RACE_THEMES = [
+const RACE_LOCATIONS = [
   { name: 'Serengeti', c: 'var(--sun)', cd: 'var(--sun-d)', ground: '#9BC85A', ground2: '#8AB84B', deco: 'acacia', scene: 'race-serengeti' },
-  { name: 'Ufukweni', c: 'var(--blue)', cd: 'var(--blue-d)', ground: '#F1D59A', ground2: '#E8C985', deco: 'palm', sea: true, scene: 'lugha' },
+  { name: 'Coastal Circuit', c: 'var(--blue)', cd: 'var(--blue-d)', ground: '#F1D59A', ground2: '#E8C985', deco: 'palm', sea: true, scene: 'lugha' },
   { name: 'Kilimanjaro', c: 'var(--teal)', cd: 'var(--teal-d)', ground: '#A9C3B0', ground2: '#9AB6A1', deco: 'pine', snow: true, scene: 'race-kilimanjaro' },
 ];
+const RACE_THEMES = [...RACE_LOCATIONS, ...RACE_LOCATIONS.map(theme => ({
+  ...theme, name: theme.name + ' Challenge',
+}))];
+const RACE_EPISODES = RACE_THEMES.length * 3;
 
 function raceData(c) {
   c.racing = Object.assign({ unlocked: 1, best: {}, cars: [0], car: 0 }, c.racing || {});
+  if (c.racing.unlocked === 9 && c.racing.best[9]) c.racing.unlocked = 10;
   return c.racing;
 }
 
@@ -60,7 +65,6 @@ function rr(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
 
-/* ---------- Menyu: ngazi na gereji ---------- */
 HK.screens.raceMenu = (el) => {
   const c = Store.active();
   const rd = raceData(c); Store.saveChild(c);
@@ -106,17 +110,27 @@ HK.screens.raceMenu = (el) => {
     $$('.car-card', g).forEach(b => b.onclick = () => {
       const i = +b.dataset.i; const cc2 = Store.active(); const r2 = raceData(cc2); const car = RACE_CARS[i];
       if (r2.cars.includes(i)) { r2.car = i; Store.saveChild(cc2); Sfx.tap(); drawGarage(); return; }
-      if ((cc2.coins || 0) < car.cost) { Sfx.bad(); speak('Unahitaji sarafu ' + car.cost); toast('Unahitaji sarafu ' + car.cost); return; }
-      confirmBox(el, 'Nunua ' + car.name + '?', 'Kwa sarafu ' + car.cost + '.', 'Nunua', () => {
-        cc2.coins -= car.cost; r2.cars.push(i); r2.car = i; Store.saveChild(cc2);
-        Sfx.win(); confetti(el); $('#coins', el).textContent = cc2.coins; drawGarage();
-      }, '');
+      const buy = (tokens = 0) => {
+        const current = Store.child(cc2.id);
+        if (!current) return;
+        const garage = raceData(current);
+        const charge = car.cost - tokens;
+        if (garage.cars.includes(i) || (current.coins || 0) < charge) return drawGarage();
+        current.coins = (current.coins || 0) - charge;
+        garage.cars.push(i); garage.car = i; Store.saveChild(current);
+        Sfx.win(); confetti(el); $('#coins', el).textContent = current.coins; drawGarage();
+      };
+      const missing = car.cost - (cc2.coins || 0);
+      if (missing > 0) return tokenChallenge(el, missing, buy, {
+        title: 'Not enough coins',
+        message: `Earn ${missing} play tokens with a quick question. A correct answer uses the tokens and your current coins to unlock ${car.name}.`,
+      });
+      confirmBox(el, 'Buy ' + car.name + '?', car.cost + ' coins', 'Buy', () => buy(), '');
     });
   };
   drawGarage();
 };
 
-/* ---------- Maswali ya milango (kujifunza ndani ya mbio) ---------- */
 const RACE_COLORS = [
   { n: 'NYEKUNDU', c: '#F65B4F' }, { n: 'BLUU', c: '#1EA7F0' }, { n: 'NJANO', c: '#FFC20E' },
   { n: 'KIJANI', c: '#0FB394' }, { n: 'ZAMBARAU', c: '#7B61FF' },
@@ -144,7 +158,6 @@ function raceQuestion(group, level) {
   return { q: `${a} ${op} ${b} = ?`, say, opts };
 }
 
-/* ---------- Mchezo wenyewe ---------- */
 HK.screens.racePlay = (el, p) => {
   const child = Store.active();
   const rd = raceData(child);
@@ -362,7 +375,6 @@ HK.screens.racePlay = (el, p) => {
     const dy = v * dt;
     S.dist += dy;
 
-    // lainisha kusogea kwa gari
     S.x += (laneX(S.lane) - S.x) * Math.min(1, dt * 14);
 
     // kuweka vitu
@@ -385,7 +397,7 @@ HK.screens.racePlay = (el, p) => {
         if (o.type === 'coin') { o.gone = true; S.coins++; Sfx.coin(); }
         else if (S.inv <= 0) {
           o.gone = true; Sfx.crash(); vibrate(160); S.shake = 0.35;
-          if (CFG.hearts > 9) { S.slow = 1; msg('Pole! Endelea', '#FFE07A'); }
+          if (CFG.hearts > 9) { S.slow = 1; msg("Oops! Keep going", '#FFE07A'); }
           else {
             S.hearts--; S.inv = 1.6; S.slow = 0.6;
             $('#hearts', el).textContent = S.hearts;
@@ -403,9 +415,9 @@ HK.screens.racePlay = (el, p) => {
         S.gate.done = true;
         const ok = S.gate.q.opts[S.lane].ok;
         if (ok) {
-          S.correct++; S.coins += 5; S.boost = 1.6; Sfx.good(); celebrateMascot(el); msg('Hongera! +5', '#FFE07A');
+          S.correct++; S.coins += 5; S.boost = 1.6; Sfx.good(); celebrateMascot(el); msg("Congratulations! +5", '#FFE07A');
           speak(['Hongera!', 'Safi sana!', 'Umeweza!'][Math.floor(Math.random() * 3)]);
-        } else { Sfx.bad(); msg('Karibu! Jaribu tena'); }
+        } else { Sfx.bad(); msg("Almost! Try again"); }
         $('#q', el).classList.add('hidden-q');
       }
       if (S.gate.y > H + 80) S.gate = null;
@@ -414,12 +426,11 @@ HK.screens.racePlay = (el, p) => {
     $('#coins', el).textContent = S.coins;
     $('#prog', el).style.width = Math.min(100, S.dist / LENGTH * 100) + '%';
 
-    // muda wa michezo
     S.saveAcc += dt;
     if (S.saveAcc >= 3) {
       HK.addGameTime(child, S.saveAcc); S.saveAcc = 0;
       const left = HK.gameLeft(Store.active());
-      if (left <= 60 && !S.warned) { S.warned = true; toast('Dakika 1 ya michezo imebaki'); speak('Dakika moja imebaki'); }
+      if (left <= 60 && !S.warned) { S.warned = true; toast("1 minute of games left"); speak("One minute left"); }
       if (left <= 0) { S.over = true; HK.go('timeUp', {}, { replace: true }); return; }
     }
     if (S.dist >= LENGTH) finish(true);
@@ -464,8 +475,8 @@ HK.screens.racePlay = (el, p) => {
       iconName: 'pause', iconColor: 'var(--blue)', title: 'Umesimama',
       buttons: [
         { label: 'Endelea', icon: 'play', onClick: () => { S.paused = false; last = performance.now(); } },
-        { label: 'Jinsi ya kucheza', cls: 'blue', icon: 'help', onClick: () => GT.show(el, 'racing', 0, () => { S.paused = false; last = performance.now(); }) },
-        { label: 'Anza upya', cls: 'sun', icon: 'repeat', onClick: () => HK.go('racePlay', { level }, { replace: true }) },
+        { label: "How to play", cls: 'blue', icon: 'help', onClick: () => GT.show(el, 'racing', 0, () => { S.paused = false; last = performance.now(); }) },
+        { label: "Start over", cls: 'sun', icon: 'repeat', onClick: () => HK.go('racePlay', { level }, { replace: true }) },
         { label: 'Toka', cls: 'ghost', onClick: () => { S.over = true; HK.leave(); } },
       ],
     });
@@ -486,30 +497,29 @@ HK.screens.racePlay = (el, p) => {
       stars = CFG.hearts > 9 ? 3 : Math.max(1, S.hearts);
       const prev = r.best[level] || 0;
       if (stars > prev) { cc.stars = (cc.stars || 0) + (stars - prev); r.best[level] = stars; }
-      if (level >= r.unlocked && level < 9) r.unlocked = level + 1;
+      if (level >= r.unlocked && level < RACE_EPISODES) r.unlocked = level + 1;
       Sfx.win(); confetti(el);
-      speak(level === 9 ? 'Hongera bingwa! Umemaliza mbio zote!' : 'Hongera! Umemaliza ngazi ya ' + level);
-    } else { Sfx.bad(); speak('Pole, jaribu tena. Unaweza!'); }
+      speak(level === RACE_EPISODES ? 'Hongera bingwa! Umemaliza mbio zote!' : 'Hongera! Umemaliza ngazi ya ' + level);
+    } else { Sfx.bad(); speak("Oops, try again. You can do it!"); }
     Store.saveChild(cc);
     const leftNow = HK.gameLeft(cc);
     modal(el, {
       iconName: won ? 'trophy' : 'repeat', iconColor: won ? 'var(--sun)' : 'var(--coral)',
-      title: won ? (level === 9 ? 'Bingwa wa Mbio!' : 'Umemaliza!') : 'Jaribu tena',
+      title: won ? (level === RACE_EPISODES ? 'Bingwa wa Mbio!' : 'Umemaliza!') : 'Jaribu tena',
       html: `${won ? `<div class="earned">${starsHTML(stars, 3, 44)}</div>` : ''}
         <p>Sarafu ${S.coins}${S.correct ? ' · Maswali sahihi ' + S.correct : ''}</p>`,
       buttons: [
-        ...(won && level < 9 && leftNow > 0 ? [{ label: 'Ngazi inayofuata', icon: 'chevR', onClick: () => HK.go('racePlay', { level: level + 1 }, { replace: true }) }] : []),
+        ...(won && level < RACE_EPISODES && leftNow > 0 ? [{ label: "Next level", icon: 'chevR', onClick: () => HK.go('racePlay', { level: level + 1 }, { replace: true }) }] : []),
         ...(leftNow > 0 ? [{ label: 'Cheza tena', cls: won ? 'sun' : '', icon: 'repeat', onClick: () => HK.go('racePlay', { level }, { replace: true }) }] : []),
         { label: leftNow > 0 ? 'Ngazi zote' : 'Muda umekwisha', cls: 'ghost', onClick: () => leftNow > 0 ? HK.leave() : HK.go('timeUp', {}, { replace: true }) },
       ],
     });
   }
 
-  // anza: mafunzo (mara ya kwanza), kisha hesabu 3-2-1
   S.paused = true;
   let n = 3;
   const countdown = () => {
-    if (n === 0) { msg('Twende!', '#FFE07A'); speak('Twende!'); S.paused = false; last = performance.now(); return; }
+    if (n === 0) { msg("Let's go!", '#FFE07A'); speak("Let's go!"); S.paused = false; last = performance.now(); return; }
     msg(String(n)); Sfx.tone(520, 0.12, 'square', 0.1); n--; setTimeout(countdown, 750);
   };
   if (GT.seen(child, 'racing')) setTimeout(countdown, 300);

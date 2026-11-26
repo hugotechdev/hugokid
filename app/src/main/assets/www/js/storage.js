@@ -1,4 +1,4 @@
-/* HUGO KID - storage.js : kuhifadhi taarifa kwenye simu (bila intaneti) */
+
 
 const Store = {
   get(k, d) {
@@ -7,7 +7,6 @@ const Store = {
   },
   set(k, v) { localStorage.setItem('hk_' + k, JSON.stringify(v)); },
 
-  /* ----- mzazi ----- */
   parent() { return this.get('parent', null); },
   saveParent(p) { this.set('parent', p); },
   settings() {
@@ -30,7 +29,6 @@ const Store = {
   setActive(id) { this.set('active', id); },
   active() { const id = this.activeId(); return id ? this.child(id) : null; },
 
-  /* ----- matumizi ya leo ----- */
   today() {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -48,7 +46,6 @@ const Store = {
   },
 };
 
-/* Kundi la umri kutoka tarehe ya kuzaliwa */
 function faithOn(child) { return !child || child.faithOn !== false; }
 
 function ageYears(birth) {
@@ -58,7 +55,7 @@ function ageYears(birth) {
   if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--;
   return a;
 }
-/* kundi la ugumu wa michezo (linatokana na modi ya mtoto, angalia modes.js) */
+
 function ageGroup(child) {
   return MODES[kidMode(child)].group;
 }
@@ -73,7 +70,6 @@ const RELIGIONS = {
   values: { name: 'Maadili ya jumla', tile: 'Maadili' },
 };
 
-/* PIN inahifadhiwa kama hash, si namba yenyewe */
 async function hashPin(pin) {
   const text = 'hugokid::' + pin;
   try {
@@ -86,7 +82,6 @@ async function hashPin(pin) {
   return 'f' + h.toString(16);
 }
 
-/* ----- IndexedDB kwa homework (picha ni kubwa) ----- */
 const HWDB = {
   _db: null,
   open() {
@@ -125,7 +120,6 @@ const HWDB = {
   del(id) { return this.tx('readwrite', s => { s.delete(id); }); },
 };
 
-/* Punguza ukubwa wa picha kabla ya kuhifadhi */
 function fileToImageData(file, max = 1600) {
   return new Promise((res, rej) => {
     const fr = new FileReader();

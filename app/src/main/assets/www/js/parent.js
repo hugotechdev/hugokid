@@ -1,4 +1,4 @@
-/* HUGO KID - parent.js : karibu, PIN, wasifu wa mtoto, eneo la mzazi */
+
 
 /* ---------- PIN ---------- */
 HK.screens.pin = (el, p) => {
@@ -32,10 +32,10 @@ HK.screens.pin = (el, p) => {
   if (fg) fg.onclick = () => {
     const u = Net.user();
     if (!(u && u.role === 'parent')) return modal(el, { iconName: 'lock', title: 'Kurejesha PIN', text: 'PIN inarejeshwa kwa nenosiri la akaunti ya mzazi. Kama hukufungua akaunti, njia pekee ni kufuta data ya HUGO KID kwenye mipangilio ya simu (maendeleo ya simu hii yatapotea, lakini yaliyo kwenye akaunti yanarudi).', buttons: [{ label: 'Sawa' }] });
-    modal(el, { iconName: 'key', title: 'Thibitisha ni wewe', html: `<p>Weka nenosiri la akaunti ya ${esc(u.phone || u.email)}</p><input class="field" id="apw" type="password"><div style="height:14px"></div>`, buttons: [
+    modal(el, { iconName: 'key', title: "Confirm it's you", html: `<p>Weka nenosiri la akaunti ya ${esc(u.phone || u.email)}</p><input class="field" id="apw" type="password"><div style="height:14px"></div>`, buttons: [
       { label: 'Endelea', keepOpen: true, onClick: async o => {
         try { await Net.post('/api/login', { login: u.phone || u.email, password: $('#apw', o).value }); o.remove(); HK.go('pin', { mode: 'change' }, { replace: true }); }
-        catch (e) { toast('Nenosiri si sahihi'); }
+        catch (e) { toast("Wrong password"); }
       } },
       { label: 'Ghairi', cls: 'ghost' }] });
   };
@@ -81,7 +81,7 @@ HK.screens.pin = (el, p) => {
         if (Net.online()) HK.boot();
         else HK.go('acctAuth', { kind: 'parent', tab: 'register', skip: true, next: 'childForm', nextParams: { first: true } }, { reset: true });
       }
-      else { toast('PIN imebadilishwa'); HK.back(); }
+      else { toast("PIN changed"); HK.back(); }
     }
   };
 
@@ -95,7 +95,6 @@ HK.screens.pin = (el, p) => {
   draw();
 };
 
-/* ---------- Wasifu wa mtoto ---------- */
 HK.screens.childForm = (el, p) => {
   const editing = p.id ? Store.child(p.id) : null;
   const c = editing ? { ...editing } : {
@@ -116,29 +115,28 @@ HK.screens.childForm = (el, p) => {
     </div>
     <div class="scroll">
       ${p.first ? '<div class="card"><p>Programu itajipanga kulingana na umri na uwezo wa mtoto.</p></div>' : ''}
-      <label class="label">Jina la mtoto</label>
+      <label class="label">Child's name</label>
       <input class="field" id="name" maxlength="20" placeholder="Mfano: Amani" value="${esc(c.name)}">
 
-      <label class="label">Umri wa mtoto</label>
+      <label class="label">Child's age</label>
       <div class="chips age-chips" id="age">${AGES.map(a => `<button class="chip ${age0 === a ? 'on' : ''}" data-v="${a}">${a === 13 ? '13+' : a}</button>`).join('')}</div>
       <div id="grp" style="margin-top:10px"></div>
 
-      <label class="label">Darasa</label>
+      <label class="label">Class</label>
       <select class="field" id="grade">${GRADES.map(g => `<option ${c.grade === g ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select>
 
-      <label class="label">Lugha ya kujifunzia</label>
-      ${chipRow('lang', [['sw', 'Kiswahili'], ['en', 'English']], v => c.lang === v)}
+      <label class="label">Learning language</label>
 
       <label class="label">Avatar yake (ataigusa kuingia)</label>
       <div class="avatar-pick">${KID_AVATARS.map(id => `<button data-a="${id}" class="${c.avatar === id ? 'on' : ''}">${kidAvatar({ ...c, avatar: id, acc: '' }, 54)}</button>`).join('')}</div>
 
-      <label class="label">Sehemu ya imani</label>
+      <label class="label">Faith section</label>
       ${chipRow('fon', [['1', 'Iwepo'], ['0', 'Isiwepo']], v => (v === '1') === faithOn(c))}
       <div id="relbox" class="${faithOn(c) ? '' : 'hidden'}" style="margin-top:10px">
         ${chipRow('rel', Object.entries(RELIGIONS).map(([k, r]) => [k, r.name]), v => c.religion === v)}
       </div>
 
-      <label class="label">Mahitaji maalum (kama yapo)</label>
+      <label class="label">Special needs (if any)</label>
       ${chipRow('needs', Object.entries(NEEDS), v => c.needs.includes(v))}
 
       <div style="height:22px"></div>
@@ -149,7 +147,7 @@ HK.screens.childForm = (el, p) => {
     </div>`;
 
   const bk = $('#bk', el); if (bk) bk.onclick = () => HK.back();
-  /* umri unageuzwa kuwa tarehe ya kukadiria, ili mtoto akue mwenyewe kila mwaka */
+
   const birthFor = a => { const d = new Date(); d.setFullYear(d.getFullYear() - a); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
   const showMode = () => {
     if (!age0) { $('#grp', el).innerHTML = ''; return; }
@@ -159,7 +157,6 @@ HK.screens.childForm = (el, p) => {
   $$('#age .chip', el).forEach(b => b.onclick = () => { Sfx.tap(); age0 = +b.dataset.v; $$('#age .chip', el).forEach(x => x.classList.toggle('on', x === b)); showMode(); });
   showMode();
   const single = (id, fn) => $$('#' + id + ' .chip', el).forEach(b => b.onclick = () => { Sfx.tap(); fn(b.dataset.v); $$('#' + id + ' .chip', el).forEach(x => x.classList.toggle('on', x === b)); });
-  single('lang', v => { c.lang = v; });
   single('fon', v => { c.faithOn = v === '1'; $('#relbox', el).classList.toggle('hidden', !c.faithOn); });
   single('rel', v => { c.religion = v; });
   $$('#needs .chip', el).forEach(b => b.onclick = () => {
@@ -175,8 +172,8 @@ HK.screens.childForm = (el, p) => {
   const save = (another) => {
     c.name = $('#name', el).value.trim();
     c.grade = $('#grade', el).value;
-    if (!c.name) return toast('Andika jina la mtoto');
-    if (!age0) return toast('Chagua umri wa mtoto');
+    if (!c.name) return toast("Enter the child's name");
+    if (!age0) return toast("Choose the child's age");
     if (!c.birth || Math.min(13, Math.max(3, ageYears(c.birth))) !== age0) c.birth = birthFor(age0);
     Store.saveChild(c);
     if (Net.online() && Net.role() === 'parent') SchoolSync.pushChildren().catch(() => {});
@@ -186,7 +183,7 @@ HK.screens.childForm = (el, p) => {
       toast(c.name + ' ameongezwa');
       return HK.go('childForm', { first: p.first }, { replace: true });
     }
-    /* watoto zaidi ya mmoja: kila mmoja anaingia kwa kugusa avatar yake */
+
     if (Store.children().length > 1) return HK.go('pickChild', {}, { reset: true });
     Store.setActive(c.id); c.placeAsked = true; Store.saveChild(c);
     return HK.go('placement', {}, { reset: !!p.first });
@@ -195,21 +192,20 @@ HK.screens.childForm = (el, p) => {
   const more = $('#more', el); if (more) more.onclick = () => save(true);
   const pl = $('#place', el); if (pl) pl.onclick = () => { Store.setActive(c.id); HK.go('placement'); };
   const del = $('#del', el);
-  if (del) del.onclick = () => confirmBox(el, 'Futa ' + c.name + '?', 'Nyota, sarafu na maendeleo yake vitafutika.', 'Ndiyo, futa', () => {
+  if (del) del.onclick = () => confirmBox(el, 'Futa ' + c.name + '?', "Their stars, coins and progress will be deleted.", "Yes, delete", () => {
     Store.removeChild(c.id);
     if (Store.activeId() === c.id) Store.setActive(Store.children()[0].id);
     HK.back();
   });
 };
 
-/* ---------- Eneo la Mzazi ---------- */
 HK.screens.parentHome = (el, p) => {
   let tab = p.tab || 'kids';
 
   el.innerHTML = `
     <div class="topbar">
       <img src="img/mark.png" style="width:34px;height:34px;object-fit:contain">
-      <div class="grow" style="min-width:0"><h1 style="font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Mzazi</h1></div>
+      <div class="grow" style="min-width:0"><h1 style="font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Parent</h1></div>
       <button class="btn small" id="tochild">${icon('home', 18)} Kwa mtoto</button>
     </div>
     <div class="seg">
@@ -246,11 +242,11 @@ HK.screens.parentHome = (el, p) => {
     const hour = new Date().getHours();
     const hero = `<div class="parent-hero">
         <div class="ph-text"><small>${hour < 12 ? 'Habari za asubuhi' : hour < 16 ? 'Habari za mchana' : 'Habari za jioni'}${pname ? ', ' + esc(pname) : ''}</small>
-          <b>Maendeleo ya watoto wako leo</b></div>
+          <b>Your children's progress today</b></div>
         <div class="ph-stats">
           <div><b>${kids.length}</b><span>Watoto</span></div>
           <div><b>${learnMin}</b><span>Dk za kujifunza</span></div>
-          <div><b>${starsAll}</b><span>Nyota</span></div>
+          <div><b>${starsAll}</b><span>Stars</span></div>
         </div>
         <div class="ph-kids">${kids.slice(0, 4).map(k => kidAvatar(k, 34)).join('')}</div>
       </div>`;
@@ -289,7 +285,7 @@ HK.screens.parentHome = (el, p) => {
         </div>
         <div class="row" style="gap:12px;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:12px">
           <span class="row" style="gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:var(--teal)"></i>Kujifunza</span>
-          <span class="row" style="gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:var(--blue)"></i>Michezo</span>
+          <span class="row" style="gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:var(--blue)"></i>Games</span>
         </div>
         <div class="btn-row kid-actions">
           ${Store.activeId() === c.id ? '' : `<button class="btn small blue" data-use="${c.id}">${icon('user', 18)} Mpe simu</button>`}
@@ -300,9 +296,9 @@ HK.screens.parentHome = (el, p) => {
       </div>`;
     }).join('') + `<button class="btn block blue" id="addkid">${icon('plus', 22)} Ongeza mtoto</button>`;
 
-    $$('[data-use]', body).forEach(b => b.onclick = () => { Store.setActive(b.dataset.use); toast('Imebadilishwa'); renderKids(body); });
+    $$('[data-use]', body).forEach(b => b.onclick = () => { Store.setActive(b.dataset.use); toast("Changed"); renderKids(body); });
     $$('[data-edit]', body).forEach(b => b.onclick = () => HK.go('childForm', { id: b.dataset.edit }));
-    $$('[data-bonus]', body).forEach(b => b.onclick = () => { HK.addBonus(b.dataset.bonus, 10); Sfx.good(); toast('Dakika 10 za michezo zimeongezwa leo'); renderKids(body); });
+    $$('[data-bonus]', body).forEach(b => b.onclick = () => { HK.addBonus(b.dataset.bonus, 10); Sfx.good(); toast("10 minutes of games added today"); renderKids(body); });
     $('#addkid', body).onclick = () => HK.go('childForm', {});
     $$('[data-friends]', body).forEach(b => b.onclick = () => HK.go('friends', { id: b.dataset.friends }));
   }
@@ -316,7 +312,7 @@ HK.screens.parentHome = (el, p) => {
     const list = $('#list', body);
     if (!list) return;
     if (!all.length) {
-      list.innerHTML = `<div class="empty"><div class="e-ic">${icon('file', 40)}</div>Hakuna homework bado.<br>Piga picha ya homework ya mtoto, ataifanya hapa kwenye simu.</div>`;
+      list.innerHTML = `<div class="empty"><div class="e-ic">${icon('file', 40)}</div>Hakuna homework bado.<br>Take a photo of the child's homework, they will do it here on the phone.</div>`;
       return;
     }
     const waiting = all.filter(h => h.status === 'submitted');
@@ -333,7 +329,7 @@ HK.screens.parentHome = (el, p) => {
     };
     list.innerHTML =
       (waiting.length ? `<div class="section-title">Zinasubiri ukaguzi wako (${waiting.length})</div>` + waiting.map(item).join('') : '') +
-      (rest.length ? `<div class="section-title">Zote</div>` + rest.map(item).join('') : '');
+      (rest.length ? `<div class="section-title">All</div>` + rest.map(item).join('') : '');
     $$('.item', list).forEach(b => b.onclick = () => HK.go('hwReview', { id: b.dataset.id }));
   }
 
@@ -347,21 +343,21 @@ HK.screens.parentHome = (el, p) => {
       </div>`;
     const row = (id, acc, ic, title, sub) => `<button class="set-row" id="${id}" style="--acc:${acc}"><span class="set-ic">${icon(ic, 20)}</span><span class="grow"><b>${title}</b>${sub ? `<small id="${id}-sub">${sub}</small>` : ''}</span>${icon('chevR', 20)}</button>`;
     body.innerHTML = `
-      <div class="set-group">Muda na michezo</div>
+      <div class="set-group">Time and games</div>
       ${setCard('#1EA7F0', 'game', 'Muda wa michezo kwa siku', 'Ukiisha, michezo inajifunga. Mtoto anaweza kupata dakika za ziada akifanya homework vizuri.', 'lim', opt([10, 15, 20, 30, 45, 60], s.gameLimitMin, v => v + ' dk'))}
       ${setCard('#E0A100', 'gift', 'Zawadi ya homework', 'Dakika za ziada za michezo ukikubali homework yake.', 'bon', opt([0, 5, 10, 15], s.bonusMin, v => v ? '+' + v + ' dk' : 'Hapana'))}
       ${setCard('#7B61FF', 'moon', 'Muda wa kulala', 'Baada ya saa hii programu inamwambia mtoto akalale (hadi saa 11:30 alfajiri).', 'bed', opt(['off', '19:30', '20:00', '20:30', '21:00', '21:30'], s.bedtime, v => v === 'off' ? 'Zima' : v))}
-      <div class="set-group">Usalama na AI</div>
+      <div class="set-group">Safety and AI</div>
       <div class="card set-list">
         ${row('aiset', '#0D2461', 'robot', 'HUGOKID AI', ' ')}
         ${row('lmset', '#0FB394', 'lock', 'Learning Mode', LM.state().on ? 'Imewashwa' : 'Ficha programu nyingine na dhibiti muda wake')}
       </div>
-      <div class="set-group">Akaunti</div>
+      <div class="set-group">Account</div>
       <div class="card set-list">
         ${row('chpin', '#F65B4F', 'key', 'Badilisha PIN', '')}
         ${row('terms', '#6B778C', 'file', 'Masharti na Faragha', '')}
       </div>
-      <p class="set-foot">HUGO KID 2.4 · Learn, Play, Grow<br>HUGO TECH · info@hugotech.co.tz</p>`;
+      <p class="set-foot">HUGO KID 2.3 · Learn, Play, Grow<br>HUGO TECH · info@hugotech.co.tz</p>`;
 
     const bind = (id, key, num) => $$('#' + id + ' .chip', body).forEach(b => b.onclick = () => {
       Sfx.tap();
@@ -369,7 +365,7 @@ HK.screens.parentHome = (el, p) => {
       st[key] = num ? Number(b.dataset.v) : b.dataset.v;
       Store.saveSettings(st);
       $$('#' + id + ' .chip', body).forEach(x => x.classList.toggle('on', x === b));
-      toast('Imehifadhiwa');
+      toast("Saved");
     });
     bind('lim', 'gameLimitMin', true);
     bind('bon', 'bonusMin', true);

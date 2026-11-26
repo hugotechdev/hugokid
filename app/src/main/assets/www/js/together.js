@@ -1,9 +1,8 @@
-/* HUGO KID - together.js : Pamoja - marafiki walioidhinishwa na wazazi, simu ya sauti/video, kucheza pamoja */
+
 
 const RTC_CFG = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
 const CALL_LIMIT_MIN = 20;
 
-/* ---------- Mzazi: kusimamia marafiki wa mtoto ---------- */
 HK.screens.friends = (el, p) => {
   const c = Store.child(p.id);
   el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Marafiki wa ${esc(c.name)}</h1></div><div class="scroll" id="b"><div class="empty">Inapakia...</div></div>`;
@@ -16,31 +15,30 @@ HK.screens.friends = (el, p) => {
       const me = kids.find(k => k.id === c.serverId) || {};
       b.innerHTML = `
         <div class="card"><h3>Ruhusa</h3>
-          <div class="row" style="justify-content:space-between;margin-top:8px"><span>Simu za sauti</span><div class="chips"><button class="chip ${me.allow_audio ? 'on' : ''}" data-perm="allow_audio" data-v="1">Ruhusu</button><button class="chip ${me.allow_audio ? '' : 'on'}" data-perm="allow_audio" data-v="0">Zuia</button></div></div>
+          <div class="row" style="justify-content:space-between;margin-top:8px"><span>Voice calls</span><div class="chips"><button class="chip ${me.allow_audio ? 'on' : ''}" data-perm="allow_audio" data-v="1">Ruhusu</button><button class="chip ${me.allow_audio ? '' : 'on'}" data-perm="allow_audio" data-v="0">Zuia</button></div></div>
           <div class="row" style="justify-content:space-between;margin-top:8px"><span>Simu za video</span><div class="chips"><button class="chip ${me.allow_video ? 'on' : ''}" data-perm="allow_video" data-v="1">Ruhusu</button><button class="chip ${me.allow_video ? '' : 'on'}" data-perm="allow_video" data-v="0">Zuia</button></div></div>
           <p class="muted" style="font-size:12px;margin-top:8px">Simu inafanya kazi tu kama wazazi wa pande zote mbili wameruhusu. Kila simu ina kikomo cha dakika ${CALL_LIMIT_MIN}.</p></div>
-        <div class="card"><h3>Ongeza rafiki</h3><p>Rafiki anaongezwa kwa msimbo kati ya wazazi wawili. Mpe mzazi mwingine msimbo huu, au weka msimbo aliokupa.</p>
+        <div class="card"><h3>Ongeza rafiki</h3><p>A friend is added by code between two parents. Give the other parent this code, or enter the code they gave you.</p>
           <div class="btn-row" style="margin-top:10px"><button class="btn small blue" id="inv">${icon('key', 16)} Tengeneza msimbo</button></div>
           <div class="form-row" style="margin-top:10px"><input class="field" id="code" placeholder="Msimbo wa mzazi mwingine" style="text-transform:uppercase"><button class="btn small" id="add">Ongeza</button></div></div>
         <div class="section-title">Marafiki (${friends.length})</div>
         ${friends.map(f => `<div class="item" style="cursor:default">${avatarSVG(f.color || '#1EA7F0', 44)}<div class="grow"><div class="i-title">${esc(f.name)}</div><div class="i-sub">${f.online ? 'Yuko mtandaoni' : 'Hayupo'}</div></div><button class="icon-btn" data-rm="${f.id}">${icon('trash', 18)}</button></div>`).join('') || '<p class="muted">Bado hakuna marafiki.</p>'}
-        ${calls.length ? `<div class="section-title">Historia ya simu</div><div class="card">${calls.slice(0, 15).map(k => `<p>${esc(k.with)} · ${k.media === 'video' ? 'Video' : 'Sauti'} · ${new Date(k.started).toLocaleString('sw-TZ')}${k.ended ? ' · dk ' + Math.max(1, Math.round((k.ended - k.started) / 60000)) : ''}</p>`).join('')}</div>` : ''}`;
+        ${calls.length ? `<div class="section-title">Call history</div><div class="card">${calls.slice(0, 15).map(k => `<p>${esc(k.with)} · ${k.media === 'video' ? 'Video' : 'Sauti'} · ${new Date(k.started).toLocaleString('sw-TZ')}${k.ended ? ' · dk ' + Math.max(1, Math.round((k.ended - k.started) / 60000)) : ''}</p>`).join('')}</div>` : ''}`;
       $$('[data-perm]', b).forEach(x => x.onclick = async () => { await Net.put(`/api/children/${c.serverId}`, { [x.dataset.perm]: x.dataset.v === '1' }); draw(); });
       $('#inv', b).onclick = async () => { const r = await Net.post(`/api/children/${c.serverId}/invite`); modal(el, { iconName: 'key', title: r.code, text: 'Mpe mzazi wa rafiki msimbo huu. Unafanya kazi kwa saa 48.', buttons: [{ label: 'Sawa' }] }); };
       $('#add', b).onclick = async () => { try { const r = await Net.post(`/api/children/${c.serverId}/friends`, { code: $('#code', b).value }); toast(r.friend.name + ' ameongezwa'); draw(); } catch (e) { toast(e.message); } };
-      $$('[data-rm]', b).forEach(x => x.onclick = () => confirmBox(el, 'Ondoa rafiki?', '', 'Ondoa', async () => { await Net.del('/api/friends/' + x.dataset.rm); draw(); }));
+      $$('[data-rm]', b).forEach(x => x.onclick = () => confirmBox(el, "Remove friend?", '', "Remove", async () => { await Net.del('/api/friends/' + x.dataset.rm); draw(); }));
     } catch (e) { b.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
   };
   draw();
 };
 
-/* ---------- Mtoto: Pamoja ---------- */
 HK.screens.together = (el) => {
   const c = Store.active();
   el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Pamoja</h1></div><div class="scroll" id="b"><div class="empty">Inapakia...</div></div>`;
   $('#bk', el).onclick = () => HK.back();
   const b = $('#b', el);
-  if (!(Net.online() && c.serverId)) { b.innerHTML = `<div class="empty">${mascot('nuru', 80)}<br>Mwombe mzazi afungue akaunti na akuongezee marafiki.</div>`; return; }
+  if (!(Net.online() && c.serverId)) { b.innerHTML = `<div class="empty">${mascot('nuru', 80)}<br>Ask your parent to open an account and add friends for you.</div>`; return; }
   Net.connect(c.serverId);
   const draw = async () => {
     try {
@@ -50,7 +48,7 @@ HK.screens.together = (el) => {
           ${f.allow_audio ? `<button class="btn small blue" data-call="${f.child_id}" data-m="audio" data-n="${esc(f.name)}" ${f.online ? '' : 'disabled'}>${icon('mic', 18)} Sauti</button>` : ''}
           ${f.allow_video ? `<button class="btn small coral" data-call="${f.child_id}" data-m="video" data-n="${esc(f.name)}" ${f.online ? '' : 'disabled'}>${icon('camera', 18)} Video</button>` : ''}
           <button class="btn small" data-play="${f.child_id}" data-n="${esc(f.name)}" ${f.online ? '' : 'disabled'}>${icon('game', 18)} Cheza</button></div></div>`).join('')
-        : `<div class="empty">${mascot('nuru', 80)}<br>Bado huna marafiki. Mwombe mzazi akuongezee.</div>`;
+        : `<div class="empty">${mascot('nuru', 80)}<br>You don't have friends yet. Ask your parent to add some.</div>`;
       $$('[data-call]', b).forEach(x => x.onclick = () => HK.go('call', { to: +x.dataset.call, name: x.dataset.n, media: x.dataset.m, caller: true }));
       $$('[data-play]', b).forEach(x => x.onclick = () => HK.go('battle', { to: +x.dataset.play, name: x.dataset.n, host: true }));
     } catch (e) { b.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
@@ -59,7 +57,6 @@ HK.screens.together = (el) => {
   return Net.on(m => { if (m.t === 'presence') draw(); });
 };
 
-/* Simu au mwaliko unaoingia (popote kwenye programu ya mtoto) */
 Net.on(m => {
   if (m.t === 'ring') {
     speak(m.name + ' anakupigia');
@@ -145,7 +142,6 @@ HK.screens.call = (el, p) => {
   return () => { off(); offDenied(); if (!ended) { Net.send({ t: 'hangup', to: p.to }); ended = true; clearInterval(timer); try { pc && pc.close(); } catch (e) {} if (stream) stream.getTracks().forEach(t => t.stop()); } };
 };
 
-/* ---------- Kucheza pamoja: mashindano ya maswali ---------- */
 function seeded(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 HK.screens.battle = (el, p) => {
   const c = Store.active();

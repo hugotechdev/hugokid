@@ -1,4 +1,4 @@
-/* HUGO KID - home.js : home ya mtoto inayobadilika kwa modi (Mdogo, Anaanza kusoma, Mvumbuzi, Mvumbuzi Mkuu) */
+
 
 /* Misheni za leo */
 function missions(c) {
@@ -11,11 +11,10 @@ function markMission(key) {
   const m = missions(c);
   if (m[key]) return;
   m[key] = true;
-  if (!m.done && m.lesson && m.game && m.hw) { m.done = true; c.stars = (c.stars || 0) + 2; toast('Misheni zote za leo zimekamilika: nyota 2!'); }
+  if (!m.done && m.lesson && m.game && m.hw) { m.done = true; c.stars = (c.stars || 0) + 2; toast("All of today's missions are done: 2 stars!"); }
   c.daily = m; Store.saveChild(c);
 }
 
-/* Kigae kinachoongea kabla ya kufunguka */
 function bindTiles(el, c) {
   const talk = ['toddler', 'beginner'].includes(kidMode(c));
   $$('[data-go]', el).forEach(b => b.onclick = () => {
@@ -51,7 +50,6 @@ HK.screens.home = (el) => {
   return homeStandard(el, c, mode);
 };
 
-/* ---------- Mdogo (3-4): picha kubwa, sauti, bila maandishi mengi ---------- */
 function homeToddler(el, c) {
   const art = {
     colors: `<svg viewBox="0 0 100 100" width="96" height="96"><circle cx="34" cy="38" r="20" fill="#F65B4F"/><circle cx="66" cy="38" r="20" fill="#FFC20E"/><circle cx="34" cy="68" r="20" fill="#1EA7F0"/><circle cx="66" cy="68" r="20" fill="#0FB394"/></svg>`,
@@ -76,7 +74,7 @@ function homeToddler(el, c) {
         ${tile('tapGame', '{"kind":"numbers"}', 'Namba', 'Namba', 'blue', art.numbers)}
         ${tile('tapGame', '{"kind":"shapes"}', 'Maumbo', 'Maumbo', 'teal', art.shapes)}
         ${tile('games', '{}', 'Michezo', 'Michezo', 'navy wide', mascot('simba', 92))}
-        <button class="tile white wide hidden" id="hwtile" data-go="hwList" data-say="Kazi ya mwalimu"><span class="badge hidden" id="hwbadge"></span>${mascot('tembo', 90)}<div class="t-name">Kazi</div></button>
+        <button class="tile white wide hidden" id="hwtile" data-go="hwList" data-say="Kazi ya mwalimu"><span class="badge hidden" id="hwbadge"></span>${mascot('tembo', 90)}<div class="t-name">Tasks</div></button>
       </div></div>
     </div>`;
   kidNav(el, 'home');
@@ -141,7 +139,7 @@ function homeStandard(el, c, mode) {
           <div class="lvl-bar"><i style="width:${Math.max(4, lv.pct)}%"></i></div>
         </div>
         <div class="hero-stats">
-          <div>${icon('star', 20)}<span><b>${c.stars || 0}</b>Nyota</span></div>
+          <div>${icon('star', 20)}<span><b>${c.stars || 0}</b>Stars</span></div>
           <div>${icon('coin', 20)}<span><b>${c.coins || 0}</b>Sarafu</span></div>
           <div>${icon('clock', 20)}<span><b>${Math.ceil(left / 60)}</b>Dakika</span></div>
         </div>
@@ -163,7 +161,7 @@ function homeStandard(el, c, mode) {
       <div style="padding:16px 16px 0">
         <div class="tiles">${tiles}
           ${Net.online() && c.serverId && mode !== 'beginner' ? wide('together', '{}', 'white', `<div class="t-ic" style="background:var(--coral);color:#fff">${icon('users', 28)}</div>`, 'Pamoja', 'Jifunze na cheza na marafiki') : ''}
-          ${wide('raceMenu', '{}', 'navy', `<div class="t-ic">${icon('car', 30)}</div>`, 'Mbio za Magari', 'Ngazi ' + Math.min(9, ((c.racing || {}).unlocked || 1)) + ' kati ya 9')}
+          ${wide('raceMenu', '{}', 'navy', `<div class="t-ic">${icon('car', 30)}</div>`, 'Mbio za Magari', 'Episode ' + Math.min(RACE_EPISODES, raceData(c).unlocked) + ' of ' + RACE_EPISODES)}
         </div>
         ${childAppsStrip()}
       </div>
@@ -184,7 +182,6 @@ function homeStandard(el, c, mode) {
   HK.setBack(() => true);
 }
 
-/* ---------- Ramani ya Safari ---------- */
 const ISLANDS = [
   ['Kisiwa cha Namba', 'g_balloons', '#F65B4F', 'balloon', 'namba'],
   ['Msitu wa Herufi', 'g_letters', '#0FB394', 'letters', 'herufi'],
@@ -198,7 +195,7 @@ const ISLANDS = [
 HK.screens.safari = (el) => {
   const c = Store.active();
   const lv = kidLevel(c).level;
-  el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Ramani ya Safari</h1><span class="chip-tag sun">Ngazi ${lv}</span></div>
+  el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Journey Map</h1><span class="chip-tag sun">Ngazi ${lv}</span></div>
     <div class="scroll"><div class="map">${ISLANDS.map(([n, , col, ic, scene], i) => {
       const open = lv >= i + 1, cur = lv === i + 1 || (i === ISLANDS.length - 1 && lv > ISLANDS.length);
       return `<button class="island ${open ? '' : 'locked'} ${cur ? 'cur' : ''} scene-${scene}" data-i="${i}" style="--ic:${col}" ${cur ? 'aria-current="step"' : ''}>
@@ -213,7 +210,6 @@ HK.screens.safari = (el) => {
   });
 };
 
-/* ---------- Ripoti ya mtoto (Report Card yake) ---------- */
 HK.screens.myReport = (el) => {
   const c = Store.active();
   const avg = a => a && a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : null;
@@ -223,7 +219,7 @@ HK.screens.myReport = (el) => {
   el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Ripoti yangu</h1></div>
     <div class="scroll">
       <div class="hero" style="margin:0"><div class="row">${kidAvatar(c, 64)}<div><div class="nm">${esc(c.name)}</div><div class="hi">${esc(MODES[kidMode(c)].name)} · Ngazi ${kidLevel(c).level}</div></div></div>
-        <div class="hero-stats"><div>${icon('star', 20)}<span><b>${c.stars || 0}</b>Nyota</span></div><div>${icon('coin', 20)}<span><b>${c.coins || 0}</b>Sarafu</span></div><div>${icon('book', 20)}<span><b>${Object.keys(Store.get('lessons_' + c.id, {})).length}</b>Masomo</span></div></div></div>
+        <div class="hero-stats"><div>${icon('star', 20)}<span><b>${c.stars || 0}</b>Stars</span></div><div>${icon('coin', 20)}<span><b>${c.coins || 0}</b>Sarafu</span></div><div>${icon('book', 20)}<span><b>${Object.keys(Store.get('lessons_' + c.id, {})).length}</b>Lessons</span></div></div></div>
       <div class="card" style="margin-top:14px"><h3>Ujuzi</h3>${bar('Kusoma na lugha', read, 'var(--teal)')}${bar('Hesabu na mantiki', math, 'var(--blue)')}</div>
       <div class="card"><h3>Nimejifunza</h3><p>Herufi ${(L.letters || []).length} · Maneno ${(L.words || []).length} · Rangi ${(L.colors || []).length} · Wanyama ${(L.animals || []).length}</p></div>
       <div class="card" id="school"><h3>Homework za shule</h3><p class="muted">Inapakia...</p></div>

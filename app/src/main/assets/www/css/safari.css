@@ -1,4 +1,4 @@
-/* HUGO KID · Mandhari ya Safari */
+
 .scene-serengeti { --scene: url('../img/safari/bg-serengeti.webp'); }
 .scene-namba { --scene: url('../img/safari/bg-namba.webp'); }
 .scene-herufi { --scene: url('../img/safari/bg-herufi.webp'); }
@@ -288,7 +288,6 @@
   .mascot-peek, .mascot-feedback, .mascot-lid { animation: none; }
 }
 
-/* Wasifu wa mtoto */
 .kid-portrait {
   position: relative;
   display: inline-block;
@@ -346,7 +345,6 @@
     url('../img/safari/bg-serengeti.webp') center bottom / 100% auto no-repeat, #fff9ed;
 }
 
-/* Mandhari za michezo */
 .scene-town { --scene: url('../img/safari/bg-town.webp'); }
 .scene-runner { --scene: url('../img/safari/bg-runner.webp'); }
 .scene-pilot { --scene: url('../img/safari/bg-pilot.webp'); }
@@ -456,9 +454,6 @@
   .home-hero .hero-stats div { padding-inline: 6px; }
 }
 
-/* =========================================================
-   Uhai wa wahusika: kupumua, kuyumba, kuruka wakiguswa
-   ========================================================= */
 .mascot img { transform-origin: 50% 92%; animation: mascot-idle 3.8s ease-in-out infinite; }
 .mascot::after {
   content: ""; position: absolute; left: 22%; right: 22%; bottom: 1%; height: 7%; border-radius: 50%;
@@ -472,7 +467,7 @@
   75% { transform: translateY(-1px) scale(1.012, .992) rotate(1.4deg); }
 }
 @keyframes mascot-shadow { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(.86); opacity: .75; } }
-/* kila mhusika na mwendo wake, wasionekane wanacheza pamoja kama roboti */
+
 .tile:nth-child(2) .mascot img, .tile:nth-child(2) .mascot::after { animation-delay: -1.1s; animation-duration: 4.2s; }
 .tile:nth-child(3) .mascot img, .tile:nth-child(3) .mascot::after { animation-delay: -2.3s; animation-duration: 3.5s; }
 .tile:nth-child(4) .mascot img, .tile:nth-child(4) .mascot::after { animation-delay: -.6s; animation-duration: 4.6s; }
@@ -491,7 +486,6 @@
 }
 @keyframes mascot-jump-shadow { 0%, 100% { transform: scaleX(1); } 45% { transform: scaleX(.55); opacity: .4; } }
 
-/* avatar za watoto: zinapumua na kung'aa mara kwa mara */
 .kid-portrait img { transform-origin: 50% 85%; animation: portrait-idle 4.4s ease-in-out infinite; }
 @keyframes portrait-idle {
   0%, 100% { transform: translateY(0) rotate(0); }
@@ -511,7 +505,7 @@
 }
 .profile-avatars button[aria-pressed="true"] .kid-portrait img { animation: portrait-idle 2.6s ease-in-out infinite; }
 
-/* jibu sahihi: Nuru anaruka na nyota zinatawanyika */
+/* Animate Nuru and the stars after a correct answer */
 .mascot-feedback { animation: mascot-hop .9s ease-out both; }
 .mascot-feedback .spark {
   position: absolute; left: 50%; top: 45%; width: 12px; height: 12px; margin: -6px; pointer-events: none;
@@ -526,7 +520,6 @@
   100% { opacity: 0; transform: translate(var(--sx), var(--sy)) scale(1) rotate(160deg); }
 }
 
-/* ikoni za michezo na sarafu */
 .game-card:active .g-ic span { animation: icon-wiggle .45s ease-out; }
 .game-card .g-ic span { display: inline-grid; }
 @keyframes icon-wiggle { 0% { transform: rotate(0); } 30% { transform: rotate(-12deg) scale(1.1); } 60% { transform: rotate(8deg); } 100% { transform: rotate(0); } }
@@ -546,13 +539,11 @@
   .mascot img, .mascot::after, .kid-portrait img, .kid-portrait::after, .mascot-feedback .spark, .badge-c .medal::after { animation: none !important; }
 }
 
-/* Nani anacheza? kila mtoto anaingia kwa kugusa avatar yake */
 .pick-hint { text-align: center; font-weight: 600; margin: 4px 0 14px; }
 .pick-kids .tile { background: #fffdf6 !important; border: 2px solid #fff; box-shadow: 0 4px 0 #e6dcc4, 0 14px 26px -20px #6a5432 !important; }
 .pick-kids .tile:active { transform: scale(.97); }
 .pick-kids .tile .t-name { font-size: 20px; margin-top: 10px; }
 
-/* umri: vitufe vya namba */
 .age-chips { gap: 8px; }
 .age-chips .chip { min-width: 48px; justify-content: center; padding: 10px 0; font-weight: 600; }
 .avatar-pick button .kid-portrait { width: 54px; height: 54px; }
@@ -561,9 +552,6 @@
     url('../img/safari/bg-serengeti.webp') center bottom / 100% auto no-repeat, #fff8e8;
 }
 
-/* =========================================================
-   Picha za vitu kwenye maswali (kwa wasiojua kusoma)
-   ========================================================= */
 .pic { display: inline-grid; place-items: center; width: var(--pic); height: var(--pic); flex: none; vertical-align: middle; }
 .pic svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 2px 2px rgba(40,30,20,.15)); overflow: visible; }
 .g-q .pic, .lesson-card .pic { display: grid; margin: 0 auto 6px; animation: pic-pop .35s ease-out both; }

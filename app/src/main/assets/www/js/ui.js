@@ -1,4 +1,4 @@
-/* HUGO KID - ui.js : icons, avatar, sauti, toast, vitu vya kawaida */
+/* Shared UI, icons and audio helpers. */
 
 const ICONS = {
   home: '<path d="M3 11l9-7 9 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>',
@@ -65,7 +65,6 @@ function icon(name, size = 24, stroke = 2.2) {
 
 const AVATAR_COLORS = ['#0FB394', '#1EA7F0', '#FFC20E', '#F65B4F', '#7B61FF', '#FF8A3D'];
 
-/* Mhusika rahisi wa mtoto (uso wa duara) */
 function avatarSVG(color, size = 56, mood = 'happy', acc = '') {
   const mouth = mood === 'sleep'
     ? '<path d="M40 66 Q50 70 60 66" stroke="#0D2461" stroke-width="4" fill="none" stroke-linecap="round"/>'
@@ -121,7 +120,7 @@ function celebrateMascot(root, name = 'nuru') {
   if (root.querySelector('.mascot-feedback')) return;
   const feedback = document.createElement('div');
   feedback.className = 'mascot-feedback';
-  /* nyota ndogo zinaruka kuzunguka mhusika */
+
   const sparks = Array.from({ length: 7 }, (_, i) => {
     const a = (i / 7) * Math.PI * 2 - Math.PI / 2, d = 46 + (i % 3) * 10;
     return `<i class="spark" style="--sx:${Math.round(Math.cos(a) * d)}px;--sy:${Math.round(Math.sin(a) * d)}px;--sd:${i * 25}ms"></i>`;
@@ -131,7 +130,6 @@ function celebrateMascot(root, name = 'nuru') {
   setTimeout(() => feedback.remove(), 900);
 }
 
-/* mtoto akigusa mhusika au avatar, anaruka kidogo */
 document.addEventListener('pointerdown', e => {
   const host = e.target.closest && e.target.closest('.tile, .scene-banner, .game-card, .profile-avatars button, .trophy-hero, .home-hero, .mascot, .kid-portrait');
   if (!host) return;
@@ -150,7 +148,6 @@ const ART = {
   faith: `<svg class="art" viewBox="0 0 110 110"><circle cx="58" cy="70" r="24" fill="#FFE27A"/><g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M58 30v-10M38 44l-7-7M86 44l7-7M20 70H10M96 70h10"/></g><path d="M8 78q30-14 50-4t52-4v40H8z" fill="#fff"/></svg>`,
 };
 
-/* ---------- sauti (Text to Speech) ---------- */
 function speak(text, lang = 'sw') {
   try {
     if (window.HugoNative && HugoNative.speak) { HugoNative.speak(String(text), lang); return; }
@@ -171,7 +168,6 @@ function vibrate(ms = 30) {
   } catch (e) {}
 }
 
-/* ---------- milio midogo (bila mafaili ya sauti) ---------- */
 const Sfx = {
   ctx: null,
   on: true,
@@ -275,7 +271,6 @@ function starsHTML(n, max = 3, size = 30) {
   return s;
 }
 
-/* kitufe cha kuonyesha / kuficha nenosiri kwenye kila sehemu ya nenosiri */
 function enhancePasswords(root = document) {
   root.querySelectorAll && root.querySelectorAll('input[type="password"]:not([data-pw])').forEach(inp => {
     inp.dataset.pw = '1';

@@ -1,4 +1,4 @@
-/* HUGO KID - terms.js : Masharti ya matumizi na Sera ya faragha (mzazi anakubali wakati wa kujisajili) */
+
 
 const TERMS_VERSION = '1.0';
 const TERMS_DATE = 'Novemba 2026';
@@ -30,11 +30,11 @@ HK.screens.terms = (el, p) => {
   const accept = p.mode === 'accept';
   el.innerHTML = `
     <div class="topbar">${accept && !p.update ? `<button class="icon-btn" id="bk">${icon('back')}</button>` : accept ? '' : `<button class="icon-btn" id="bk">${icon('back')}</button>`}
-      <h1>Masharti na Faragha</h1></div>
+      <h1>Terms and Privacy</h1></div>
     <div class="scroll" id="tb">${p.update ? '<div class="card" style="background:#FFF4D2"><p>Masharti yamebadilika. Tafadhali yasome na uyakubali ili kuendelea.</p></div>' : ''}${termsHTML()}
       ${accept ? `<label class="card row" style="cursor:pointer;gap:12px;align-items:flex-start">
           <input type="checkbox" id="ok" style="width:24px;height:24px;flex:none;margin-top:2px;accent-color:var(--teal)">
-          <span style="font-weight:600;font-size:14px">Mimi ni mzazi au mlezi wa watoto nitakaowasajili. Nimesoma na ninakubali Masharti ya Matumizi na Sera ya Faragha.</span></label>
+          <span style="font-weight:600;font-size:14px">I am the parent or guardian of the children I will register. I have read and accept the Terms of Use and Privacy Policy.</span></label>
         <button class="btn block" id="go" disabled>${icon('check', 20)} Nakubali, endelea</button>` : ''}
     </div>`;
   const bk = $('#bk', el); if (bk) bk.onclick = () => HK.back();

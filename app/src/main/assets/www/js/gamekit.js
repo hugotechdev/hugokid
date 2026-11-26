@@ -1,4 +1,4 @@
-/* HUGO KID - gamekit.js : msingi wa michezo yote (muda, ngazi, zawadi) */
+/* Shared game state, progress and rewards. */
 
 const GK = {
   prog(child, id) {
@@ -7,13 +7,13 @@ const GK = {
     return child.gp[id];
   },
 
-  /* Fremu ya mchezo. Inarudisha kifaa (kit) cha mchezo */
   frame(el, id, opts = {}) {
     const gm = GAMES.find(g => g.id === id);
     const child = Store.active();
     const group = ageGroup(child);
     const prog = GK.prog(child, id);
-    const level = Math.max(1, Math.min(opts.maxLevel || 10, opts.level || prog.level));
+    const maxLevel = opts.maxLevel || GAME_EPISODES;
+    const level = Math.max(1, Math.min(maxLevel, prog.level, opts.level || prog.level));
     const fun = gm.kind === 'fun';
     let coins = 0, ended = false, acc = 0;
 
@@ -22,7 +22,7 @@ const GK = {
       <div class="topbar game-topbar" style="--game-color:${gm.color}">
         <button class="icon-btn" id="gk-back">${icon('back')}</button>
         <span class="game-medal" aria-hidden="true">${icon(gm.icon, 21)}</span>
-        <div class="grow"><h1 style="font-size:19px">${esc(gm.name)}</h1><div class="sub">Ngazi ${level}${opts.maxLevel ? ' / ' + opts.maxLevel : ''}</div></div>
+        <div class="grow"><h1 style="font-size:19px">${esc(gm.name)}</h1><div class="sub">Episode ${level} of ${maxLevel}</div></div>
         <button class="icon-btn" id="gk-help" style="width:42px;height:42px">${icon('help', 22)}</button>
         <span class="hud-pill" style="background:#fff"><span style="color:var(--sun-d)">${icon('coin', 18)}</span><span id="gk-coins">0</span></span>
       </div>
@@ -41,7 +41,7 @@ const GK = {
 
     const exit = () => {
       kit.paused = true;
-      confirmBox(el, 'Toka kwenye mchezo?', 'Utapoteza alama za ngazi hii.', 'Ndiyo, toka', () => HK.leave(), 'coral');
+      confirmBox(el, "Exit the game?", "You will lose this level's points.", "Yes, exit", () => HK.leave(), 'coral');
       setTimeout(() => { if (!$('.overlay', el)) kit.paused = false; }, 50);
     };
     $('#gk-back', el).onclick = exit;
@@ -67,19 +67,19 @@ const GK = {
         if (won) {
           const prev = pr.best[level] || 0;
           if (stars > prev) { cc.stars = (cc.stars || 0) + (stars - prev); pr.best[level] = stars; }
-          if (level >= pr.level && level < (opts.maxLevel || 10)) pr.level = level + 1;
+          if (level >= pr.level && level < maxLevel) pr.level = level + 1;
           Sfx.win(); confetti(el);
           speak(stars === 3 ? 'Hongera! Umefanya vizuri sana!' : 'Vizuri! Umemaliza ngazi hii.');
-        } else { Sfx.bad(); speak('Pole, jaribu tena. Unaweza!'); }
+        } else { Sfx.bad(); speak("Oops, try again. You can do it!"); }
         Store.saveChild(cc);
         const canPlay = !fun || HK.gameLeft(cc) > 0;
-        const last = level >= (opts.maxLevel || 10);
+        const last = level >= maxLevel;
         modal(el, {
           iconName: won ? 'nuru' : 'repeat', iconColor: won ? 'var(--sun)' : 'var(--coral)',
           title: won ? (last ? 'Bingwa!' : 'Hongera!') : 'Jaribu tena',
           html: `${won ? `<div class="earned">${starsHTML(stars, 3, 44)}</div>` : ''}<p>${esc(text)}${text ? ' · ' : ''}Sarafu ${coins}</p>`,
           buttons: [
-            ...(won && !last && canPlay ? [{ label: 'Ngazi inayofuata', icon: 'chevR', onClick: () => HK.go('g_' + id, { level: level + 1 }, { replace: true }) }] : []),
+            ...(won && !last && canPlay ? [{ label: "Next level", icon: 'chevR', onClick: () => HK.go('g_' + id, { level: level + 1 }, { replace: true }) }] : []),
             ...(canPlay ? [{ label: 'Cheza tena', cls: won ? 'sun' : '', icon: 'repeat', onClick: () => HK.go('g_' + id, { level }, { replace: true }) }] : []),
             { label: canPlay ? 'Michezo mingine' : 'Muda umekwisha', cls: 'ghost', onClick: () => canPlay ? HK.leave() : HK.go('timeUp', {}, { replace: true }) },
           ],
@@ -96,9 +96,9 @@ const GK = {
       if (ended) return;
       kit.paused = true;
       modal(el, {
-        iconName: 'nuru', title: 'Unahitaji msaada?',
+        iconName: 'nuru', title: "Do you need help?",
         buttons: [
-          { label: 'Jinsi ya kucheza', icon: 'play', onClick: () => GT.show(el, id, kit.g, () => { kit.paused = false; }) },
+          { label: "How to play", icon: 'play', onClick: () => GT.show(el, id, kit.g, () => { kit.paused = false; }) },
           { label: 'Muulize Nuru', cls: 'blue', icon: 'help', onClick: async () => { await GT.askHugo(el, id, kit.hint); kit.paused = false; } },
           { label: 'Endelea kucheza', cls: 'ghost', onClick: () => { kit.paused = false; } },
         ],
@@ -107,7 +107,6 @@ const GK = {
     return kit;
   },
 
-  /* Mchezo wa maswali (chaguo) unaotumiwa na michezo mingi ya kujifunza */
   quiz(kit, { total = 8, make, render, cols = 2 }) {
     if ((kit.child.needs || []).includes('attention')) total = Math.min(total, 5);
     let i = 0, right = 0, locked = false, demo = kit.first;
@@ -137,7 +136,7 @@ const GK = {
         }
       });
     };
-    /* Mfano: programu inajibu swali la kwanza yenyewe, kisha mtoto anaanza */
+
     const showDemo = (q) => {
       const k = q.opts.findIndex(o => o.ok);
       const btn = $$('.g-opt', kit.body)[k];

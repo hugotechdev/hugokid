@@ -1,6 +1,5 @@
-/* HUGO KID - games-fun.js : michezo 6 ya burudani (pamoja na Mbio za Magari = 7) */
 
-/* msaada wa canvas */
+
 function gameCanvas(kit) {
   kit.body.innerHTML = '<canvas class="full"></canvas>';
   const cv = $('canvas', kit.body), ctx = cv.getContext('2d');
@@ -60,7 +59,7 @@ HK.screens.g_runner = (el, p) => {
   C.cv.addEventListener('pointerdown', jump);
   const key = e => { if (e.key === ' ' || e.key === 'ArrowUp') jump(); };
   window.addEventListener('keydown', key);
-  speak('Gusa skrini kuruka');
+  speak("Tap the screen to jump");
 
   const stop = loopRun(dt => {
     if (kit.paused || kit.ended) return draw();
@@ -139,7 +138,7 @@ HK.screens.g_pilot = (el, p) => {
   C.cv.addEventListener('pointerdown', () => { S.hold = true; });
   window.addEventListener('pointerup', up);
   function up() { S.hold = false; }
-  speak('Shikilia skrini kupanda, achia kushuka. Pita katikati ya pete');
+  speak("Hold the screen to go up, release to go down. Fly through the rings");
   for (let k = 0; k < 5; k++) S.clouds.push({ x: Math.random() * C.W, y: Math.random() * C.H * 0.8, s: 0.6 + Math.random() });
 
   const stop = loopRun(dt => {
@@ -206,14 +205,14 @@ HK.screens.g_penalty = (el, p) => {
   const C = gameCanvas(kit), ctx = C.ctx;
   kit.body.classList.add('game-canvas');
   const rounds = 5, keepTurns = kit.g > 0;
-  const keeperSkill = [0.18, 0.3, 0.42][kit.g] + kit.level * 0.02;
+  const keeperSkill = Math.min(0.68, [0.18, 0.3, 0.42][kit.g] + kit.level * 0.02);
   const S = { turn: 'shoot', n: 0, me: 0, cpu: 0, anim: null, keeper: 4, msg: '', t: 0, log: [] };
-  /* goli limekaa kwenye nyasi za uwanja wa picha, si angani */
+
   const goal = () => ({ x: C.W * 0.08, y: C.H * 0.3, w: C.W * 0.84, h: C.H * 0.32 });
   const zoneRect = z => { const g = goal(); const c = z % 3, r = Math.floor(z / 3); return { x: g.x + g.w / 3 * c, y: g.y + g.h / 2 * r, w: g.w / 3, h: g.h / 2 }; };
   const zoneAt = (x, y) => { const g = goal(); if (x < g.x || x > g.x + g.w || y < g.y || y > g.y + g.h) return -1; return Math.floor((x - g.x) / (g.w / 3)) + 3 * Math.floor((y - g.y) / (g.h / 2)); };
   const say = t => { S.msg = t; speak(t); };
-  say('Gusa golini kupiga penalti');
+  say("Tap the goal to take a penalty");
 
   C.cv.addEventListener('pointerdown', e => {
     if (S.anim || kit.paused || kit.ended) return;
@@ -231,7 +230,7 @@ HK.screens.g_penalty = (el, p) => {
 
   const startSave = () => {
     S.turn = 'save'; S.myDive = null; S.pending = rnd(6);
-    say('Sasa wewe ni kipa! Gusa upande wa kudaka');
+    say("Now you are the goalkeeper! Tap the side to save");
     setTimeout(() => { if (!kit.ended) S.anim = { kind: 'save', target: S.pending, t: 0 }; }, 1300);
   };
   const nextTurn = () => {
@@ -242,7 +241,7 @@ HK.screens.g_penalty = (el, p) => {
       const stars = S.me >= 5 ? 3 : S.me >= 4 ? 2 : 1;
       return kit.finish({ won: won || (keepTurns && S.me === S.cpu && S.me >= 3), stars, text: keepTurns ? `Wewe ${S.me} - ${S.cpu} Kompyuta` : `Magoli ${S.me}/5` });
     }
-    S.turn = 'shoot'; say('Piga tena!');
+    S.turn = 'shoot'; say("Kick again!");
   };
 
   const stop = loopRun(dt => {
@@ -253,11 +252,11 @@ HK.screens.g_penalty = (el, p) => {
       if (a.kind === 'shoot') S.keeper = a.t > 0.25 ? a.dive : 4;
       if (a.t >= 1) {
         if (a.kind === 'shoot') {
-          if (a.dive === a.target) { say('Kipa amedaka!'); Sfx.bad(); S.log.push('x'); }
-          else { S.me++; kit.addCoins(3); say('Goli!'); Sfx.win(); S.log.push('o'); }
+          if (a.dive === a.target) { say("The goalkeeper saved it!"); Sfx.bad(); S.log.push('x'); }
+          else { S.me++; kit.addCoins(3); say("Goal!"); Sfx.win(); S.log.push('o'); }
         } else {
-          if (S.myDive === a.target) { say('Umedaka! Hongera'); kit.addCoins(3); Sfx.good(); }
-          else { S.cpu++; say('Goli la kompyuta'); Sfx.bad(); }
+          if (S.myDive === a.target) { say("You saved it! Well done"); kit.addCoins(3); Sfx.good(); }
+          else { S.cpu++; say("Computer's goal"); Sfx.bad(); }
         }
         S.anim = null; S.keeper = 4;
         setTimeout(nextTurn, 1100);
@@ -324,17 +323,16 @@ HK.screens.g_penalty = (el, p) => {
   return () => { stop(); C.off(); kit.cleanup(); };
 };
 
-/* ===== Mapovu ya Rangi ===== */
 HK.screens.g_bubbles = (el, p) => {
   const kit = GK.frame(el, 'bubbles', { level: p.level });
   const COLS = 7, ROWS = 9, NC = [3, 4, 5][kit.g];
   const PAL = ['#F65B4F', '#1EA7F0', '#FFC20E', '#0FB394', '#7B61FF'];
-  const target = [50, 80, 110][kit.g] + kit.level * 8;
+  const target = [50, 80, 110][kit.g] + Math.min(kit.level, 14) * 8;
   let grid = Array.from({ length: COLS }, () => Array.from({ length: ROWS }, () => rnd(NC)));
   let score = 0;
   kit.body.innerHTML = `<div class="g-q" style="font-size:18px;min-height:56px"><span id="sc"></span></div>
     <div id="bb" style="flex:1;display:grid;grid-template-columns:repeat(${COLS},1fr);gap:4px;padding:6px 14px 18px;align-content:end"></div>`;
-  speak('Gusa mapovu mawili au zaidi ya rangi moja yaliyogusana');
+  speak("Tap two or more touching bubbles of the same color");
   const group = (c, r) => {
     const col = grid[c][r]; if (col == null) return [];
     const out = [], seen = new Set(), st = [[c, r]];
@@ -400,15 +398,15 @@ HK.screens.g_village = (el, p) => {
   const budget = Math.round(cost * [1.5, 1.3, 1.15][kit.g] / 5) * 5;
   const nearRule = kit.g > 0;
   const map = Array(COLS * ROWS).fill(null);
-  let sel = 'house', money = budget;
+  let sel = 'house', money = budget, assistance = 0;
   kit.body.innerHTML = `
-    <div class="card" style="margin:0 12px 8px;padding:12px 14px"><div class="row" style="justify-content:space-between"><b>Kazi</b><span class="chip-tag sun">${icon('coin', 14)} <span id="money"></span></span></div>
+    <div class="card" style="margin:0 12px 8px;padding:12px 14px"><div class="row" style="justify-content:space-between"><b>Tasks</b><span class="chip-tag sun">${icon('coin', 14)} <span id="money"></span></span></div>
       <div id="need" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
       ${nearRule ? '<p style="font-size:13px;margin-top:6px">Kila nyumba iwe karibu na kisima au mti.</p>' : ''}</div>
     <div class="build-grid" id="map" style="grid-template-columns:repeat(${COLS},1fr)"></div>
     <div class="palette" id="pal"></div>
     <div class="btn-row" style="padding:0 12px 14px"><button class="btn ghost" id="erase">${icon('eraser', 20)} Ondoa</button><button class="btn" id="done" style="flex:2">${icon('check', 20)} Nimemaliza</button></div>`;
-  speak('Jenga kijiji chako. Usitumie pesa zaidi ya bajeti');
+  speak("Build your village. Don't spend more than the budget");
   const count = id => map.filter(x => x === id).length;
   const draw = () => {
     $('#money', el).textContent = money;
@@ -424,7 +422,9 @@ HK.screens.g_village = (el, p) => {
     if (sel === 'erase') { if (map[i]) { money += BUILDS.find(x => x.id === map[i]).cost; map[i] = null; Sfx.tap(); draw(); } return; }
     if (map[i]) return;
     const b = BUILDS.find(x => x.id === sel);
-    if (money < b.cost) { Sfx.bad(); speak('Pesa haitoshi'); toast('Pesa haitoshi'); return; }
+    if (money < b.cost) return tokenChallenge(el, b.cost - money, reward => {
+      money += reward; assistance += reward; place(i);
+    });
     money -= b.cost; map[i] = sel; Sfx.tone(440, 0.1, 'triangle', 0.15); draw();
   };
   $('#erase', el).onclick = () => { sel = sel === 'erase' ? 'house' : 'erase'; draw(); };
@@ -437,16 +437,16 @@ HK.screens.g_village = (el, p) => {
         const x = i % COLS, y = Math.floor(i / COLS);
         return ![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => { const nx = x + dx, ny = y + dy; return nx >= 0 && ny >= 0 && nx < COLS && ny < ROWS && (map[ny * COLS + nx] === 'well' || map[ny * COLS + nx] === 'tree'); });
       });
-      if (bad) { Sfx.bad(); speak('Kuna nyumba isiyo na kisima au mti karibu'); toast('Kuna nyumba isiyo na kisima au mti karibu'); return; }
+      if (bad) { Sfx.bad(); speak("There is a house without a well or tree nearby"); toast("There is a house without a well or tree nearby"); return; }
     }
-    kit.addCoins(Math.round(money / 10));
-    kit.finish({ stars: money >= budget * 0.25 ? 3 : money >= budget * 0.1 ? 2 : 1, text: `Akiba ${money}` });
+    const savings = Math.max(0, money - assistance);
+    kit.addCoins(Math.round(savings / 10));
+    kit.finish({ stars: savings >= budget * 0.25 ? 3 : savings >= budget * 0.1 ? 2 : 1, text: `Saved ${savings} coins` });
   };
   draw();
   return () => kit.cleanup();
 };
 
-/* ===== Jikoni na Mama ===== */
 const INGR = {
   maji: ['Maji', '#7CC8F5'], chai: ['Majani ya chai', '#5B3A1E'], maziwa: ['Maziwa', '#F4F1EA'], sukari: ['Sukari', '#FFFFFF'],
   unga: ['Unga', '#F3E3C3'], ndimu: ['Ndimu', '#B6D94C'], embe: ['Embe', '#FFB020'], ndizi: ['Ndizi', '#FFD93D'], nanasi: ['Nanasi', '#E3B341'],
@@ -465,10 +465,12 @@ const RECIPES = [
 ];
 HK.screens.g_kitchen = (el, p) => {
   const kit = GK.frame(el, 'kitchen', { level: p.level });
-  const list = shuffle(RECIPES.slice()).slice(0, 3);
+  const offset = (kit.level - 1) % RECIPES.length;
+  const rotations = [...RECIPES.slice(offset), ...RECIPES.slice(0, offset)];
+  const list = rotations.slice(0, 3 + Math.floor((kit.level - 1) / 6));
   let ri = 0, perfect = 0, pot = {}, tries = 0;
   const draw = () => {
-    if (ri >= list.length) return kit.finish({ stars: perfect >= 3 ? 3 : perfect >= 2 ? 2 : 1, text: `Mapishi ${perfect}/3 bila kosa` });
+    if (ri >= list.length) return kit.finish({ stars: perfect === list.length ? 3 : perfect >= Math.ceil(list.length * 2 / 3) ? 2 : 1, text: `${perfect} of ${list.length} recipes on the first try` });
     const rc = list[ri];
     const want = kit.g === 0 ? Object.fromEntries(Object.keys(rc.items).map(k => [k, 1])) : rc.items;
     const shelf = shuffle([...Object.keys(want), ...shuffle(['sabuni', 'mchanga', 'pipi', ...Object.keys(INGR).filter(k => !want[k] && !['sabuni', 'mchanga', 'pipi'].includes(k))]).slice(0, kit.g === 0 ? 2 : 5)]);

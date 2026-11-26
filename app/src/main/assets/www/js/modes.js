@@ -1,4 +1,4 @@
-/* HUGO KID - modes.js : programu inajibadilisha kwa umri, kipimo cha uwezo na maendeleo ya mtoto */
+/* Age modes, placement assessment and starter games. */
 
 const MODES = {
   toddler: { name: 'Mdogo', range: 'Miaka 3-4', group: 'explorer' },
@@ -10,7 +10,6 @@ const MODE_ORDER = ['toddler', 'beginner', 'explorer', 'advanced'];
 const GRADES = ['Sijaanza shule', 'Awali - Baby Class', 'Awali - Middle Class', 'Awali - Pre-Unit', 'Darasa la 1', 'Darasa la 2', 'Darasa la 3', 'Darasa la 4', 'Darasa la 5', 'Darasa la 6', 'Darasa la 7'];
 const NEEDS = { vision: 'Kuona hafifu', hearing: 'Kusikia hafifu', dyslexia: 'Ugumu wa kusoma (dyslexia)', attention: 'Umakini mfupi' };
 
-/* Modi: umri -> kipimo cha uwezo -> maendeleo halisi (Nuru anamfuatilia mtoto) */
 function kidMode(c) {
   if (!c) return 'explorer';
   if (c.modeOverride && MODES[c.modeOverride]) return c.modeOverride;
@@ -45,7 +44,6 @@ function logSkill(skill, pct) {
 }
 const SKILL_OF = { letters: 'read', speak: 'read', faith: 'read', memory: 'read', balloons: 'math', market: 'math', shapes: 'math', robot: 'math' };
 
-/* Mahitaji maalum: muonekano na sauti */
 function applyNeeds(c) {
   const b = document.body;
   MODE_ORDER.forEach(m => b.classList.remove('mode-' + m));
@@ -61,7 +59,6 @@ speak = function (text, lang) {
   return _speak(text, lang);
 };
 
-/* Mapumziko: kila dakika 30 (dakika 12 kwa mwenye umakini mfupi) mtoto anapumzika kidogo */
 setInterval(() => {
   const c = Store.active(); const top = HK.stack[HK.stack.length - 1];
   if (!c || !top || document.hidden || ['parentHome', 'pin', 'welcome', 'terms', 'acctAuth', 'sleep', 'timeUp', 'call'].includes(top.name) || Net.role() && STAFF.includes(Net.role())) return;
@@ -72,10 +69,9 @@ setInterval(() => {
   sessionStorage.setItem(k, 0);
   const b = pick(BREAKS);
   speak('Pumzika kidogo. ' + b.say);
-  modal(null, { iconName: 'run', iconColor: 'var(--teal)', title: 'Pumzika kidogo', text: b.t, buttons: [{ label: 'Nimemaliza', icon: 'check', onClick: () => { const cc = Store.active(); cc.stars = (cc.stars || 0) + 1; Store.saveChild(cc); toast('Nyota 1 kwa mazoezi'); } }] });
+  modal(null, { iconName: 'run', iconColor: 'var(--teal)', title: 'Pumzika kidogo', text: b.t, buttons: [{ label: 'Nimemaliza', icon: 'check', onClick: () => { const cc = Store.active(); cc.stars = (cc.stars || 0) + 1; Store.saveChild(cc); toast("1 star for practice"); } }] });
 }, 60000);
 
-/* ---------- Michoro ya wanyama (kwa watoto wasiojua kusoma) ---------- */
 const ANIMALS = {
   Tembo: c => `<svg viewBox="0 0 120 120"><ellipse cx="34" cy="52" rx="22" ry="28" fill="#A9B3C6"/><ellipse cx="86" cy="52" rx="22" ry="28" fill="#A9B3C6"/><circle cx="60" cy="54" r="32" fill="#C3CBD9"/><path d="M60 70q-6 22 6 36" stroke="#C3CBD9" stroke-width="14" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="5" fill="#0D2461"/><circle cx="72" cy="48" r="5" fill="#0D2461"/><circle cx="49" cy="46" r="1.6" fill="#fff"/><circle cx="73" cy="46" r="1.6" fill="#fff"/></svg>`,
   Simba: c => `<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="46" fill="#D9822B"/><circle cx="60" cy="62" r="32" fill="#F6C56B"/><circle cx="34" cy="34" r="9" fill="#F6C56B"/><circle cx="86" cy="34" r="9" fill="#F6C56B"/><circle cx="48" cy="56" r="5" fill="#0D2461"/><circle cx="72" cy="56" r="5" fill="#0D2461"/><path d="M54 70h12l-6 7z" fill="#7A3E12"/><path d="M50 80q10 8 20 0" stroke="#7A3E12" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
@@ -97,7 +93,6 @@ function learned(kind, item) {
   Store.saveChild(c);
 }
 
-/* ---------- Mchezo wa "Gusa..." (sauti tu, bila kusoma) ---------- */
 HK.screens.tapGame = (el, p) => {
   const scenes = { colors: 'bubbles', animals: 'serengeti', numbers: 'namba', shapes: 'maumbo' };
   el.classList.add('game-world', 'scene-' + (scenes[p.kind] || 'serengeti'));
@@ -127,7 +122,7 @@ HK.screens.tapGame = (el, p) => {
       const cc = Store.active(); const k = 'tap_' + kind; cc.gp = cc.gp || {}; const prev = (cc.gp[k] || {}).best || 0;
       if (stars > prev) { cc.stars = (cc.stars || 0) + (stars - prev); cc.gp[k] = { best: stars }; }
       cc.coins = (cc.coins || 0) + 3; Store.saveChild(cc);
-      Sfx.win(); confetti(el); speak('Hongera! Umefanya vizuri sana!');
+      Sfx.win(); confetti(el); speak("Congratulations! You did very well!");
       return modal(el, { iconName: 'trophy', iconColor: 'var(--sun)', title: '', html: `<div class="earned">${starsHTML(stars, 3, 56)}</div>`, buttons: [{ label: '', icon: 'repeat', onClick: () => HK.render() }, { label: '', cls: 'ghost', icon: 'home', onClick: () => HK.go('home', {}, { reset: true }) }] });
     }
     const q = make(); missed = false;
@@ -153,14 +148,12 @@ HK.screens.tapGame = (el, p) => {
   return () => HK.addLearnTime(c, Math.round((Date.now() - t0) / 1000));
 };
 
-/* ---------- Herufi (A B C) kwa wanaoanza kusoma ---------- */
-const ABC_SW = [['A', 'Asali'], ['B', 'Baba'], ['C', 'Chai'], ['D', 'Dada'], ['E', 'Embe'], ['F', 'Fagio'], ['G', 'Gari'], ['H', 'Habari'], ['I', 'Inzi'], ['J', 'Jua'], ['K', 'Kuku'], ['L', 'Limau'], ['M', 'Mama'], ['N', 'Ndege'], ['O', 'Osha'], ['P', 'Paka'], ['R', 'Rafiki'], ['S', 'Simba'], ['T', 'Tembo'], ['U', 'Ua'], ['V', 'Viatu'], ['W', 'Wali'], ['Y', 'Yai'], ['Z', 'Zawadi']];
 const ABC_EN = [['A', 'Apple'], ['B', 'Ball'], ['C', 'Cat'], ['D', 'Dog'], ['E', 'Egg'], ['F', 'Fish'], ['G', 'Goat'], ['H', 'Hat'], ['I', 'Insect'], ['J', 'Jug'], ['K', 'Kite'], ['L', 'Lion'], ['M', 'Mango'], ['N', 'Nest'], ['O', 'Orange'], ['P', 'Pen'], ['Q', 'Queen'], ['R', 'Rabbit'], ['S', 'Sun'], ['T', 'Tree'], ['U', 'Umbrella'], ['V', 'Van'], ['W', 'Water'], ['X', 'Box'], ['Y', 'Yam'], ['Z', 'Zebra']];
 const EN_PIC = { Cat: 'Paka', Dog: 'Mbwa', Fish: 'Samaki', Lion: 'Simba' };
 HK.screens.abc = (el, p) => {
   const c = Store.active();
-  let lang = p.lang || (c.lang === 'en' ? 'en' : 'sw');
-  const list = () => lang === 'en' ? ABC_EN : ABC_SW;
+  const lang = 'en';
+  const list = () => ABC_EN;
   let i = 0;
   const t0 = Date.now();
   const draw = () => {
@@ -168,7 +161,7 @@ HK.screens.abc = (el, p) => {
     const art = pic(w, 120) || pic(EN_PIC[w], 120);
     el.innerHTML = `
       <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Herufi</h1>
-        <div class="chips"><button class="chip ${lang === 'sw' ? 'on' : ''}" data-l="sw">Kiswahili</button><button class="chip ${lang === 'en' ? 'on' : ''}" data-l="en">English</button></div></div>
+        </div>
       <div class="center-col" style="justify-content:flex-start;padding-top:6px">
         <div class="lesson-card" style="width:100%;max-width:380px;padding:18px">
           <div style="font-size:120px;font-weight:700;line-height:1;color:var(--blue)">${L}<span style="font-size:80px;color:var(--coral)">${L.toLowerCase()}</span></div>
@@ -185,11 +178,10 @@ HK.screens.abc = (el, p) => {
           <button class="btn" id="next" style="flex:3">${icon('chevR', 24)}</button>
         </div>
       </div>`;
-    const sayIt = () => speak(lang === 'en' ? `${L}. ${L} for ${w}` : `${L}. ${L} kama ${w}`, lang === 'sw' ? 'sw-raw' : lang);
+    const sayIt = () => speak(`${L}. ${L} for ${w}`);
     $('#say', el).onclick = sayIt; setTimeout(sayIt, 250);
     learned('letters', L);
     $('#bk', el).onclick = () => HK.back();
-    $$('[data-l]', el).forEach(b => b.onclick = () => { lang = b.dataset.l; i = 0; draw(); });
     $('#prev', el).onclick = () => { if (i) { i--; draw(); } };
     $('#next', el).onclick = () => { Sfx.tap(); i = (i + 1) % list().length; draw(); };
     const mic = $('#mic', el);
@@ -199,7 +191,7 @@ HK.screens.abc = (el, p) => {
         const said = (res || [])[0] || '';
         const ok = (res || []).some(x => x.toLowerCase().includes(w.toLowerCase()));
         $('#heard', el).textContent = said ? 'Umesema: ' + said : 'Sijasikia vizuri';
-        if (ok) { Sfx.good(); celebrateMascot(el, 'kobe'); speak('Safi sana!'); learned('words', w); } else if (said) speak('Karibu! Sikiliza tena: ' + w, lang === 'sw' ? 'sw-raw' : lang);
+        if (ok) { Sfx.good(); celebrateMascot(el, 'kobe'); speak("Very good!"); learned('words', w); } else if (said) speak('Good try! Listen again: ' + w);
       };
       HugoNative.listen(lang);
     };
@@ -227,10 +219,10 @@ HK.screens.placement = (el, p) => {
     el.innerHTML = `<div class="center-col">
       ${mascot('nuru', 110)}
       <h2 style="font-size:24px;margin:14px 0 6px">Tucheze kidogo, ${esc(c.name)}!</h2>
-      <p class="muted" style="font-weight:500;max-width:320px">Maswali machache ya kujua kiwango chako ili tukuandalie masomo yanayokufaa. Mzazi anaweza kusaidia kusoma maelekezo.</p>
+      <p class="muted" style="font-weight:500;max-width:320px">A few questions to find your level so we can prepare the right lessons for you. A parent can help read the instructions.</p>
       <div style="height:20px"></div>
       <button class="btn blue" id="go" style="min-width:220px">${icon('play', 22)} Anza</button>
-      <div style="height:12px"></div><button class="btn ghost small" id="skip">Ruka kwa sasa</button></div>`;
+      <div style="height:12px"></div><button class="btn ghost small" id="skip">Skip for now</button></div>`;
     speak('Tucheze kidogo ' + c.name + '! Nitakuuliza maswali machache.');
     $('#go', el).onclick = step; $('#skip', el).onclick = () => HK.go('home', {}, { reset: true });
   };
@@ -248,7 +240,7 @@ HK.screens.placement = (el, p) => {
       Sfx.tap();
       if (ok) res[s.k] = Math.max(res[s.k], s.lvl + 1);
       i++;
-      // akikosea maswali ya ngazi ya chini, ruka yaliyo magumu zaidi ya aina hiyo
+
       if (!ok) while (i < steps.length && steps[i].k === s.k && steps[i].lvl > s.lvl) i++;
       setTimeout(step, 250);
     });
@@ -259,14 +251,14 @@ HK.screens.placement = (el, p) => {
     Store.saveChild(cc);
     const m = kidMode(cc);
     Sfx.win(); confetti(el);
-    speak('Hongera! Tumekuandalia safari yako.');
+    speak("Congratulations! We have prepared your journey.");
     el.innerHTML = `<div class="center-col">
       ${avatarSVG(cc.color, 110)}
       <h2 style="font-size:24px;margin:14px 0 4px">Tayari!</h2>
       <p class="muted" style="font-weight:500">Kiwango: <b style="color:var(--navy)">${esc(MODES[m].name)}</b></p>
       <div class="card" style="width:100%;max-width:340px;margin-top:14px;text-align:left">
         ${[['Kusoma', cc.place.read], ['Hesabu', cc.place.math]].map(([n, v]) => `<div class="row" style="justify-content:space-between;margin-top:8px"><b>${n}</b><span class="lvl-dots">${[1, 2, 3].map(k => `<i class="${k <= v ? 'on' : ''}"></i>`).join('')}</span></div>`).join('')}
-        <p style="font-size:13px;margin-top:10px">Nuru ataendelea kufuatilia maendeleo na kubadilisha kiwango mtoto akikua.</p>
+        <p style="font-size:13px;margin-top:10px">Nuru will keep following progress and adjust the level as the child grows.</p>
       </div>
       <div style="height:16px"></div><button class="btn" id="go" style="min-width:220px">${icon('home', 22)} Twende</button></div>`;
     $('#go', el).onclick = () => HK.go('home', {}, { reset: true });

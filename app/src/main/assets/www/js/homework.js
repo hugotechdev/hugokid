@@ -1,7 +1,7 @@
-/* HUGO KID - homework.js : homework kwenye simu (kuandika na kuchora kama karatasi) */
+
 
 const HW_STATUS = {
-  new: { label: 'Mpya', cls: 'blue' },
+  new: { label: "New", cls: 'blue' },
   doing: { label: 'Anaifanya', cls: 'sun' },
   submitted: { label: 'Imetumwa', cls: 'coral' },
   returned: { label: 'Irekebishwe', cls: 'sun' },
@@ -10,7 +10,6 @@ const HW_STATUS = {
 const SUBJECTS = ['Hesabu', 'Kiingereza', 'Kiswahili', 'Sayansi', 'Dini', 'Nyingine'];
 const PAGE_W = 1000, PAGE_H = 1414;
 
-/* ---------- kuchora ukurasa (karatasi + maandishi + wino) ---------- */
 function wrapText(ctx, text, maxW) {
   const out = [];
   String(text).split('\n').forEach(par => {
@@ -55,7 +54,7 @@ async function drawPageBg(ctx, pg) {
   qs.forEach((q, i) => {
     const lines = wrapText(ctx, q, w - 180);
     lines.forEach(l => { ctx.fillText(l, 130, y - 12); y += 56; });
-    y += 56 * (qs.length > 1 ? 3 : 8); // nafasi ya kujibu
+    y += 56 * (qs.length > 1 ? 3 : 8); 
   });
 }
 
@@ -80,7 +79,6 @@ function drawStrokes(ctx, strokes) {
   });
 }
 
-/* ukurasa kamili (karatasi + wino) kama picha */
 async function renderPage(pg, quality = 0.8) {
   const { w, h } = pageSize(pg);
   const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -92,15 +90,14 @@ async function renderPage(pg, quality = 0.8) {
   return c.toDataURL('image/jpeg', quality);
 }
 
-/* ---------- MZAZI: kuongeza homework ---------- */
 HK.screens.hwNew = (el) => {
   const kids = Store.children();
   const hw = { id: uid(), childId: Store.activeId() || kids[0].id, title: '', subject: 'Hesabu', pages: [], status: 'new', created: Date.now(), stars: 0, feedback: '' };
 
   el.innerHTML = `
-    <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Homework mpya</h1></div>
+    <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>New homework</h1></div>
     <div class="scroll">
-      ${kids.length > 1 ? `<label class="label">Ya nani?</label><div class="chips" id="kid">${kids.map(k => `<button class="chip ${k.id === hw.childId ? 'on' : ''}" data-id="${k.id}">${esc(k.name)}</button>`).join('')}</div>` : ''}
+      ${kids.length > 1 ? `<label class="label">Whose is it?</label><div class="chips" id="kid">${kids.map(k => `<button class="chip ${k.id === hw.childId ? 'on' : ''}" data-id="${k.id}">${esc(k.name)}</button>`).join('')}</div>` : ''}
       <label class="label">Jina la homework</label>
       <input class="field" id="title" placeholder="Mfano: Hesabu ukurasa 12">
       <label class="label">Somo</label>
@@ -138,7 +135,7 @@ HK.screens.hwNew = (el) => {
     const files = Array.from(e.target.files || []);
     for (const f of files) {
       try { const r = await fileToImageData(f); hw.pages.push({ bg: r.data, w: r.w, h: r.h, strokes: [] }); }
-      catch (err) { toast('Picha moja haikufunguka'); }
+      catch (err) { toast("One photo didn't open"); }
     }
     e.target.value = '';
     drawPages();
@@ -157,7 +154,7 @@ HK.screens.hwNew = (el) => {
 
   $('#ai', el).onclick = async () => {
     if (!AI.cfg().key) {
-      return modal(el, { iconName: 'sliders', title: 'Weka AI kwanza', text: 'Chagua Gemini, Claude au ChatGPT na uweke API key kwenye Mipangilio.', buttons: [{ label: 'Fungua mipangilio ya AI', onClick: () => HK.go('aiSettings') }, { label: 'Baadaye', cls: 'ghost' }] });
+      return modal(el, { iconName: 'sliders', title: "Set up AI first", text: 'Chagua Gemini, Claude au ChatGPT na uweke API key kwenye Mipangilio.', buttons: [{ label: "Open AI settings", onClick: () => HK.go('aiSettings') }, { label: 'Baadaye', cls: 'ghost' }] });
     }
     const b = $('#ai', el); b.disabled = true; b.innerHTML = 'AI inasoma homework...';
     try {
@@ -182,15 +179,14 @@ HK.screens.hwNew = (el) => {
 
   $('#save', el).onclick = async () => {
     hw.title = $('#title', el).value.trim() || hw.subject;
-    if (!hw.pages.length) return toast('Ongeza angalau ukurasa mmoja');
+    if (!hw.pages.length) return toast("Add at least one page");
     await HWDB.put(hw);
-    Sfx.good(); toast('Homework imetumwa kwa mtoto');
+    Sfx.good(); toast("Homework sent to the child");
     HK.back();
   };
   drawPages();
 };
 
-/* ---------- MZAZI: kukagua ---------- */
 HK.screens.hwReview = (el, p) => {
   el.innerHTML = '<div class="center-col">Inapakia...</div>';
   HWDB.get(p.id).then(async hw => {
@@ -207,10 +203,10 @@ HK.screens.hwReview = (el, p) => {
         <span class="chip-tag ${st.cls}">${st.label}</span></div>
       <div class="scroll">
         ${imgs.map(s => `<img class="review-page" src="${s}">`).join('')}
-        ${hw.original ? `<div class="section-title">Picha ya asili</div>${hw.original.map(s => `<img class="review-page" src="${s}">`).join('')}` : ''}
+        ${hw.original ? `<div class="section-title">Original photo</div>${hw.original.map(s => `<img class="review-page" src="${s}">`).join('')}` : ''}
         ${hw.status === 'submitted' ? `
           <div class="card" style="text-align:center">
-            <h3>Mpe nyota</h3>
+            <h3>Give stars</h3>
             <div class="stars-pick">${[1, 2, 3].map(n => `<button data-s="${n}">${icon('star', 46, 1.6)}</button>`).join('')}</div>
             <textarea class="field" id="fb" placeholder="Ujumbe kwa mtoto (si lazima)" style="margin-top:12px;min-height:70px"></textarea>
             <div style="height:14px"></div>
@@ -240,13 +236,12 @@ HK.screens.hwReview = (el, p) => {
     const ret = $('#ret', el);
     if (ret) ret.onclick = async () => {
       hw.status = 'returned'; hw.feedback = $('#fb', el).value.trim() || 'Angalia tena kazi yako na urekebishe.';
-      await HWDB.put(hw); toast('Imerudishwa kwa mtoto'); HK.back();
+      await HWDB.put(hw); toast("Returned to the child"); HK.back();
     };
-    $('#del', el).onclick = () => confirmBox(el, 'Futa homework?', 'Kazi hii itafutika kabisa.', 'Futa', async () => { await HWDB.del(hw.id); HK.back(); });
+    $('#del', el).onclick = () => confirmBox(el, "Delete homework?", "This work will be deleted permanently.", "Delete", async () => { await HWDB.del(hw.id); HK.back(); });
   });
 };
 
-/* ---------- MTOTO: orodha ya homework ---------- */
 HK.screens.hwList = (el) => {
   const c = Store.active();
   el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Homework yangu</h1></div><div class="scroll" id="list"></div>`;
@@ -254,8 +249,8 @@ HK.screens.hwList = (el) => {
   SchoolSync.pull(c).catch(() => {}).then(() => HWDB.byChild(c.id)).then(list => {
     const box = $('#list', el); if (!box) return;
     if (!list.length) {
-      box.innerHTML = `<div class="empty scene-empty">${mascot('tembo', 148, 'mascot-peek')}<br>Huna homework sasa hivi.<br>Mwombe mzazi apige picha ya homework yako.</div>`;
-      speak('Huna homework sasa hivi');
+      box.innerHTML = `<div class="empty scene-empty">${mascot('tembo', 148, 'mascot-peek')}<br>Huna homework sasa hivi.<br>Ask your parent to take a photo of your homework.</div>`;
+      speak("You have no homework right now");
       return;
     }
     const order = { returned: 0, new: 1, doing: 2, submitted: 3, approved: 4 };
@@ -278,7 +273,6 @@ HK.screens.hwList = (el) => {
   });
 };
 
-/* ---------- MTOTO: kufanya homework (kalamu, rangi, kifutio) ---------- */
 HK.screens.hwDo = (el, p) => {
   const c = Store.active();
   el.classList.add('hw-screen');
@@ -351,7 +345,7 @@ HK.screens.hwDo = (el, p) => {
     if (!readOnly()) {
       $('#eraser', el).onclick = () => { tool = tool === 'eraser' ? 'pen' : 'eraser'; $('#eraser', el).classList.toggle('on', tool === 'eraser'); Sfx.tap(); };
       $('#undo', el).onclick = () => { const pg = hw.pages[pageI]; if (pg.strokes.length) { pg.strokes.pop(); redrawInk(); queueSave(); Sfx.tap(); } };
-      $('#clear', el).onclick = () => confirmBox(el, 'Futa ulichoandika?', 'Ukurasa huu utakuwa safi tena.', 'Ndiyo, futa', () => { hw.pages[pageI].strokes = []; redrawInk(); queueSave(); });
+      $('#clear', el).onclick = () => confirmBox(el, "Erase what you wrote?", "This page will be clean again.", "Yes, delete", () => { hw.pages[pageI].strokes = []; redrawInk(); queueSave(); });
       $('#submit', el).onclick = submit;
       $('#help', el).onclick = askHelp;
     }
@@ -368,7 +362,7 @@ HK.screens.hwDo = (el, p) => {
     showPage();
     window.addEventListener('resize', fit);
     if (!readOnly() && !GT.seen(c, 'homework')) setTimeout(() => GT.show(el, 'homework', 0), 300);
-    else if (hw.status === 'new') speak('Tuanze homework. Andika kwa kidole chako.');
+    else if (hw.status === 'new') speak("Let's start the homework. Write with your finger.");
   });
 
   function fit() {
@@ -433,7 +427,7 @@ HK.screens.hwDo = (el, p) => {
   }
 
   function redrawLast() {
-    // chora mstari wote upya kwa urahisi (kwa usahihi wa kifutio)
+
     const s = drawing && drawing.s; if (!s) return;
     if (s.erase || s.points.length < 3) { redrawInk(); return; }
     const p = s.points, n = p.length;
@@ -451,8 +445,8 @@ HK.screens.hwDo = (el, p) => {
 
   async function askHelp() {
     if (!AI.ready()) {
-      speak('Muombe mzazi akusaidie');
-      return modal(el, { iconName: 'user', iconColor: 'var(--blue)', title: 'Muombe mzazi', text: 'Mzazi akiweka AI, Nuru atakusaidia hapa. Kwa sasa, muombe mzazi au mwalimu akusaidie.', buttons: [{ label: 'Sawa' }] });
+      speak("Ask your parent to help you");
+      return modal(el, { iconName: 'user', iconColor: 'var(--blue)', title: "Ask your parent", text: 'Mzazi akiweka AI, Nuru atakusaidia hapa. Kwa sasa, muombe mzazi au mwalimu akusaidie.', buttons: [{ label: 'Sawa' }] });
     }
     const ov = modal(el, { iconName: 'nuru', title: 'Nuru anafikiri...', text: 'Subiri kidogo', buttons: [] });
     try {
@@ -476,7 +470,7 @@ HK.screens.hwDo = (el, p) => {
   function submit() {
     const empty = hw.pages.filter(pg => !pg.strokes || !pg.strokes.length).length;
     const school = hw.origin === 'school';
-    confirmBox(el, 'Umemaliza?', empty && !(hw.attach || []).length ? `Kurasa ${empty} bado hazina majibu. Unataka kutuma hivyo hivyo?` : school ? 'Kazi yako itatumwa kwa mwalimu.' : 'Kazi yako itatumwa kwa mzazi akague.', 'Ndiyo, tuma', async () => {
+    confirmBox(el, "Are you done?", empty && !(hw.attach || []).length ? `Kurasa ${empty} bado hazina majibu. Unataka kutuma hivyo hivyo?` : school ? 'Kazi yako itatumwa kwa mwalimu.' : 'Kazi yako itatumwa kwa mzazi akague.', "Yes, send", async () => {
       hw.merged = await Promise.all(hw.pages.map(pg => renderPage(pg)));
       if (school) {
         try {

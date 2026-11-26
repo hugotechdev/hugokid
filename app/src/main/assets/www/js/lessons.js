@@ -1,23 +1,20 @@
-/* HUGO KID - lessons.js : Masomo (lugha, hesabu, sayansi, maisha, hisia) na Imani */
+
 
 HK.screens.lessons = (el) => {
   const c = Store.active();
   const done = Store.get('lessons_' + c.id, {});
   const tile = (go, name, sub, ic, cls, params = '') => `<button class="tile ${cls}" data-go="${go}" data-p='${params}'><span class="deco"></span>${go === 'mathLesson' ? ART.math : `<div class="t-ic">${icon(ic, 30)}</div>`}<div><div class="t-name" style="font-size:19px">${name}</div><div class="t-sub">${sub}</div></div></button>`;
   el.innerHTML = `
-    <div class="topbar"><h1 style="font-size:24px">Masomo</h1></div>
+    <div class="topbar"><h1 style="font-size:24px">Lessons</h1></div>
     <div class="scroll">
       ${sceneBanner('herufi', 'twiga')}
       ${studioAllowed(c) ? `<button class="tile navy wide" data-go="aiStudio" style="margin-top:6px;background:linear-gradient(135deg,#7B61FF,#1EA7F0);--cd:#5A43D6">
-        <span>${mascot('nuru', 58)}</span><div class="grow"><div class="t-name">Studio ya AI</div><div class="t-sub">Unda hadithi, michezo, picha na video</div></div>${icon('chevR', 26)}</button>` : ''}
-      <div class="section-title">Lugha</div>
+        <span>${mascot('nuru', 58)}</span><div class="grow"><div class="t-name">AI Studio</div><div class="t-sub">Create stories, games, pictures and videos</div></div>${icon('chevR', 26)}</button>` : ''}
+      <div class="section-title">Language</div>
       <div class="tiles">
         ${tile('langCats', 'English', 'Kiingereza', 'letters', 'blue', '{"lang":"en"}')}
-        ${tile('langCats', 'Français', 'Kifaransa', 'letters', 'coral', '{"lang":"fr"}')}
-        ${tile('langCats', '中文', 'Kichina', 'letters', 'sun', '{"lang":"zh"}')}
-        ${tile('langCats', 'العربية', 'Kiarabu', 'letters', 'teal', '{"lang":"ar"}')}
       </div>
-      <div class="section-title">Hesabu na zaidi</div>
+      <div class="section-title">Math and more</div>
       <div class="tiles">
         ${tile('mathLesson', 'Hesabu', 'Namba na hesabu', 'balloon', 'navy')}
         ${Object.entries(LESSONS).filter(([, l]) => !l.hidden).map(([k, l]) => tile('cardLesson', l.name, (done[k] ? 'Nyota ' + done[k] : 'Anza somo'), l.icon, { sayansi: 'teal', maisha: 'coral', hisia: 'blue' }[k], JSON.stringify({ key: k }))).join('')}
@@ -29,39 +26,38 @@ HK.screens.lessons = (el) => {
 };
 
 HK.screens.langCats = (el, p) => {
-  const L = LANGS[p.lang];
+  const L = LANGS.en;
   el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(L.name)}</h1></div>
     <div class="scroll">${Object.keys(VOCAB).map(cat => `<button class="item" data-cat="${cat}">
       <div class="i-ic" style="background:var(--blue)">${icon('book', 26)}</div>
       <div class="grow"><div class="i-title">${esc(cat)}</div><div class="i-sub">Maneno ${VOCAB[cat].length}</div></div>${icon('chevR', 22)}</button>`).join('')}</div>`;
   $('#bk', el).onclick = () => HK.back();
-  $$('[data-cat]', el).forEach(b => b.onclick = () => HK.go('langLesson', { lang: p.lang, cat: b.dataset.cat }));
+  $$('[data-cat]', el).forEach(b => b.onclick = () => HK.go('langLesson', { cat: b.dataset.cat }));
 };
 
 /* Somo la maneno: kadi -> maswali */
 HK.screens.langLesson = (el, p) => {
   const c = Store.active();
   const words = VOCAB[p.cat];
-  const L = LANGS[p.lang];
-  /* lugha ya maana: Kiingereza programu ikiwa English (isipokuwa mtoto anajifunza Kiingereza) */
-  const base = I18N.lang === 'en' && p.lang !== 'en' ? 1 : 0;
-  const tts = L.tts === 'sw' ? 'sw-raw' : L.tts; /* neno la Kiswahili lisomwe kama lilivyo */
+
+  const base = 1;
+  const tts = 'en';
   let i = 0;
   const t0 = Date.now();
   const card = () => {
-    const row = words[i], w = vocabWord(row, p.lang);
+    const row = words[i], w = vocabWord(row, 'en');
     el.innerHTML = `
       <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(p.cat)}</h1><span class="chip-tag">${i + 1}/${words.length}</span></div>
       <div class="center-col" style="justify-content:flex-start;padding-top:10px">
         <div class="lesson-card" style="width:100%;max-width:380px">
           ${pic(row[1], 104)}
-          <div class="tr notr">${esc(row[base])}</div>
-          <div class="big notr ${p.lang === 'ar' ? 'arabic' : ''}" style="${p.lang === 'ar' ? 'font-size:46px' : ''}">${esc(w.word)}</div>
+
+          <div class="big notr">${esc(w.word)}</div>
           ${w.sub ? `<div class="tr notr">${esc(w.sub)}</div>` : ''}
           <div style="height:14px"></div>
           <button class="btn blue" id="say">${icon('volume', 22)} Sikiliza</button>
         </div>
-        <p class="muted" style="font-weight:800">Sikiliza, kisha rudia kwa sauti</p>
+        <p class="muted" style="font-weight:800">Listen, then repeat out loud</p>
         <div class="btn-row" style="width:100%;max-width:380px;margin-top:auto;padding-bottom:16px">
           <button class="btn ghost" id="prev" ${i === 0 ? 'disabled' : ''}>${icon('chevL', 22)}</button>
           <button class="btn" id="next" style="flex:3">${i < words.length - 1 ? 'Neno linalofuata' : 'Jipime sasa'} ${icon('chevR', 22)}</button>
@@ -76,10 +72,11 @@ HK.screens.langLesson = (el, p) => {
   const quiz = () => {
     const qs = shuffle(words.slice()).slice(0, Math.min(5, words.length));
     runQuiz(el, p.cat, qs.map(row => {
-      const w = vocabWord(row, p.lang);
+      const w = vocabWord(row, 'en');
       const others = shuffle(words.filter(r => r !== row)).slice(0, 2);
-      return { html: `<span><span class="notr ${p.lang === 'ar' ? 'arabic' : ''}">${esc(w.word)}</span>${w.sub ? `<br><span class="notr" style="font-size:15px;color:var(--muted)">${esc(w.sub)}</span>` : ''}<br><span style="font-size:15px;color:var(--muted)">${base ? 'in English is?' : 'kwa Kiswahili ni?'}</span></span>`, say: w.say, lang: tts, notr: true, opts: shuffle([row, ...others]).map(r => ({ label: r[base], html: hasPic(r[1]) ? picLabel(r[1], 40, r[base]) : '', ok: r === row })) };
-    }), stars => saveLesson(c, 'lang_' + p.lang + '_' + p.cat, stars));
+      return { text: 'Listen and choose the word you hear.', say: w.say, lang: 'en', notr: true,
+        opts: shuffle([row, ...others]).map(r => ({label:r[base], ok:r===row})) };
+    }), stars => saveLesson(c, 'lang_en_' + p.cat, stars));
   };
   card();
   return () => HK.addLearnTime(c, Math.round((Date.now() - t0) / 1000));
@@ -119,13 +116,12 @@ HK.screens.cardLesson = (el, p) => {
   return () => HK.addLearnTime(c, Math.round((Date.now() - t0) / 1000));
 };
 
-/* Hesabu: maswali kulingana na umri */
 HK.screens.mathLesson = (el) => {
   const c = Store.active();
   const g = ageGroup(c);
   const t0 = Date.now();
   const make = () => {
-    if (g === 'explorer') { const a = 1 + rnd(5), b = 1 + rnd(4); return { html: `<span>${a} + ${b} = ?<br><span style="font-size:15px;color:var(--muted)">Tumia vidole vyako kuhesabu</span></span>`, say: `${a} jumlisha ${b}`, opts: numOpts(a + b, 3, 2, 1) }; }
+    if (g === 'explorer') { const a = 1 + rnd(5), b = 1 + rnd(4); return { html: `<span>${a} + ${b} = ?<br><span style="font-size:15px;color:var(--muted)">Use your fingers to count</span></span>`, say: `${a} jumlisha ${b}`, opts: numOpts(a + b, 3, 2, 1) }; }
     if (g === 'adventurer') {
       const t = rnd(3);
       if (t === 0) { const a = 10 + rnd(40), b = 1 + rnd(20); return { text: `${a} + ${b} = ?`, say: `${a} jumlisha ${b}`, opts: numOpts(a + b, 4, 5) }; }
@@ -151,7 +147,6 @@ function saveLesson(c, key, stars) {
   }
 }
 
-/* Maswali ya somo (bila kipima muda cha michezo) */
 function runQuiz(el, title, qs, onDone) {
   let i = 0, first = 0, missed = false;
   const draw = () => {
@@ -160,8 +155,8 @@ function runQuiz(el, title, qs, onDone) {
       onDone && onDone(stars);
       markMission('lesson');
       logSkill(/Hesabu/.test(title) ? 'math' : 'read', first / qs.length * 100);
-      Sfx.win(); confetti(el); speak('Hongera! Umemaliza somo');
-      return modal(el, { iconName: 'nuru', title: 'Somo limekamilika!', html: `<div class="earned">${starsHTML(stars, 3, 44)}</div><p>Sahihi mara ya kwanza ${first}/${qs.length}</p>`, buttons: [{ label: 'Rudia somo', cls: 'sun', icon: 'repeat', onClick: () => HK.render() }, { label: 'Masomo mengine', cls: 'ghost', onClick: () => HK.back() }] });
+      Sfx.win(); confetti(el); speak("Congratulations! You finished the lesson");
+      return modal(el, { iconName: 'nuru', title: 'Somo limekamilika!', html: `<div class="earned">${starsHTML(stars, 3, 44)}</div><p>Sahihi mara ya kwanza ${first}/${qs.length}</p>`, buttons: [{ label: 'Rudia somo', cls: 'sun', icon: 'repeat', onClick: () => HK.render() }, { label: "More lessons", cls: 'ghost', onClick: () => HK.back() }] });
     }
     const q = qs[i]; missed = false;
     el.innerHTML = `
@@ -190,7 +185,7 @@ HK.screens.faith = (el) => {
     <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(f.name)}</h1></div>
     <div class="scroll">
       <button class="item" id="game"><div class="i-ic" style="background:var(--sun)">${icon('sunrise', 26)}</div>
-        <div class="grow"><div class="i-title">Safari ya Imani</div><div class="i-sub">Mchezo wa maswali</div></div>${icon('chevR', 22)}</button>
+        <div class="grow"><div class="i-title">Faith Journey</div><div class="i-sub">Quiz game</div></div>${icon('chevR', 22)}</button>
       ${f.cards.map((k, i) => `<div class="card">
         <div class="row"><h3 class="grow" style="margin:0">${esc(k.t)}</h3><button class="icon-btn" data-say="${i}" style="width:40px;height:40px">${icon('volume', 20)}</button></div>
         ${k.ar ? `<div class="arabic" style="text-align:right;margin:8px 0 4px;color:var(--navy)">${esc(k.ar)}</div>` : ''}

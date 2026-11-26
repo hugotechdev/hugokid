@@ -1,10 +1,9 @@
-/* HUGO KID - online.js : sehemu ya mtandaoni ya mzazi (shule, ripoti, ujumbe) na HUGO TECH */
 
-/* ---------- Mzazi: shule na ripoti (ndani ya Eneo la Mzazi) ---------- */
+
 async function renderParentSchool(body) {
   if (!(Net.online() && Net.role() === 'parent')) {
     body.innerHTML = `<div class="card" style="text-align:center"><div style="display:flex;justify-content:center">${mascot('nuru', 80)}</div>
-      <h3 style="margin-top:8px">Unganisha na shule</h3><p>Fungua akaunti ya mzazi ili kupokea homework za mwalimu, alama, ripoti, mahudhurio na ujumbe wa mwalimu.</p>
+      <h3 style="margin-top:8px">Link to school</h3><p>Open a parent account to receive the teacher's homework, scores, reports, attendance and teacher messages.</p>
       <div style="height:14px"></div><button class="btn block blue" id="acct">${icon('user', 20)} Fungua akaunti au ingia</button></div>`;
     $('#acct', body).onclick = () => HK.go('acctAuth', { kind: 'parent', tab: 'register', next: 'parentHome', nextParams: { tab: 'school' } });
     return;
@@ -20,7 +19,7 @@ async function renderParentSchool(body) {
       if (!c.serverId) continue;
       const mode = kidMode(c);
       if (!c.className) {
-        blocks.push(`<div class="card"><div class="row">${kidAvatar(c, 48)}<div class="grow"><h3 style="margin:0">${esc(c.name)}</h3><p>Bado hajaunganishwa na shule.</p></div></div>
+        blocks.push(`<div class="card"><div class="row">${kidAvatar(c, 48)}<div class="grow"><h3 style="margin:0">${esc(c.name)}</h3><p>Not linked to a school yet.</p></div></div>
           <div class="form-row" style="margin-top:10px"><input class="field code-in" placeholder="Msimbo kutoka shule" data-code="${c.id}" style="text-transform:uppercase"><button class="btn small" data-link="${c.id}">Unganisha</button></div></div>`);
         continue;
       }
@@ -38,7 +37,7 @@ async function renderParentSchool(body) {
         ${s.subjects.length ? `<div style="margin-top:10px">${s.subjects.map(x => `<div class="row" style="justify-content:space-between;margin:6px 0;font-weight:600"><span>${esc(x.name)}</span><span>${x.pct}%</span></div><div class="lvl-bar" style="background:#E8EEF7"><i style="width:${x.pct}%;background:${x.pct >= 75 ? 'var(--teal)' : x.pct >= 50 ? 'var(--sun)' : 'var(--coral)'};box-shadow:none"></i></div>`).join('')}</div>` : ''}
         ${s.upcoming.length ? `<p style="margin-top:12px"><b>Deadline zinazokuja:</b><br>${s.upcoming.map(u => `${esc(u.title)} (${esc(u.subject || '')}) · ${esc(u.due)}`).join('<br>')}</p>` : ''}
         ${s.overdue ? `<p style="color:var(--coral);font-weight:600;margin-top:6px">Homework ${s.overdue} zimepita muda</p>` : ''}
-        <div class="ai-card card" style="margin:12px 0 0"><div class="row"><span>${mascot('nuru', 36)}</span><b class="grow">Ripoti ya Nuru</b><button class="btn small ghost" data-ai="${c.id}">${icon('repeat', 14)} Andaa</button></div>
+        <div class="ai-card card" style="margin:12px 0 0"><div class="row"><span>${mascot('nuru', 36)}</span><b class="grow">Nuru's report</b><button class="btn small ghost" data-ai="${c.id}">${icon('repeat', 14)} Andaa</button></div>
           <p id="air-${c.id}" style="margin-top:6px">${r.ai ? esc(r.ai.text) : 'Bonyeza "Andaa" kupata muhtasari wa maendeleo na pendekezo la mazoezi.'}</p></div>
         <button class="btn small ghost" data-res="${c.id}" style="margin-top:10px">${icon('file', 16)} Homework na alama</button>
       </div>`);
@@ -47,16 +46,16 @@ async function renderParentSchool(body) {
       <div class="card row"><div class="grow"><h3 style="margin:0">${esc(Net.user().name)}</h3><p>${esc(Net.user().phone || Net.user().email || '')}</p></div>
         <button class="btn small ghost" id="bill">${icon('coin', 16)} Malipo</button><button class="icon-btn" id="out">${icon('logout', 18)}</button></div>
       ${blocks.join('') || '<div class="empty">Ongeza mtoto kwanza.</div>'}
-      ${anns.length ? `<div class="section-title">Matangazo ya shule</div>${anns.slice(0, 5).map(a => `<div class="card"><h3>${esc(a.title)}</h3><p>${esc(a.body || '')}</p><p class="muted" style="font-size:12px">${esc(a.school || '')} · ${new Date(a.created).toLocaleDateString('sw-TZ')}</p></div>`).join('')}` : ''}
+      ${anns.length ? `<div class="section-title">School announcements</div>${anns.slice(0, 5).map(a => `<div class="card"><h3>${esc(a.title)}</h3><p>${esc(a.body || '')}</p><p class="muted" style="font-size:12px">${esc(a.school || '')} · ${new Date(a.created).toLocaleDateString('sw-TZ')}</p></div>`).join('')}` : ''}
       <button class="btn block ghost small" id="delacct" style="margin-top:10px">${icon('trash', 16)} Futa akaunti ya mtandaoni</button>`;
-    $('#delacct', body).onclick = () => confirmBox(body.closest('.screen'), 'Futa akaunti?', 'Taarifa za akaunti na nakala za maendeleo zitafutwa kwenye server. Data iliyo kwenye simu hii itabaki. Watoto walio kwenye shule watabaki kwenye orodha ya shule bila mzazi.', 'Futa kabisa', async () => {
-      try { await Net.del('/api/account'); Net.logout(); Store.children().forEach(c => { delete c.serverId; delete c.school; delete c.className; Store.saveChild(c); }); toast('Akaunti imefutwa'); HK.render(); } catch (e) { toast(e.message); }
+    $('#delacct', body).onclick = () => confirmBox(body.closest('.screen'), "Delete account?", "Account details and progress backups will be deleted from the server. Data on this phone will remain. Children in schools will stay on the school list without a parent.", "Delete permanently", async () => {
+      try { await Net.del('/api/account'); Net.logout(); Store.children().forEach(c => { delete c.serverId; delete c.school; delete c.className; Store.saveChild(c); }); toast("Account deleted"); HK.render(); } catch (e) { toast(e.message); }
     });
-    $('#out', body).onclick = () => confirmBox(body.closest('.screen'), 'Toka kwenye akaunti?', 'Data ya simu hii itabaki.', 'Toka', () => { Net.logout(); HK.render(); });
+    $('#out', body).onclick = () => confirmBox(body.closest('.screen'), "Sign out of the account?", "This phone's data will remain.", "Exit", () => { Net.logout(); HK.render(); });
     $('#bill', body).onclick = () => HK.go('billing');
     $$('[data-link]', body).forEach(b => b.onclick = async () => {
       const c = Store.child(b.dataset.link), code = $(`[data-code="${c.id}"]`, body).value.trim();
-      if (!code) return toast('Weka msimbo');
+      if (!code) return toast("Enter a code");
       try { const r = await Net.post('/api/children/link', { code, child_id: c.serverId }); c.className = r.class_name; c.school = r.school; Store.saveChild(c); Sfx.good(); toast(c.name + ' ameunganishwa na ' + r.school); renderParentSchool(body); } catch (e) { toast(e.message); }
     });
     $$('[data-msg]', body).forEach(b => b.onclick = () => HK.go('thread', { childId: +b.dataset.msg, name: b.dataset.name }));
@@ -75,7 +74,6 @@ async function renderParentSchool(body) {
   } catch (e) { body.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
 }
 
-/* Homework na alama za mtoto (kwa mzazi) */
 HK.screens.parentResults = (el, p) => {
   const c = Store.child(p.id);
   el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(c.name)}: homework</h1></div><div class="scroll" id="b"><div class="empty">Inapakia...</div></div>`;
@@ -91,11 +89,11 @@ HK.screens.parentResults = (el, p) => {
   }).catch(e => { $('#b', el).innerHTML = `<div class="empty">${esc(e.message)}</div>`; });
 };
 HK.screens.parentSub = (el, p) => {
-  el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Kazi iliyosahihishwa</h1></div><div class="scroll" id="b"><div class="empty">Inapakia...</div></div>`;
+  el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Marked work</h1></div><div class="scroll" id="b"><div class="empty">Inapakia...</div></div>`;
   $('#bk', el).onclick = () => HK.back();
   Net.get('/api/submissions/' + p.id).then(s => {
     $('#b', el).innerHTML = `<div class="trophy-hero" style="margin:0 0 14px"><div style="font-weight:600">${esc(s.homework.title)}</div><div class="big">${s.score ?? '-'}/${s.max_score}</div><div class="earned" style="margin:8px 0 0">${starsHTML(s.stars || 0, 3, 30)}</div></div>
-      ${s.feedback ? `<div class="card"><h3>Maoni ya mwalimu</h3><p>${esc(s.feedback)}</p></div>` : ''}
+      ${s.feedback ? `<div class="card"><h3>Teacher's comments</h3><p>${esc(s.feedback)}</p></div>` : ''}
       ${(s.marked || s.pages || []).map(x => `<img class="review-page" src="${x}">`).join('')}
       ${(s.attachments || []).map(a => /^audio/.test(a.mime) ? `<audio controls src="${Net.fileUrl(a.file)}" style="width:100%"></audio>` : /^video/.test(a.mime) ? `<video controls playsinline src="${Net.fileUrl(a.file)}" style="width:100%;border-radius:12px"></video>` : `<img class="review-page" src="${Net.fileUrl(a.file)}">`).join('')}`;
   }).catch(e => { $('#b', el).innerHTML = `<div class="empty">${esc(e.message)}</div>`; });
@@ -126,36 +124,33 @@ HK.screens.superHome = (el) => {
         ${b.invoices.map(i => `<div class="item" style="cursor:default"><div class="grow"><div class="i-title">${esc(i.school || i.parent || '')} · ${esc(i.plan)} · ${esc(i.period)}</div><div class="i-sub">TSh ${Number(i.amount).toLocaleString()}${i.reference ? ' · ' + esc(i.method || '') + ' ' + esc(i.reference) : ''}</div></div>
           <span class="chip-tag ${st[i.status][0]}">${st[i.status][1]}</span>${i.status !== 'paid' ? `<button class="btn small" data-paid="${i.id}">Imelipwa</button>` : ''}</div>`).join('') || '<p class="muted">Hakuna ankara.</p>'}
         <div class="stat-grid three" style="margin-top:14px">
-          <div class="card"><h3>Bei</h3><label class="label">Kwa mwanafunzi kwa muhula (shule)</label><input class="field" id="p1" type="number" value="${b.plans.school_student_term}">
-            <label class="label">Mzazi kwa mwezi</label><input class="field" id="p2" type="number" value="${b.plans.parent_month}">
+          <div class="card"><h3>Bei</h3><label class="label">Per student per term (school)</label><input class="field" id="p1" type="number" value="${b.plans.school_student_term}">
+            <label class="label">Parent per month</label><input class="field" id="p2" type="number" value="${b.plans.parent_month}">
             <label class="label">Maelekezo ya kulipa</label><textarea class="field" id="p3" placeholder="Mfano: M-Pesa Lipa Namba ...">${esc(b.plans.pay_info || '')}</textarea>
             <button class="btn" id="saveplans" style="margin-top:10px">${icon('check', 18)} Hifadhi</button></div>
-          <div class="card"><h3>AI ya server</h3><p style="font-size:13px">Inatumika kusahihisha, msaidizi wa mwalimu na ripoti za wazazi. ${aiCfg.has_key ? 'Imewekwa.' : 'Bado haijawekwa.'}</p>
+          <div class="card"><h3>Server AI</h3><p style="font-size:13px">Inatumika kusahihisha, msaidizi wa mwalimu na ripoti za wazazi. ${aiCfg.has_key ? 'Imewekwa.' : 'Bado haijawekwa.'}</p>
             <select class="field" id="ap">${['gemini', 'claude', 'openai'].map(x => `<option ${aiCfg.provider === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
             <input class="field" id="ak" type="password" placeholder="API key" style="margin-top:8px"><input class="field" id="am" placeholder="Model (si lazima)" value="${esc(aiCfg.model || '')}" style="margin-top:8px">
             <button class="btn" id="saveai" style="margin-top:10px">${icon('check', 18)} Hifadhi</button></div>
-          <div class="card"><h3>Sauti ya Nuru</h3><p style="font-size:13px">Sauti ya binadamu ya Microsoft Azure: Rehema (Kiswahili cha Tanzania) na Imani (Kiingereza cha Tanzania). Bila hii, app inatumia sauti ya simu. ${ttsCfg.has_key ? 'Imewekwa.' : 'Bado haijawekwa.'}</p>
+          <div class="card"><h3>Nuru's voice</h3><p style="font-size:13px">Imani is the English (Tanzania) narration voice. When Azure is unavailable, the app uses the device’s English voice. ${ttsCfg.has_key ? 'Imewekwa.' : 'Bado haijawekwa.'}</p>
             <input class="field" id="tr" placeholder="Region (mf. westeurope)" value="${esc(ttsCfg.region || '')}">
             <input class="field" id="tk" type="password" placeholder="Speech key" style="margin-top:8px">
             <div class="btn-row" style="margin-top:10px"><button class="btn" id="savetts">${icon('check', 18)} Hifadhi</button><button class="btn ghost" id="testtts">${icon('volume', 18)} Jaribu sauti</button></div></div>
-          <div class="card"><h3>Akaunti</h3><button class="btn block ghost" id="pw">${icon('key', 18)} Badilisha nenosiri</button></div></div>`;
+          <div class="card"><h3>Account</h3><button class="btn block ghost" id="pw">${icon('key', 18)} Badilisha nenosiri</button></div></div>`;
       $$('[data-st]', body).forEach(x => x.onclick = async () => { await Net.post(`/api/admin/schools/${x.dataset.st}/status`, { status: x.dataset.v }); HK.render(); });
       $$('[data-paid]', body).forEach(x => x.onclick = async () => { await Net.post(`/api/admin/invoices/${x.dataset.paid}/status`, { status: 'paid' }); HK.render(); });
       $$('[data-inv]', body).forEach(x => x.onclick = () => {
         modal(el, { title: 'Ankara: ' + x.dataset.n, html: '<input class="field" id="ia" type="number" placeholder="Kiasi (TSh)"><input class="field" id="ip" placeholder="Kipindi (mf. Muhula 1 2027)" style="margin-top:8px"><div style="height:14px"></div>', buttons: [
-          { label: 'Tuma ankara', onClick: async o => { try { await Net.post('/api/admin/invoices', { school_id: +x.dataset.inv, amount: +$('#ia', o).value, period: $('#ip', o).value, plan: 'HUGO KID Shule' }); toast('Ankara imetumwa'); HK.render(); } catch (e) { toast(e.message); } } },
+          { label: 'Tuma ankara', onClick: async o => { try { await Net.post('/api/admin/invoices', { school_id: +x.dataset.inv, amount: +$('#ia', o).value, period: $('#ip', o).value, plan: 'HUGO KID Shule' }); toast("Invoice sent"); HK.render(); } catch (e) { toast(e.message); } } },
           { label: 'Ghairi', cls: 'ghost' }] });
       });
-      $('#saveplans', body).onclick = async () => { await Net.put('/api/admin/plans', { school_student_term: +$('#p1', body).value, parent_month: +$('#p2', body).value, pay_info: $('#p3', body).value }); toast('Imehifadhiwa'); };
-      $('#saveai', body).onclick = async () => { await Net.put('/api/admin/ai', { provider: $('#ap', body).value, key: $('#ak', body).value, model: $('#am', body).value }); toast('AI imehifadhiwa'); HK.render(); };
-      $('#savetts', body).onclick = async () => { await Net.put('/api/admin/tts', { region: $('#tr', body).value, key: $('#tk', body).value }); await Voice.check(); toast('Imehifadhiwa'); HK.render(); };
+      $('#saveplans', body).onclick = async () => { await Net.put('/api/admin/plans', { school_student_term: +$('#p1', body).value, parent_month: +$('#p2', body).value, pay_info: $('#p3', body).value }); toast("Saved"); };
+      $('#saveai', body).onclick = async () => { await Net.put('/api/admin/ai', { provider: $('#ap', body).value, key: $('#ak', body).value, model: $('#am', body).value }); toast("AI saved"); HK.render(); };
+      $('#savetts', body).onclick = async () => { await Net.put('/api/admin/tts', { region: $('#tr', body).value, key: $('#tk', body).value }); await Voice.check(); toast("Saved"); HK.render(); };
       $('#testtts', body).onclick = async () => {
         await Voice.check();
-        if (!Voice.enabled) return toast('Weka region na key kwanza');
-        const lines = I18N.lang === 'en'
-          ? ['Hello! I am Nuru. Today we will help Tembo make a fruit salad.', 'Tap one mango. Well done! Now add a second mango.', 'You paid TSh 1,500. How much change will you get back?']
-          : ['Habari! Mimi ni Nuru. Leo tutamsaidia Tembo kutengeneza saladi.', 'Gusa embe moja. Vizuri! Sasa ongeza embe la pili.', 'Umetoa TSh 1,500. Utarudishiwa shilingi ngapi?'];
-        speak(lines.join(' '), I18N.lang === 'en' ? 'en' : 'sw-raw');
+        if (!Voice.enabled) return toast("Enter the region and key first");
+        speak('Hi! I’m Nuru. Tap one mango. Well done! Now add a second mango.');
       };
       $('#pw', body).onclick = () => HK.go('changePass');
       let ur = 'parent';
@@ -165,7 +160,7 @@ HK.screens.superHome = (el) => {
         try {
           if (ur === 'children') {
             const list = await Net.get('/api/admin/children?q=' + qq);
-            box.innerHTML = `<div class="table-card" style="padding:0"><table><tr><th>Mtoto</th><th>Shule / darasa</th><th>Mzazi</th></tr>${list.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.school || '-')} ${c.level ? '· ' + esc(c.level + (c.stream ? ' ' + c.stream : '')) : ''}</td><td>${esc(c.parent || '-')} ${esc(c.phone || '')}</td></tr>`).join('')}</table></div>`;
+            box.innerHTML = `<div class="table-card" style="padding:0"><table><tr><th>Child</th><th>School / class</th><th>Parent</th></tr>${list.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.school || '-')} ${c.level ? '· ' + esc(c.level + (c.stream ? ' ' + c.stream : '')) : ''}</td><td>${esc(c.parent || '-')} ${esc(c.phone || '')}</td></tr>`).join('')}</table></div>`;
             return;
           }
           const list = await Net.get(`/api/admin/users?role=${ur}&q=${qq}`);
@@ -173,7 +168,7 @@ HK.screens.superHome = (el) => {
             <td><button class="btn small ghost" data-rst="${x.id}">Nenosiri</button>${ur === 'parent' ? ` <button class="btn small ghost" data-pinv="${x.id}" data-n="${esc(x.name)}">Ankara</button>` : ''}</td></tr>`).join('')}</table></div>`;
           $$('[data-rst]', box).forEach(btn => btn.onclick = async () => { const r = await Net.post(`/api/admin/users/${btn.dataset.rst}/reset`); modal(el, { iconName: 'key', title: 'Nenosiri la muda', html: `<p>${esc(r.login)}</p><p style="font-size:22px;font-weight:700">${esc(r.password)}</p><div style="height:10px"></div>`, buttons: [{ label: 'Sawa' }] }); });
           $$('[data-pinv]', box).forEach(btn => btn.onclick = () => modal(el, { title: 'Ankara: ' + btn.dataset.n, html: '<input class="field" id="ia" type="number" placeholder="Kiasi (TSh)"><input class="field" id="ip" placeholder="Kipindi (mf. Desemba 2026)" style="margin-top:8px"><div style="height:14px"></div>', buttons: [
-            { label: 'Tuma ankara', onClick: async o => { try { await Net.post('/api/admin/invoices', { parent_id: +btn.dataset.pinv, amount: +$('#ia', o).value, period: $('#ip', o).value, plan: 'HUGO KID Mzazi' }); toast('Ankara imetumwa'); } catch (e) { toast(e.message); } } },
+            { label: 'Tuma ankara', onClick: async o => { try { await Net.post('/api/admin/invoices', { parent_id: +btn.dataset.pinv, amount: +$('#ia', o).value, period: $('#ip', o).value, plan: 'HUGO KID Mzazi' }); toast("Invoice sent"); } catch (e) { toast(e.message); } } },
             { label: 'Ghairi', cls: 'ghost' }] }));
         } catch (e) { box.innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
       };

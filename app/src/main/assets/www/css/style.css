@@ -127,7 +127,6 @@ textarea.field { min-height: 96px; resize: vertical; }
 .tile.coral { --c: var(--coral); --cd: var(--coral-d); }
 .tile.navy { --c: var(--navy); --cd: #06143A; }
 
-
 /* ---------- games grid ---------- */
 .section-title { font-size: 15px; font-weight: 900; color: var(--navy-2); margin: 18px 2px 10px; text-transform: uppercase; letter-spacing: .6px; }
 .games { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -302,9 +301,6 @@ textarea.field { min-height: 96px; resize: vertical; }
 .tut-pointer svg { fill: #fff; filter: drop-shadow(0 3px 4px rgba(13,36,97,.35)); }
 .tut-banner { margin: 0 16px 8px; background: var(--sun); color: var(--navy); font-weight: 900; text-align: center; padding: 8px 12px; border-radius: 14px; }
 
-/* =========================================================
-   MUONEKANO WA KISASA (v1.1)
-   ========================================================= */
 :root { --bg: #F3F6FE; --line: #E3E9F5; --shadow: 0 10px 28px -12px rgba(13,36,97,.28); --shadow-sm: 0 6px 16px -10px rgba(13,36,97,.35); }
 body { background: var(--bg); letter-spacing: -.1px; }
 body::before, body::after { content: ""; position: fixed; z-index: -1; border-radius: 50%; filter: blur(60px); opacity: .55; pointer-events: none; }
@@ -328,7 +324,6 @@ body::after { width: 300px; height: 300px; background: #FFE9B8; bottom: -90px; l
 .modal h2 { font-weight: 700; letter-spacing: -.4px; }
 .overlay { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); background: rgba(13,36,97,.42); }
 
-/* ----- hero ya mtoto ----- */
 .hero { margin: 12px 16px 0; padding: 18px 18px 16px; border-radius: 30px; color: #fff; position: relative; overflow: hidden;
   background: linear-gradient(135deg, #1EA7F0 0%, #0FB394 100%); box-shadow: 0 18px 36px -18px rgba(15,179,148,.8); }
 .hero::before { content: ""; position: absolute; width: 220px; height: 220px; border-radius: 50%; background: rgba(255,255,255,.12); right: -60px; top: -90px; }
@@ -365,7 +360,6 @@ body::after { width: 300px; height: 300px; background: #FFE9B8; bottom: -90px; l
 .tile.white { --c: #fff; --cd: var(--line); color: var(--navy); background: #fff; box-shadow: var(--shadow-sm), 0 5px 0 var(--line); }
 .tile.navy { background: linear-gradient(135deg, #1B3A86, #0D2461); }
 
-/* ----- menyu ya chini ----- */
 .kid-nav { position: absolute; left: 12px; right: 12px; bottom: 10px; height: 70px; background: rgba(255,255,255,.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-radius: 26px; display: flex; padding: 8px; gap: 4px; box-shadow: 0 14px 34px -14px rgba(13,36,97,.4); z-index: 20; }
 .kid-nav button { flex: 1; border: 0; background: transparent; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--muted); cursor: pointer; }
@@ -373,7 +367,6 @@ body::after { width: 300px; height: 300px; background: #FFE9B8; bottom: -90px; l
 .kid-nav button:active { transform: scale(.94); }
 .has-nav .scroll { padding-bottom: 100px; }
 
-/* ----- kadi za michezo ----- */
 .games { gap: 12px; }
 .game-card { border-radius: 24px; padding: 10px 8px 12px; box-shadow: var(--shadow-sm); border: 1px solid rgba(227,233,245,.7); }
 .game-card .g-ic { width: 100%; height: 78px; border-radius: 18px; background: linear-gradient(150deg, color-mix(in srgb, var(--gc) 75%, #fff), var(--gc)); box-shadow: inset 0 -4px 0 rgba(0,0,0,.12); position: relative; overflow: hidden; }
@@ -401,10 +394,6 @@ body::after { width: 300px; height: 300px; background: #FFE9B8; bottom: -90px; l
 .hud-pill, .stat b { font-weight: 700; }
 .welcome { background: #fff; }
 
-/* =========================================================
-   PHASE 2: modi za umri, shule, mwalimu, mzazi, Pamoja
-   ========================================================= */
-/* Mdogo (3-4) na wanaoanza: vigae vikubwa, maandishi machache */
 .tile.big-t { min-height: 178px; align-items: center; justify-content: center; text-align: center; gap: 6px; }
 .tile.big-t .t-name { font-size: 24px; }
 .tile.big-t.wide { flex-direction: row; min-height: 110px; }
@@ -427,7 +416,6 @@ body::after { width: 300px; height: 300px; background: #FFE9B8; bottom: -90px; l
 .mission.done { color: var(--muted); text-decoration: line-through; }
 .mission.done .mcheck { background: var(--teal); border-color: var(--teal); color: #fff; }
 
-/* ramani ya safari */
 .map { position: relative; padding: 10px 0 30px; }
 .map::before { content: ""; position: absolute; left: 50%; top: 30px; bottom: 30px; border-left: 6px dashed #C9D6EA; transform: translateX(-3px); }
 .island { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 58%; margin: 0 0 18px; border: 0; background: #fff; border-radius: 26px; padding: 14px; box-shadow: var(--shadow-sm); cursor: pointer; font-family: inherit; color: var(--navy); }
@@ -478,7 +466,7 @@ body::after { width: 300px; height: 300px; background: #FFE9B8; bottom: -90px; l
 .bubble .who { display: block; font-size: 11px; font-weight: 700; opacity: .75; }
 .bubble .when { display: block; font-size: 10px; opacity: .6; margin-top: 4px; text-align: right; }
 
-/* Pamoja: simu na mashindano */
+/* Calls and multiplayer games */
 .call-screen { background: linear-gradient(180deg, #0D2461, #1B3A86); color: #fff; }
 .call-screen #rv { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .call-screen #lv { position: absolute; right: 14px; top: 14px; width: 110px; height: 150px; object-fit: cover; border-radius: 16px; border: 3px solid #fff; z-index: 3; }
@@ -516,9 +504,6 @@ body::after { width: 300px; height: 300px; background: #FFE9B8; bottom: -90px; l
 .acc.on { border-color: var(--teal); background: #E3F8F3; }
 .acc .muted { display: flex; align-items: center; gap: 2px; font-size: 10px; }
 
-/* =========================================================
-   Lugha, fonts na skrini ya mwanzo
-   ========================================================= */
 h1, h2, h3, .btn, .pin-title, .section-title, .t-name, .stat-card b, .hud-pill, .seg button, .chip { font-family: var(--font-head); }
 body { -webkit-font-smoothing: antialiased; }
 
@@ -543,10 +528,6 @@ body { -webkit-font-smoothing: antialiased; }
 .welcome .link-btn b { color: var(--blue-d, #0B7FC0); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { .hk-logo * { animation: none !important; } }
 
-/* =========================================================
-   MUONEKANO WA KISASA v2.2: safi, tulivu, wa kitaalamu
-   (rangi za HUGO zinabaki, lakini bila vivuli vizito vya 3D)
-   ========================================================= */
 :root {
   --bg: #F6F8FC; --line: #E6EBF3; --line-2: #EEF2F8; --muted: #7B87A1; --navy-2: #43537A;
   --radius: 18px;
@@ -563,7 +544,6 @@ h1, h2, h3 { letter-spacing: -.3px; }
 .icon-btn { width: 42px; height: 42px; border-radius: 12px; background: #fff; border: 1px solid var(--line); box-shadow: none; }
 .icon-btn:active { transform: scale(.95); box-shadow: none; }
 
-/* vitufe */
 .btn { border-radius: 14px; padding: 14px 20px; font-size: 16px; font-weight: 600; letter-spacing: 0;
   background: var(--c); box-shadow: 0 8px 18px -10px var(--c); transition: transform .1s, filter .15s; }
 .btn:active { transform: scale(.98); box-shadow: 0 4px 10px -8px var(--c); }
@@ -593,7 +573,6 @@ h1, h2, h3 { letter-spacing: -.3px; }
 .modal h2 { font-weight: 600; }
 .overlay { background: rgba(13,36,97,.38); }
 
-/* hero ya mtoto: rangi ya ndani zaidi */
 .hero { border-radius: 24px; background: linear-gradient(140deg, #13307A 0%, #0D2461 55%, #0B5C8F 100%); box-shadow: 0 16px 32px -18px rgba(13,36,97,.7); }
 .hero::before { background: radial-gradient(circle, rgba(30,167,240,.45), transparent 70%); width: 260px; height: 260px; right: -90px; top: -120px; }
 .hero::after { background: radial-gradient(circle, rgba(15,179,148,.35), transparent 70%); width: 200px; height: 200px; right: 60px; bottom: -120px; }
@@ -605,7 +584,6 @@ h1, h2, h3 { letter-spacing: -.3px; }
 .hero-stats b { font-weight: 600; }
 .goal { border-radius: 18px; border: 1px solid var(--line-2); }
 
-/* vigae: rangi tulivu, bila kivuli cha 3D */
 .tiles { gap: 12px; }
 .tile { border-radius: 22px; min-height: 156px; box-shadow: 0 10px 24px -16px var(--c); background: var(--c); }
 .tile:active { transform: scale(.98); box-shadow: 0 6px 14px -12px var(--c); }
@@ -618,12 +596,10 @@ h1, h2, h3 { letter-spacing: -.3px; }
 .tile.white { box-shadow: var(--shadow-sm); border: 1px solid var(--line-2); }
 .tile.big-t .t-name { font-size: 22px; }
 
-/* menyu ya chini */
 .kid-nav { height: 64px; border-radius: 20px; padding: 6px; background: rgba(255,255,255,.96); border: 1px solid var(--line-2); box-shadow: 0 10px 30px -14px rgba(13,36,97,.35); }
 .kid-nav button { border-radius: 14px; font-weight: 500; }
 .kid-nav button.on { background: #EAF1FF; color: var(--navy); font-weight: 600; }
 
-/* misheni, takwimu, PIN */
 .mission { border-radius: 12px; background: #F6F8FC; font-weight: 500; }
 .stat-card { border-radius: 16px; border: 1px solid var(--line-2); }
 .stat-card .sc-ic { border-radius: 10px; width: 34px; height: 34px; }
@@ -640,7 +616,7 @@ h1, h2, h3 { letter-spacing: -.3px; }
 .kid-actions { display: grid !important; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .kid-actions > * { width: 100%; }
 
-/* ---------- kompyuta na tablet: app inaonekana kama simu katikati ---------- */
+/* ---------- Centred phone layout on larger screens ---------- */
 @media (min-width: 760px) {
   body:not(.is-dash) {
     background:
@@ -665,7 +641,7 @@ h1, h2, h3 { letter-spacing: -.3px; }
   body:not(.is-dash) #app { height: 100vh; border-radius: 0; }
 }
 
-/* sehemu zilizojazwa na browser zibaki nyeupe */
+/* Keep browser autofill backgrounds white */
 input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 40px #fff inset; -webkit-text-fill-color: var(--navy); caret-color: var(--navy);
 }

@@ -1,4 +1,4 @@
-/* HUGO KID - ai.js : AI (Gemini, Claude au ChatGPT) kwa API key ya mzazi */
+
 
 const AI_PROVIDERS = {
   gemini: { name: 'Gemini (Google)', model: 'gemini-2.0-flash', keyHint: 'AIza...', link: 'aistudio.google.com' },
@@ -9,7 +9,7 @@ const AI_PROVIDERS = {
 const AI_CHILD_RULES = `Wewe ni "Nuru", rafiki na mwalimu msaidizi mpole ndani ya programu ya watoto HUGO KID (Tanzania).
 Sheria zako:
 - Unaongea na mtoto wa miaka 3 hadi 12. Tumia lugha rahisi, sentensi fupi, na upole.
-- Jibu kwa Kiswahili isipokuwa mtoto aandike kwa lugha nyingine au aombe kujifunza lugha nyingine.
+- Always reply in clear, simple English, even if the child asks in another language.
 - Kwenye homework au maswali ya shule: USIMPE jibu la mwisho. Mwongoze hatua kwa hatua kwa maswali madogo na mfano unaofanana.
 - Usizungumze mambo yasiyofaa watoto (vurugu, mapenzi, vitisho, siasa, mambo ya kutisha). Mtoto akiuliza hayo, mwambie kwa upole amuulize mzazi au mwalimu.
 - Usiulize wala kuhifadhi taarifa binafsi (anwani, simu, shule). Mtoto akisema yuko hatarini au ana huzuni kubwa, mwambie amweleze mzazi au mtu mzima anayemwamini sasa hivi.
@@ -29,7 +29,7 @@ const AI = {
     const p = c.provider;
     const model = (c.model || AI_PROVIDERS[p].model).trim();
     const max = opts.maxTokens || 700;
-    /* programu ikiwa English, majibu ya maandishi yawe kwa Kiingereza */
+
     if (typeof I18N !== 'undefined' && I18N.lang === 'en' && !/kama lilivyo/.test(opts.text)) {
       const json = /JSON|Rudisha [{[]/.test((opts.system || '') + opts.text);
       opts = { ...opts, text: opts.text + (json ? '\n\n(Write every text value in simple English. Keep the JSON keys unchanged.)' : '\n\n(Reply in simple English.)') };
@@ -107,7 +107,6 @@ const AI = {
     return txt.trim();
   },
 
-  /* Soma homework kutoka kwenye picha -> maswali yanayoweza kuhaririwa */
   async readHomework(images) {
     const sys = 'You extract school homework from photos for a children\'s app. Output ONLY valid JSON, no markdown.';
     const prompt = `Soma homework kwenye picha hizi. Rudisha JSON hii tu:
@@ -129,21 +128,20 @@ Andika kila swali kama lilivyo kwenye karatasi (pamoja na namba na hesabu). Usit
   },
 };
 
-/* Kuweka AI (kwa mzazi) */
 HK.screens.aiSettings = (el) => {
   const c = AI.cfg();
   el.innerHTML = `
     <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>HUGOKID AI</h1></div>
     <div class="scroll">
       <div class="card"><p>Chagua AI na uweke API key yako. AI inasoma homework kutoka kwenye picha na inamsaidia mtoto hatua kwa hatua bila kumpa jibu. Key inakaa kwenye simu hii tu.</p></div>
-      <label class="label">Chagua AI</label>
+      <label class="label">Choose AI</label>
       <div class="chips" id="prov">${Object.entries(AI_PROVIDERS).map(([k, v]) => `<button class="chip ${c.provider === k ? 'on' : ''}" data-p="${k}">${v.name}</button>`).join('')}</div>
       <label class="label">API key</label>
       <input class="field" id="key" type="password" autocomplete="off" placeholder="" value="${esc(c.key)}">
       <p class="muted" style="font-size:13px;font-weight:700;margin:8px 2px 0" id="where"></p>
       <label class="label">Model (si lazima)</label>
       <input class="field" id="model" placeholder="" value="${esc(c.model)}">
-      <label class="label">Msaidizi Nuru kwa mtoto</label>
+      <label class="label">Nuru assistant for the child</label>
       <div class="chips" id="en"><button class="chip ${c.enabled ? 'on' : ''}" data-v="1">Washa</button><button class="chip ${!c.enabled ? 'on' : ''}" data-v="0">Zima</button></div>
       <div style="height:22px"></div>
       <div class="btn-row"><button class="btn ghost" id="test">${icon('send', 20)} Jaribu</button><button class="btn" id="save">${icon('check', 20)} Hifadhi</button></div>
@@ -160,13 +158,13 @@ HK.screens.aiSettings = (el) => {
   $$('#prov .chip', el).forEach(b => b.onclick = () => { prov = b.dataset.p; $$('#prov .chip', el).forEach(x => x.classList.toggle('on', x === b)); $('#model', el).value = ''; upd(); });
   $$('#en .chip', el).forEach(b => b.onclick = () => { enabled = b.dataset.v === '1'; $$('#en .chip', el).forEach(x => x.classList.toggle('on', x === b)); });
   const collect = () => ({ provider: prov, key: $('#key', el).value.trim(), model: $('#model', el).value.trim(), enabled });
-  $('#save', el).onclick = () => { AI.save(collect()); Sfx.good(); toast('AI imehifadhiwa'); HK.back(); };
+  $('#save', el).onclick = () => { AI.save(collect()); Sfx.good(); toast("AI saved"); HK.back(); };
   $('#test', el).onclick = async () => {
     AI.save(collect());
     const b = $('#test', el); b.disabled = true; b.textContent = 'Inajaribu...';
     try {
       const a = await AI.ask({ text: 'Sema "Habari! Mimi ni Nuru" kwa sentensi moja.', maxTokens: 60 });
-      modal(el, { iconName: 'check', title: 'AI inafanya kazi', text: a, buttons: [{ label: 'Sawa' }] });
+      modal(el, { iconName: 'check', title: "AI is working", text: a, buttons: [{ label: 'Sawa' }] });
     } catch (e) {
       modal(el, { iconName: 'x', iconColor: 'var(--coral)', title: 'Imeshindikana', text: e.message, buttons: [{ label: 'Sawa' }] });
     }
@@ -179,7 +177,7 @@ HK.screens.aiSettings = (el) => {
 
 HK.screens.aiLog = (el) => {
   const kids = Store.children();
-  el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Mazungumzo na Nuru</h1></div>
+  el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Chat with Nuru</h1></div>
     <div class="scroll">${kids.map(k => {
       const l = Store.get('ailog_' + k.id, []).slice().reverse();
       return `<div class="section-title">${esc(k.name)}</div>` + (l.length ? l.map(x => `<div class="card">
@@ -189,7 +187,6 @@ HK.screens.aiLog = (el) => {
   $('#bk', el).onclick = () => HK.back();
 };
 
-/* ---------- Msaidizi Nuru (mtoto anaongea na AI) ---------- */
 HK.screens.tutor = (el) => {
   const c = Store.active();
   const hist = [];
@@ -212,7 +209,7 @@ HK.screens.tutor = (el) => {
       ? 'margin-left:auto;background:var(--blue);color:#fff;border-bottom-right-radius:6px'
       : 'background:#fff;box-shadow:0 3px 0 var(--line);border-bottom-left-radius:6px'}`;
     d.textContent = text;
-    if (who !== 'me') { d.onclick = () => speak(text, guessLang(text)); }
+    if (who !== 'me') { d.onclick = () => speak(text); }
     chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
     return d;
   };
@@ -221,7 +218,7 @@ HK.screens.tutor = (el) => {
     $('#send', el).disabled = true;
     return;
   }
-  const hello = 'Habari ' + c.name + '! Mimi ni Nuru. Niulize chochote unachotaka kujifunza.';
+  const hello = 'Hi ' + c.name + '! I’m Nuru. What would you like to learn today?';
   bubble('hugo', hello); speak(hello, I18N.lang === 'en' ? 'en' : 'sw');
   const t0 = Date.now();
   const send = async (text) => {
@@ -231,9 +228,9 @@ HK.screens.tutor = (el) => {
     const wait = bubble('hugo', '...');
     try {
       const age = ageYears(c.birth);
-      const langNote = c.lang === 'en' ? ' Jibu kwa Kiingereza rahisi.' : '';
+      const langNote = ' Reply in simple English.';
       const a = await AI.ask({ text: `(Mtoto anaitwa ${c.name}, ana miaka ${age}.${langNote}) ${text}`, history: hist.slice(-8), maxTokens: 400 });
-      wait.textContent = a; speak(a, guessLang(a));
+      wait.textContent = a; speak(a);
       hist.push({ role: 'user', text }, { role: 'assistant', text: a });
       AI.log(c.id, text, a);
     } catch (e) {

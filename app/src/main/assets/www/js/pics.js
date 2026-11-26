@@ -1,12 +1,11 @@
-/* HUGO KID - pics.js : picha ndogo za vitu (matunda, vyakula, vitu vya nyumbani)
-   ili mtoto asiyejua kusoma atambue kitu kwa picha. Zote ni SVG za mtindo mmoja. */
+
 
 const _leaf = (x, y, r = 0) => `<path d="M${x} ${y}q7-9 15-4q-6 9-15 4z" fill="#3FA34D" transform="rotate(${r} ${x} ${y})"/>`;
 const _shine = (x, y, rx = 4, ry = 6) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#fff" opacity=".45"/>`;
 
 const PICS = {
   /* ---- matunda ---- */
-  embe: `<defs><linearGradient id="pgEmbe" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#8CC63F"/><stop offset=".45" stop-color="#FFC233"/><stop offset="1" stop-color="#F2592A"/></linearGradient></defs><path d="M22 14c12-6 28 2 30 18 2 14-8 26-22 26-11 0-18-8-17-17 1-6 5-9 6-14 1-5-3-10 3-13z" fill="url(#pgEmbe)"/><path d="M27 12c-1-3 0-6 3-7" stroke="#6B4A2B" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M30 7q10-5 16 2q-9 5-16-2z" fill="#3FA34D"/>${_shine(23, 30, 3.5, 7)}`,
+  embe: `<path d="M18 40c-4-15 8-28 22-26 12 2 16 16 10 28-6 12-28 14-32-2z" fill="#FFB020"/><path d="M40 14c8 2 14 10 13 20" stroke="#FF8A00" stroke-width="3" fill="none" opacity=".5"/>${_leaf(38, 15, -20)}${_shine(27, 30)}`,
   chungwa: `<circle cx="32" cy="36" r="20" fill="#FF8A3D"/><circle cx="32" cy="36" r="20" fill="none" stroke="#E86F1F" stroke-width="2" stroke-dasharray="1 5" opacity=".6"/>${_leaf(32, 17, -10)}<circle cx="32" cy="17" r="2.5" fill="#6B8E23"/>${_shine(24, 28)}`,
   ndizi: `<path d="M14 22c2 20 16 32 38 28 4-1 4-5 0-5-16 2-28-8-31-24-1-4-7-4-7 1z" fill="#FFD93D"/><path d="M18 26c4 14 14 22 30 21" stroke="#E5B800" stroke-width="2.5" fill="none"/><path d="M12 20l4-4 4 4z" fill="#7A5A2B"/>`,
   nanasi: `<ellipse cx="32" cy="40" rx="14" ry="18" fill="#E3B341"/><path d="M22 30l20 20M22 40l14 14M26 24l18 18M42 30L22 50M42 40L28 54M38 24L20 42" stroke="#B8862A" stroke-width="2"/><path d="M32 22l-8-14 8 6 0-10 4 10 6-8-4 14z" fill="#3FA34D"/>`,
@@ -18,7 +17,6 @@ const PICS = {
   karoti: `<path d="M24 22l16 4-10 34z" fill="#F28C28"/><path d="M27 32h8M28 40h6M29 48h4" stroke="#D9701A" stroke-width="2" stroke-linecap="round"/><path d="M30 22l-4-12 6 9 2-11 2 12 6-8-4 12z" fill="#3FA34D"/>`,
   kitunguu: `<path d="M32 14c3 6 16 12 16 26a16 16 0 0 1-32 0c0-14 13-20 16-26z" fill="#C9A0DC"/><path d="M32 18c-4 8-8 14-8 22M32 18c4 8 8 14 8 22" stroke="#A97CC0" stroke-width="2" fill="none"/><path d="M28 56h8" stroke="#8A6A40" stroke-width="3" stroke-linecap="round"/>`,
 
-  /* ---- vyakula na vitu vya jikoni ---- */
   maji: `<path d="M32 8c8 12 18 22 18 34a18 18 0 0 1-36 0c0-12 10-22 18-34z" fill="#4FB6F0"/>${_shine(25, 40, 4, 7)}`,
   chai: `<path d="M14 26h30v14a15 15 0 0 1-30 0z" fill="#fff" stroke="#C9D3E3" stroke-width="2"/><path d="M17 30h24v10a12 12 0 0 1-24 0z" fill="#B5743A"/><path d="M44 30h4a6 6 0 0 1 0 12h-4" stroke="#C9D3E3" stroke-width="3" fill="none"/><path d="M24 20c0-4 4-4 4-8M32 20c0-4 4-4 4-8" stroke="#9AA8C0" stroke-width="2" fill="none" stroke-linecap="round"/>`,
   maziwa: `<path d="M22 14h20v8l6 8v26H16V30l6-8z" fill="#fff" stroke="#C9D3E3" stroke-width="2"/><path d="M16 36h32v20H16z" fill="#4FB6F0"/><path d="M22 14h20v6H22z" fill="#1EA7F0"/>`,
@@ -72,7 +70,6 @@ function _numDots(n) {
   return Array.from({ length: n }, (_, i) => `<circle cx="${x0 + (i % cols) * gap}" cy="${y0 + Math.floor(i / cols) * gap}" r="${gap / 2 - 1.5}" fill="${['#F65B4F', '#1EA7F0', '#FFC20E', '#0FB394', '#7B61FF'][i % 5]}"/>`).join('');
 }
 
-/* majina ya Kiingereza na mengine kwenda kwenye picha ileile */
 const PIC_ALIAS = {
   mango: 'embe', orange: 'chungwa', banana: 'ndizi', pineapple: 'nanasi', watermelon: 'tikiti', avocado: 'parachichi',
   lime: 'ndimu', limau: 'ndimu', lemon: 'ndimu', apple: 'tufaha', tomato: 'nyanya', carrot: 'karoti', onion: 'kitunguu',
@@ -84,7 +81,6 @@ const PIC_ALIAS = {
   elephant: 'tembo', lion: 'simba', giraffe: 'twiga', cat: 'paka', dog: 'mbwa', fish: 'samaki', bird: 'ndege', chicken: 'kuku',
 };
 
-/* picha ya neno (Kiswahili au Kiingereza), au '' kama haipo */
 function pic(word, size = 56) {
   if (!word) return '';
   let k = String(word).trim().toLowerCase();
@@ -98,7 +94,6 @@ function pic(word, size = 56) {
 }
 const hasPic = w => !!pic(w);
 
-/* picha na jina pamoja (kwa wasiojua kusoma) */
 function picLabel(word, size = 48, label = word) {
   const p = pic(word, size);
   return p ? `<span class="pic-label">${p}<span>${esc(label)}</span></span>` : esc(label);
