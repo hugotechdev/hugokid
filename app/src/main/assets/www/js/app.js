@@ -1,6 +1,6 @@
 
 
-const ADULT_SCREENS = ['parentHome', 'childForm', 'aiSettings', 'aiLog', 'learningMode', 'hwNew', 'hwReview', 'parentResults', 'parentSub', 'friends', 'changePass'];
+const ADULT_SCREENS = ['parentHome', 'childForm', 'aiSettings', 'aiLog', 'learningMode', 'hwNew', 'hwReview', 'parentResults', 'parentSub', 'friends', 'changePass', 'forgotPassword', 'resetPassword'];
 
 const HK = {
   screens: {},
@@ -85,6 +85,11 @@ const HK = {
 
   /* ---------- kuanza ---------- */
   boot() {
+    const reset = /^#reset-password=([a-f0-9]{64})$/.exec(location.hash);
+    if (IS_WEB && reset) {
+      history.replaceState(null, '', location.pathname + location.search);
+      return this.go('resetPassword', { token: reset[1] }, { reset: true });
+    }
     const nu = Net.user();
     if (nu && (nu.must_change || STAFF.includes(nu.role))) return routeByRole();
     const par = Store.parent();

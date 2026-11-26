@@ -45,6 +45,7 @@ HK.screens.acctAuth = (el, p) => {
           <label class="label">Phone or email</label><input class="field" id="login" autocomplete="username" placeholder="07xx xxx xxx">
           <label class="label">Nenosiri</label><input class="field" id="pass" type="password" autocomplete="current-password">
           <div style="height:18px"></div><button class="btn block" id="go">${icon('key', 20)} Ingia</button>
+          <button class="btn small ghost" id="forgot-password" style="margin-top:14px">Forgot password?</button>
           <p class="muted" style="font-size:13px;margin-top:14px">Teachers get a temporary password from the head teacher.</p>`
         : `
           ${kind === 'any' ? `<label class="label">You are registering as</label><div class="chips" id="kind"><button class="chip on" data-k="parent">Parent</button><button class="chip" data-k="school">School / Teacher</button></div>` : ''}
@@ -73,6 +74,10 @@ HK.screens.acctAuth = (el, p) => {
     $$('#lv .chip', el).forEach(b => b.onclick = () => { const l = b.dataset.l; picked.has(l) ? picked.delete(l) : picked.add(l); b.classList.toggle('on'); });
     const tl = $('#tlink', el); if (tl) tl.onclick = e => { e.preventDefault(); HK.go('terms', { mode: 'view' }); };
     $('#go', el).onclick = submit;
+    const forgot = $('#forgot-password', el);
+    if (forgot) forgot.onclick = () => HK.go('forgotPassword', {
+      email: $('#login', el).value.includes('@') ? $('#login', el).value.trim() : '',
+    });
   };
   const submit = async () => {
     const b = $('#go', el); b.disabled = true;
@@ -125,3 +130,60 @@ HK.screens.changePass = (el, p) => {
     } catch (e) { toast(e.message); }
   };
 };
+
+function passwordRecoveryScreen(el, { title, fields, label, submit, success }) {
+  el.innerHTML = `<div class="topbar"><button class="icon-btn" id="recovery-back" aria-label="Back">${icon('back')}</button><h1>${title}</h1></div>
+    <div class="scroll" style="max-width:600px;margin:0 auto;width:100%">
+      <form id="recovery-form">${fields}
+        <button class="btn block" type="submit" style="margin-top:18px">${label}</button>
+        <p class="muted" id="recovery-status" role="status" aria-live="polite"></p>
+      </form>
+    </div>`;
+  $('#recovery-back', el).onclick = () => HK.back() || HK.go('acctAuth', {}, { reset: true });
+  const form = $('#recovery-form', el);
+  const button = $('button[type="submit"]', form);
+  const status = $('#recovery-status', el);
+  form.onsubmit = async event => {
+    event.preventDefault();
+    if (button.disabled) return;
+    button.disabled = true;
+    status.textContent = '';
+    try {
+      await submit(form);
+      if (el.isConnected) success(form, status);
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  };
+}
+
+HK.screens.forgotPassword = (el, { email = '' } = {}) => passwordRecoveryScreen(el, {
+  title: 'Forgot password?',
+  fields: `<p>Enter the email address linked to your account. If you only registered with a phone number, contact HUGO TECH or your school administrator.</p>
+    <label class="label" for="recovery-email">Email address</label>
+    <input class="field" id="recovery-email" type="email" autocomplete="email" maxlength="254" required value="${esc(email)}">`,
+  label: 'Send reset link',
+  submit: form => Net.post('/api/password/forgot', { email: $('#recovery-email', form).value }),
+  success: (_form, status) => { status.textContent = 'If this email is linked to an account, a reset link will arrive shortly. Check your spam folder as well.'; },
+});
+
+HK.screens.resetPassword = (el, { token }) => passwordRecoveryScreen(el, {
+  title: 'Reset password',
+  fields: `<label class="label" for="recovery-password">New password</label>
+    <input class="field" id="recovery-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required>
+    <label class="label" for="recovery-confirm">Confirm new password</label>
+    <input class="field" id="recovery-confirm" type="password" autocomplete="new-password" minlength="6" maxlength="128" required>`,
+  label: 'Set new password',
+  submit: form => {
+    const password = $('#recovery-password', form).value;
+    if (password !== $('#recovery-confirm', form).value) throw new Error('The passwords do not match.');
+    return Net.post('/api/password/reset', { token, password });
+  },
+  success: () => {
+    Net.logout();
+    HK.go('acctAuth', {}, { reset: true });
+    toast('Password updated. Sign in with your new password.');
+  },
+});
