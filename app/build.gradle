@@ -11,8 +11,8 @@ android {
         applicationId "tz.co.hugotech.hugokid"
         minSdk 26
         targetSdk 34
-        versionCode 11
-        versionName "2.5.3"
+        versionCode 17
+        versionName "2.5.9"
     }
 
     buildTypes {
