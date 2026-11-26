@@ -1,6 +1,6 @@
 
 
-const HK_SERVER_DEFAULT = 'https://smartmark.space';
+const HK_SERVER_DEFAULT = 'https://kid.hugotech.co.tz';
 const IS_WEB = /^https?:$/.test(location.protocol) && location.hostname !== 'appassets.androidplatform.net';
 
 const Net = {
