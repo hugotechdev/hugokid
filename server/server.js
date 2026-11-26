@@ -10,6 +10,7 @@ const hub = require('./hub');
 const router = require('./router');
 const tts = require('./tts');
 require('./routes-core');
+require('./password-reset');
 require('./routes-homework');
 require('./routes-family');
 require('./routes-school');
