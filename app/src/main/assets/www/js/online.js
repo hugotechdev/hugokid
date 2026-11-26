@@ -108,7 +108,7 @@ HK.screens.superHome = (el) => {
   HK.setBack(() => true);
   (async () => {
     try {
-      const [s, b, aiCfg] = await Promise.all([Net.get('/api/admin/stats'), Net.get('/api/billing'), Net.get('/api/admin/ai')]);
+      const [s, b, aiCfg, ttsCfg] = await Promise.all([Net.get('/api/admin/stats'), Net.get('/api/billing'), Net.get('/api/admin/ai'), Net.get('/api/admin/tts')]);
       const paid = b.invoices.filter(i => i.status === 'paid').reduce((a, i) => a + i.amount, 0);
       const st = { unpaid: ['coral', 'Haijalipwa'], pending: ['sun', 'Thibitisha'], paid: ['teal', 'Imelipwa'] };
       body.innerHTML = `<div class="stat-grid">
@@ -134,6 +134,10 @@ HK.screens.superHome = (el) => {
             <select class="field" id="ap">${['gemini', 'claude', 'openai'].map(x => `<option ${aiCfg.provider === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
             <input class="field" id="ak" type="password" placeholder="API key" style="margin-top:8px"><input class="field" id="am" placeholder="Model (si lazima)" value="${esc(aiCfg.model || '')}" style="margin-top:8px">
             <button class="btn" id="saveai" style="margin-top:10px">${icon('check', 18)} Hifadhi</button></div>
+          <div class="card"><h3>Sauti ya Nuru</h3><p style="font-size:13px">Sauti ya binadamu ya Microsoft Azure: Rehema (Kiswahili cha Tanzania) na Imani (Kiingereza cha Tanzania). Bila hii, app inatumia sauti ya simu. ${ttsCfg.has_key ? 'Imewekwa.' : 'Bado haijawekwa.'}</p>
+            <input class="field" id="tr" placeholder="Region (mf. westeurope)" value="${esc(ttsCfg.region || '')}">
+            <input class="field" id="tk" type="password" placeholder="Speech key" style="margin-top:8px">
+            <div class="btn-row" style="margin-top:10px"><button class="btn" id="savetts">${icon('check', 18)} Hifadhi</button><button class="btn ghost" id="testtts">${icon('volume', 18)} Jaribu sauti</button></div></div>
           <div class="card"><h3>Akaunti</h3><button class="btn block ghost" id="pw">${icon('key', 18)} Badilisha nenosiri</button></div></div>`;
       $$('[data-st]', body).forEach(x => x.onclick = async () => { await Net.post(`/api/admin/schools/${x.dataset.st}/status`, { status: x.dataset.v }); HK.render(); });
       $$('[data-paid]', body).forEach(x => x.onclick = async () => { await Net.post(`/api/admin/invoices/${x.dataset.paid}/status`, { status: 'paid' }); HK.render(); });
@@ -144,6 +148,15 @@ HK.screens.superHome = (el) => {
       });
       $('#saveplans', body).onclick = async () => { await Net.put('/api/admin/plans', { school_student_term: +$('#p1', body).value, parent_month: +$('#p2', body).value, pay_info: $('#p3', body).value }); toast('Imehifadhiwa'); };
       $('#saveai', body).onclick = async () => { await Net.put('/api/admin/ai', { provider: $('#ap', body).value, key: $('#ak', body).value, model: $('#am', body).value }); toast('AI imehifadhiwa'); HK.render(); };
+      $('#savetts', body).onclick = async () => { await Net.put('/api/admin/tts', { region: $('#tr', body).value, key: $('#tk', body).value }); await Voice.check(); toast('Imehifadhiwa'); HK.render(); };
+      $('#testtts', body).onclick = async () => {
+        await Voice.check();
+        if (!Voice.enabled) return toast('Weka region na key kwanza');
+        const lines = I18N.lang === 'en'
+          ? ['Hello! I am Nuru. Today we will help Tembo make a fruit salad.', 'Tap one mango. Well done! Now add a second mango.', 'You paid TSh 1,500. How much change will you get back?']
+          : ['Habari! Mimi ni Nuru. Leo tutamsaidia Tembo kutengeneza saladi.', 'Gusa embe moja. Vizuri! Sasa ongeza embe la pili.', 'Umetoa TSh 1,500. Utarudishiwa shilingi ngapi?'];
+        speak(lines.join(' '), I18N.lang === 'en' ? 'en' : 'sw-raw');
+      };
       $('#pw', body).onclick = () => HK.go('changePass');
       let ur = 'parent';
       const loadUsers = async () => {

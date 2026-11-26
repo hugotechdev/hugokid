@@ -43,7 +43,8 @@ function narrateSalad(...lines) {
   stopSaladVoice();
   const phrases = lines.filter(Boolean);
   const fallback = () => speak(phrases.join(' '), I18N.lang === 'en' ? 'en' : 'sw-raw');
-  if (I18N.lang === 'en') return fallback();
+  /* sauti ya Nuru (Rehema / Imani) ikiwepo, ndiyo inayosimulia */
+  if (I18N.lang === 'en' || (Voice.enabled && navigator.onLine !== false)) return fallback();
   // Use a local Swahili voice when the browser provides one. The bundled
   // narration also works on devices without a Swahili voice installed.
   const voice = window.speechSynthesis?.getVoices().find(v => v.localService && /^sw(?:-|$)/i.test(v.lang));
@@ -66,6 +67,7 @@ function narrateSalad(...lines) {
 }
 
 function stopSaladVoice() {
+  Voice.stop();
   if (saladAudio) {
     saladAudio.onended = null;
     saladAudio.pause();

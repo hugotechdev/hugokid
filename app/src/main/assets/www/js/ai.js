@@ -212,7 +212,7 @@ HK.screens.tutor = (el) => {
       ? 'margin-left:auto;background:var(--blue);color:#fff;border-bottom-right-radius:6px'
       : 'background:#fff;box-shadow:0 3px 0 var(--line);border-bottom-left-radius:6px'}`;
     d.textContent = text;
-    if (who !== 'me') { d.onclick = () => speak(text); }
+    if (who !== 'me') { d.onclick = () => speak(text, guessLang(text)); }
     chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
     return d;
   };
@@ -222,7 +222,7 @@ HK.screens.tutor = (el) => {
     return;
   }
   const hello = 'Habari ' + c.name + '! Mimi ni Nuru. Niulize chochote unachotaka kujifunza.';
-  bubble('hugo', hello); speak(hello);
+  bubble('hugo', hello); speak(hello, I18N.lang === 'en' ? 'en' : 'sw');
   const t0 = Date.now();
   const send = async (text) => {
     text = (text || '').trim(); if (!text) return;
@@ -233,7 +233,7 @@ HK.screens.tutor = (el) => {
       const age = ageYears(c.birth);
       const langNote = c.lang === 'en' ? ' Jibu kwa Kiingereza rahisi.' : '';
       const a = await AI.ask({ text: `(Mtoto anaitwa ${c.name}, ana miaka ${age}.${langNote}) ${text}`, history: hist.slice(-8), maxTokens: 400 });
-      wait.textContent = a; speak(a);
+      wait.textContent = a; speak(a, guessLang(a));
       hist.push({ role: 'user', text }, { role: 'assistant', text: a });
       AI.log(c.id, text, a);
     } catch (e) {
