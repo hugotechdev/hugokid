@@ -4,7 +4,7 @@ const TERMS_VERSION = '1.0';
 const TERMS_DATE = 'Novemba 2026';
 
 const TERMS_SECTIONS = [
-  ['1. Kuhusu HUGO KID', 'HUGO KID ni programu ya elimu kwa watoto wa miaka 3 hadi 12, inayotolewa na HUGO TECH (Tanzania). Inatoa masomo, homework ya kidijitali, michezo ya kujifunza, msaidizi wa AI (Nuru) na udhibiti wa muda kwa mzazi.'],
+  ['1. Kuhusu HUGO KID', 'HUGO KID ni programu ya burudani na elimu (edutainment) kwa watoto wa miaka 3 hadi 12, inayotolewa na HUGO TECH (Tanzania). Mtoto anacheza michezo, anajenga ujuzi (lugha, hesabu, ubunifu, AI na mengine), anajifunza na kufanya homework, huku mzazi akidhibiti muda wa matumizi. Lengo ni kumsaidia mtoto kutumia simu kwa faida, badala ya kutumia muda mwingi kutazama video na kucheza michezo isiyomjenga.'],
   ['2. Mzazi au mlezi ndiye mwenye akaunti', 'Akaunti inafunguliwa na mzazi au mlezi mwenye umri wa miaka 18 au zaidi. Kwa kukubali masharti haya, unathibitisha kuwa wewe ni mzazi au mlezi halali wa watoto unaowasajili, na unatoa ridhaa ya taarifa zao kuchakatwa kama ilivyoelezwa hapa. Mtoto hawezi kufungua akaunti mwenyewe.'],
   ['3. Taarifa tunazokusanya', 'Jina la mtoto, tarehe ya kuzaliwa, rangi ya mhusika, chaguo la maudhui ya imani, maendeleo (nyota, ngazi, muda wa kujifunza na kucheza), homework na kazi za mtoto, na mazungumzo yake na Nuru. Kwa sasa taarifa hizi zinahifadhiwa kwenye simu hii tu. Akaunti za mtandaoni (shule, walimu, marafiki) zikiwashwa, taarifa zinazohitajika zitahifadhiwa kwenye server ya HUGO TECH kwa usalama.'],
   ['4. Tunavyotumia taarifa', 'Kumpangia mtoto masomo ya umri wake, kumwonyesha mzazi maendeleo, kuwezesha homework kati ya mzazi, mwalimu na mtoto, na kuboresha huduma. Hatuuzi taarifa za mtoto, hatuweki matangazo, na hatutumii picha au jina la mtoto kwenye matangazo bila ridhaa ya maandishi ya mzazi.'],
@@ -15,7 +15,7 @@ const TERMS_SECTIONS = [
   ['9. Maudhui ya imani', 'Sehemu ya imani ni hiari. Mzazi anaamua iwepo au isiwepo, na anachagua Uislamu, Ukristo au Maadili ya jumla. Mtoto anaona maudhui ya chaguo la mzazi tu.'],
   ['10. Haki zako', 'Una haki ya kuona, kurekebisha au kufuta taarifa za mtoto wako, na kuondoa ridhaa yako wakati wowote. Kufuta wasifu wa mtoto au kuondoa programu kunafuta taarifa zilizo kwenye simu. Kwa taarifa zilizo kwenye server, wasiliana nasi na tutazifuta. Haki hizi zinalindwa na Sheria ya Ulinzi wa Taarifa Binafsi ya Tanzania (Personal Data Protection Act, 2022).'],
   ['11. Malipo', 'Baadhi ya huduma zinaweza kuhitaji usajili wa kulipia. Bei na masharti ya malipo yataonyeshwa wazi kabla ya kulipa.'],
-  ['12. Matumizi sahihi', 'Programu itumike kwa elimu ya mtoto tu. Ni marufuku kupakia maudhui yasiyofaa watoto au kujaribu kuvuruga mfumo. HUGO TECH inaweza kusimamisha akaunti inayokiuka masharti haya.'],
+  ['12. Matumizi sahihi', 'Programu itumike kwa kujifunza na makuzi ya mtoto tu. Ni marufuku kupakia maudhui yasiyofaa watoto au kujaribu kuvuruga mfumo. HUGO TECH inaweza kusimamisha akaunti inayokiuka masharti haya.'],
   ['13. Mabadiliko', 'Masharti haya yakibadilika, tutakuonyesha toleo jipya ndani ya programu na kukuomba ulikubali kabla ya kuendelea.'],
   ['14. Mawasiliano', 'HUGO TECH · info@hugotech.co.tz · WhatsApp +255 785 799 530 · hugotech.co.tz'],
 ];

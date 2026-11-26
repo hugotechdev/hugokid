@@ -110,7 +110,7 @@ HK.screens.g_runner = (el, p) => {
     // HUD
     ctx.fillStyle = 'rgba(255,255,255,.7)'; rr(ctx, 16, 14, W - 32, 12, 6); ctx.fill();
     ctx.fillStyle = '#0FB394'; rr(ctx, 16, 14, (W - 32) * Math.min(1, S.dist / LEN), 12, 6); ctx.fill();
-    if (hearts0 < 9) { ctx.fillStyle = '#F65B4F'; ctx.font = '900 20px Nunito, Roboto, sans-serif'; ctx.fillText('♥'.repeat(Math.max(0, S.hearts)), 18, 52); }
+    if (hearts0 < 9) { ctx.fillStyle = '#F65B4F'; ctx.font = '900 20px Outfit, Roboto, sans-serif'; ctx.fillText('♥'.repeat(Math.max(0, S.hearts)), 18, 52); }
   }
   return () => { stop(); C.off(); window.removeEventListener('keydown', key); kit.cleanup(); };
 };
@@ -180,7 +180,7 @@ HK.screens.g_pilot = (el, p) => {
       ctx.fillStyle = '#0D2461'; ctx.fillRect(30, -12 + Math.sin(S.t * 40) * 10, 3, 24 - Math.abs(Math.sin(S.t * 40) * 10));
       ctx.restore();
     }
-    ctx.fillStyle = '#0D2461'; ctx.font = '900 18px Nunito, Roboto, sans-serif';
+    ctx.fillStyle = '#0D2461'; ctx.font = '900 18px Outfit, Roboto, sans-serif';
     ctx.fillText(`Pete ${S.got}/${TOTAL}` + (S.hearts < 9 ? '   ' + '♥'.repeat(Math.max(0, S.hearts)) : ''), 16, 30);
   }
   return () => { stop(); C.off(); window.removeEventListener('pointerup', up); kit.cleanup(); };
@@ -284,9 +284,9 @@ HK.screens.g_penalty = (el, p) => {
     ctx.fillStyle = '#0D2461'; ctx.beginPath(); ctx.arc(bx, by, bs * 0.38, 0, 7); ctx.fill();
     // ubao wa matokeo
     ctx.fillStyle = 'rgba(13,36,97,.85)'; rr(ctx, W / 2 - 110, H - 96, 220, 70, 18); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '900 22px Nunito, Roboto, sans-serif';
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '900 22px Outfit, Roboto, sans-serif';
     ctx.fillText(keepTurns ? `Wewe ${S.me}  -  ${S.cpu} Komp.` : `Magoli ${S.me} / ${rounds}`, W / 2, H - 66);
-    ctx.font = '800 15px Nunito, Roboto, sans-serif'; ctx.fillText(S.msg, W / 2, H - 40);
+    ctx.font = '800 15px Outfit, Roboto, sans-serif'; ctx.fillText(S.msg, W / 2, H - 40);
     ctx.textAlign = 'left';
   }
   return () => { stop(); C.off(); kit.cleanup(); };
@@ -445,7 +445,7 @@ HK.screens.g_kitchen = (el, p) => {
       <div class="card" style="margin:0 16px 10px"><div class="row"><b style="font-size:19px" class="grow">${esc(rc.name)}</b><button class="icon-btn" id="say" style="width:40px;height:40px">${icon('volume', 20)}</button></div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${Object.entries(want).map(([k, n]) => `<span class="chip-tag ${(pot[k] || 0) === n ? 'teal' : ''}">${INGR[k][0]}${kit.g ? ' × ' + n : ''}</span>`).join('')}</div></div>
       <div style="display:flex;justify-content:center;margin:2px 0 10px"><svg width="150" height="84" viewBox="0 0 150 84"><ellipse cx="75" cy="18" rx="64" ry="12" fill="#3A4D80"/><path d="M11 18h128l-10 52a14 14 0 0 1-14 12H35a14 14 0 0 1-14-12z" fill="#5C6B8A"/><path d="M0 26h12M138 26h12" stroke="#3A4D80" stroke-width="7" stroke-linecap="round"/>
-        <text x="75" y="58" text-anchor="middle" font-weight="900" font-size="18" fill="#fff" font-family="Nunito,Roboto">${Object.values(pot).reduce((a, b) => a + b, 0)}</text></svg></div>
+        <text x="75" y="58" text-anchor="middle" font-weight="900" font-size="18" fill="#fff" font-family="Outfit,Roboto">${Object.values(pot).reduce((a, b) => a + b, 0)}</text></svg></div>
       <div class="ingredients">${shelf.map(k => `<button class="ing" data-k="${k}">${pot[k] ? `<span class="cnt">${pot[k]}</span>` : ''}<span class="dot2" style="background:${INGR[k][1]};border:2px solid rgba(13,36,97,.12)"></span>${INGR[k][0]}</button>`).join('')}</div>
       <div class="btn-row" style="padding:0 16px 16px"><button class="btn ghost" id="empty">${icon('repeat', 20)} Mwaga</button><button class="btn coral" id="cook" style="flex:2">${icon('pot', 20)} Pika</button></div>`;
     const sayIt = () => speak('Tupike ' + rc.name + '. Tunahitaji ' + Object.entries(want).map(([k, n]) => (kit.g ? n + ' ' : '') + INGR[k][0]).join(', '));

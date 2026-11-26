@@ -171,7 +171,7 @@ HK.screens.abc = (el, p) => {
         <div class="lesson-card" style="width:100%;max-width:380px;padding:18px">
           <div style="font-size:120px;font-weight:700;line-height:1;color:var(--blue)">${L}<span style="font-size:80px;color:var(--coral)">${L.toLowerCase()}</span></div>
           ${pic ? `<div style="width:120px;height:120px;margin:6px auto">${pic()}</div>` : ''}
-          <div class="big" style="font-size:34px">${esc(w)}</div>
+          <div class="big notr" style="font-size:34px">${esc(w)}</div>
         </div>
         <div class="btn-row" style="width:100%;max-width:380px;margin:14px 0">
           <button class="btn blue" id="say">${icon('volume', 24)} Sikiliza</button>
@@ -183,7 +183,7 @@ HK.screens.abc = (el, p) => {
           <button class="btn" id="next" style="flex:3">${icon('chevR', 24)}</button>
         </div>
       </div>`;
-    const sayIt = () => speak(lang === 'en' ? `${L}. ${L} for ${w}` : `${L}. ${L} kama ${w}`, lang);
+    const sayIt = () => speak(lang === 'en' ? `${L}. ${L} for ${w}` : `${L}. ${L} kama ${w}`, lang === 'sw' ? 'sw-raw' : lang);
     $('#say', el).onclick = sayIt; setTimeout(sayIt, 250);
     learned('letters', L);
     $('#bk', el).onclick = () => HK.back();
@@ -197,7 +197,7 @@ HK.screens.abc = (el, p) => {
         const said = (res || [])[0] || '';
         const ok = (res || []).some(x => x.toLowerCase().includes(w.toLowerCase()));
         $('#heard', el).textContent = said ? 'Umesema: ' + said : 'Sijasikia vizuri';
-        if (ok) { Sfx.good(); speak('Safi sana!'); learned('words', w); } else if (said) speak('Karibu! Sikiliza tena: ' + w, lang);
+        if (ok) { Sfx.good(); speak('Safi sana!'); learned('words', w); } else if (said) speak('Karibu! Sikiliza tena: ' + w, lang === 'sw' ? 'sw-raw' : lang);
       };
       HugoNative.listen(lang);
     };

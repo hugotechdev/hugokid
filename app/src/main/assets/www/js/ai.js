@@ -29,6 +29,11 @@ const AI = {
     const p = c.provider;
     const model = (c.model || AI_PROVIDERS[p].model).trim();
     const max = opts.maxTokens || 700;
+    /* programu ikiwa English, majibu ya maandishi yawe kwa Kiingereza */
+    if (typeof I18N !== 'undefined' && I18N.lang === 'en' && !/kama lilivyo/.test(opts.text)) {
+      const json = /JSON|Rudisha [{[]/.test((opts.system || '') + opts.text);
+      opts = { ...opts, text: opts.text + (json ? '\n\n(Write every text value in simple English. Keep the JSON keys unchanged.)' : '\n\n(Reply in simple English.)') };
+    }
     const imgs = (opts.images || []).map(d => {
       const m = /^data:(image\/[a-z+]+);base64,(.*)$/i.exec(d) || [];
       return { mime: m[1] || 'image/jpeg', data: m[2] || '' };

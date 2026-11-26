@@ -1,7 +1,7 @@
 /* HUGO KID - Learn, Play, Grow */
-@font-face { font-family: "Poppins"; src: url("../fonts/Poppins-Regular.ttf") format("truetype"); font-weight: 100 450; font-display: swap; }
-@font-face { font-family: "Poppins"; src: url("../fonts/Poppins-Medium.ttf") format("truetype"); font-weight: 451 650; font-display: swap; }
-@font-face { font-family: "Poppins"; src: url("../fonts/Poppins-Bold.ttf") format("truetype"); font-weight: 651 1000; font-display: swap; }
+@font-face { font-family: "DM Sans"; src: url("../fonts/DMSans.ttf") format("truetype"); font-weight: 100 1000; font-display: swap; }
+@font-face { font-family: "Outfit"; src: url("../fonts/Outfit-Regular.ttf") format("truetype"); font-weight: 100 550; font-display: swap; }
+@font-face { font-family: "Outfit"; src: url("../fonts/Outfit-Bold.ttf") format("truetype"); font-weight: 551 1000; font-display: swap; }
 :root {
   --teal: #0FB394;
   --teal-d: #0A8F76;
@@ -18,7 +18,8 @@
   --bg: #F4F8FD;
   --card: #FFFFFF;
   --radius: 22px;
-  --font: "Poppins", system-ui, Roboto, sans-serif;
+  --font: "DM Sans", system-ui, Roboto, sans-serif;
+  --font-head: "Outfit", "DM Sans", system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -517,3 +518,127 @@ body::after { width: 300px; height: 300px; background: #FFE9B8; bottom: -90px; l
 .acc { border: 2px solid transparent; background: #F4F8FD; border-radius: 16px; padding: 8px 2px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; color: var(--navy); }
 .acc.on { border-color: var(--teal); background: #E3F8F3; }
 .acc .muted { display: flex; align-items: center; gap: 2px; font-size: 10px; }
+
+/* =========================================================
+   Lugha, fonts na skrini ya mwanzo
+   ========================================================= */
+h1, h2, h3, .btn, .pin-title, .section-title, .t-name, .stat-card b, .hud-pill, .seg button, .chip { font-family: var(--font-head); }
+body { -webkit-font-smoothing: antialiased; }
+
+.lang-switch { display: inline-flex; background: #EEF3FA; border-radius: 999px; padding: 3px; gap: 2px; flex-shrink: 0; }
+.lang-switch button { border: 0; background: transparent; font: 700 12px var(--font-head); color: var(--muted); padding: 6px 11px; border-radius: 999px; cursor: pointer; letter-spacing: .4px; }
+.lang-switch button.on { background: #fff; color: var(--navy); box-shadow: 0 1px 4px rgba(13, 36, 97, .15); }
+.screen > .lang-switch { position: absolute; top: max(14px, env(safe-area-inset-top)); right: 16px; z-index: 5; }
+.topbar .lang-switch.in-bar { margin-left: auto; }
+
+.welcome .center-col { gap: 0; }
+.hk-logo { display: flex; flex-direction: column; align-items: center; margin-bottom: 44px; }
+.hk-logo .mark { position: relative; width: 104px; height: 104px; display: grid; place-items: end center; }
+.hk-logo .book { width: 96px; animation: hkFloat 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.hk-logo .star { position: absolute; top: 0; left: 50%; width: 34px; margin-left: -17px; animation: hkTwinkle 2.4s ease-in-out infinite; }
+.hk-logo .word { width: 190px; margin-top: 14px; animation: hkRise .7s ease-out both .15s; }
+@keyframes hkFloat { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-6px) rotate(-2deg); } }
+@keyframes hkTwinkle { 0%, 100% { transform: translateY(0) scale(1) rotate(0); } 30% { transform: translateY(-10px) scale(1.18) rotate(18deg); } 60% { transform: translateY(-4px) scale(.94) rotate(-6deg); } }
+@keyframes hkRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.welcome .actions { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; animation: hkRise .6s ease-out both .3s; }
+.welcome .actions .btn { font-size: 16px; padding: 14px 20px; }
+.welcome .link-btn { border: 0; background: none; font: 600 15px var(--font); color: var(--navy-2); padding: 12px; cursor: pointer; }
+.welcome .link-btn b { color: var(--blue-d, #0B7FC0); font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { .hk-logo * { animation: none !important; } }
+
+/* =========================================================
+   MUONEKANO WA KISASA v2.2: safi, tulivu, wa kitaalamu
+   (rangi za HUGO zinabaki, lakini bila vivuli vizito vya 3D)
+   ========================================================= */
+:root {
+  --bg: #F6F8FC; --line: #E6EBF3; --line-2: #EEF2F8; --muted: #7B87A1; --navy-2: #43537A;
+  --radius: 18px;
+  --shadow-sm: 0 1px 2px rgba(13,36,97,.04), 0 4px 14px -6px rgba(13,36,97,.10);
+  --shadow: 0 2px 4px rgba(13,36,97,.04), 0 12px 32px -12px rgba(13,36,97,.18);
+}
+body { letter-spacing: 0; }
+body::before, body::after { display: none; }
+h1, h2, h3 { letter-spacing: -.3px; }
+
+/* juu */
+.topbar { gap: 10px; }
+.topbar h1 { font-size: 19px; font-weight: 600; }
+.icon-btn { width: 42px; height: 42px; border-radius: 12px; background: #fff; border: 1px solid var(--line); box-shadow: none; }
+.icon-btn:active { transform: scale(.95); box-shadow: none; }
+
+/* vitufe */
+.btn { border-radius: 14px; padding: 14px 20px; font-size: 16px; font-weight: 600; letter-spacing: 0;
+  background: var(--c); box-shadow: 0 8px 18px -10px var(--c); transition: transform .1s, filter .15s; }
+.btn:active { transform: scale(.98); box-shadow: 0 4px 10px -8px var(--c); }
+.btn.ghost { background: #fff; color: var(--navy); border: 1px solid var(--line); box-shadow: none; }
+.btn.ghost:active { background: #F3F6FB; }
+.btn.small { padding: 9px 14px; font-size: 14px; border-radius: 11px; box-shadow: none; }
+.btn.small:not(.ghost) { box-shadow: 0 6px 14px -10px var(--c); }
+.btn.navy { background: var(--navy); }
+.btn:disabled { opacity: .45; }
+
+/* kadi, orodha, fomu */
+.card { border-radius: var(--radius); border: 1px solid var(--line-2); box-shadow: var(--shadow-sm); padding: 16px; }
+.card h3 { font-size: 16px; font-weight: 600; }
+.item { border-radius: 16px; border: 1px solid var(--line-2); box-shadow: var(--shadow-sm); padding: 12px 14px; }
+.item:active { transform: scale(.99); }
+.label { font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--navy-2); margin: 16px 0 6px; }
+.section-title { font-size: 13px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--navy-2); }
+.field { border: 1.5px solid var(--line); border-radius: 12px; padding: 13px 14px; font-size: 16px; font-weight: 500; transition: border-color .15s, box-shadow .15s; }
+.field:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(30,167,240,.12); }
+.chip { border: 1.5px solid var(--line); padding: 8px 14px; font-size: 14px; font-weight: 500; }
+.chip.on { border-color: var(--teal); background: #E9F8F4; color: var(--teal-d); font-weight: 600; }
+.chip-tag { font-weight: 600; font-size: 11.5px; padding: 3px 9px; }
+.seg { background: #EDF1F7; border-radius: 12px; padding: 4px; }
+.seg button { border-radius: 9px; padding: 9px 6px; font-weight: 500; font-size: 14px; }
+.seg button.on { box-shadow: 0 1px 3px rgba(13,36,97,.12); font-weight: 600; }
+.modal { border-radius: 24px; }
+.modal h2 { font-weight: 600; }
+.overlay { background: rgba(13,36,97,.38); }
+
+/* hero ya mtoto: rangi ya ndani zaidi */
+.hero { border-radius: 24px; background: linear-gradient(140deg, #13307A 0%, #0D2461 55%, #0B5C8F 100%); box-shadow: 0 16px 32px -18px rgba(13,36,97,.7); }
+.hero::before { background: radial-gradient(circle, rgba(30,167,240,.45), transparent 70%); width: 260px; height: 260px; right: -90px; top: -120px; }
+.hero::after { background: radial-gradient(circle, rgba(15,179,148,.35), transparent 70%); width: 200px; height: 200px; right: 60px; bottom: -120px; }
+.hero .nm { font-weight: 600; font-size: 24px; }
+.hero .lock { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); border-radius: 11px; font-weight: 500; }
+.lvl-bar { height: 8px; background: rgba(255,255,255,.16); }
+.lvl-bar i { box-shadow: none; }
+.hero-stats div { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 13px; }
+.hero-stats b { font-weight: 600; }
+.goal { border-radius: 18px; border: 1px solid var(--line-2); }
+
+/* vigae: rangi tulivu, bila kivuli cha 3D */
+.tiles { gap: 12px; }
+.tile { border-radius: 22px; min-height: 156px; box-shadow: 0 10px 24px -16px var(--c); background: var(--c); }
+.tile:active { transform: scale(.98); box-shadow: 0 6px 14px -12px var(--c); }
+.tile.teal { --c: #12A88B; } .tile.blue { --c: #1E9BE0; } .tile.coral { --c: #EF5B50; } .tile.sun { --c: #FFBE1A; }
+.tile.navy { background: linear-gradient(135deg, #1A3A88, #0D2461); }
+.tile .t-name { font-weight: 600; font-size: 19px; }
+.tile .t-sub { font-weight: 500; opacity: .85; }
+.tile .art { width: 92px; height: 92px; right: 0; top: 2px; opacity: .95; }
+.tile .t-ic { border-radius: 14px; background: rgba(255,255,255,.18); }
+.tile.white { box-shadow: var(--shadow-sm); border: 1px solid var(--line-2); }
+.tile.big-t .t-name { font-size: 22px; }
+
+/* menyu ya chini */
+.kid-nav { height: 64px; border-radius: 20px; padding: 6px; background: rgba(255,255,255,.96); border: 1px solid var(--line-2); box-shadow: 0 10px 30px -14px rgba(13,36,97,.35); }
+.kid-nav button { border-radius: 14px; font-weight: 500; }
+.kid-nav button.on { background: #EAF1FF; color: var(--navy); font-weight: 600; }
+
+/* misheni, takwimu, PIN */
+.mission { border-radius: 12px; background: #F6F8FC; font-weight: 500; }
+.stat-card { border-radius: 16px; border: 1px solid var(--line-2); }
+.stat-card .sc-ic { border-radius: 10px; width: 34px; height: 34px; }
+.stat-card b { font-weight: 600; font-size: 22px; }
+.pin-pad button { border-radius: 18px; font-weight: 500; box-shadow: none; border: 1px solid var(--line); background: #fff; }
+.pin-pad button:active { background: #EEF3FA; }
+.pin-title { font-weight: 600; }
+.pin-sub { font-weight: 500; }
+.game-card { border-radius: 18px; border: 1px solid var(--line-2); box-shadow: var(--shadow-sm); }
+.game-card:active { transform: scale(.97); box-shadow: none; }
+.game-card .g-ic { border-radius: 14px; background: var(--gc); box-shadow: none; }
+.game-card .g-ic::after { background: radial-gradient(circle, rgba(255,255,255,.22), transparent 70%); }
+.hud-pill { border-radius: 11px; box-shadow: none; border: 1px solid var(--line); font-weight: 600; }
+.kid-actions { display: grid !important; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.kid-actions > * { width: 100%; }

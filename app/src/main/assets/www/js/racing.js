@@ -303,7 +303,7 @@ HK.screens.racePlay = (el, p) => {
         ctx.fillStyle = o.color; rr(ctx, x, g.y - 30, w, 60, 16); ctx.fill();
         ctx.strokeStyle = '#0D2461'; ctx.lineWidth = 3; ctx.stroke();
         if (o.label) {
-          ctx.fillStyle = '#0D2461'; ctx.font = '900 30px Nunito, Roboto, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#0D2461'; ctx.font = '900 30px Outfit, Roboto, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillText(o.label, x + w / 2, g.y + 1);
         }
         if (g.done && o.ok) { ctx.strokeStyle = '#0FB394'; ctx.lineWidth = 6; rr(ctx, x - 3, g.y - 33, w + 6, 66, 18); ctx.stroke(); }

@@ -42,6 +42,9 @@ HK.screens.langLesson = (el, p) => {
   const c = Store.active();
   const words = VOCAB[p.cat];
   const L = LANGS[p.lang];
+  /* lugha ya maana: Kiingereza programu ikiwa English (isipokuwa mtoto anajifunza Kiingereza) */
+  const base = I18N.lang === 'en' && p.lang !== 'en' ? 1 : 0;
+  const tts = L.tts === 'sw' ? 'sw-raw' : L.tts; /* neno la Kiswahili lisomwe kama lilivyo */
   let i = 0;
   const t0 = Date.now();
   const card = () => {
@@ -50,9 +53,9 @@ HK.screens.langLesson = (el, p) => {
       <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(p.cat)}</h1><span class="chip-tag">${i + 1}/${words.length}</span></div>
       <div class="center-col" style="justify-content:flex-start;padding-top:10px">
         <div class="lesson-card" style="width:100%;max-width:380px">
-          <div class="tr">${esc(row[0])}</div>
-          <div class="big ${p.lang === 'ar' ? 'arabic' : ''}" style="${p.lang === 'ar' ? 'font-size:46px' : ''}">${esc(w.word)}</div>
-          ${w.sub ? `<div class="tr">${esc(w.sub)}</div>` : ''}
+          <div class="tr notr">${esc(row[base])}</div>
+          <div class="big notr ${p.lang === 'ar' ? 'arabic' : ''}" style="${p.lang === 'ar' ? 'font-size:46px' : ''}">${esc(w.word)}</div>
+          ${w.sub ? `<div class="tr notr">${esc(w.sub)}</div>` : ''}
           <div style="height:14px"></div>
           <button class="btn blue" id="say">${icon('volume', 22)} Sikiliza</button>
         </div>
@@ -62,7 +65,7 @@ HK.screens.langLesson = (el, p) => {
           <button class="btn" id="next" style="flex:3">${i < words.length - 1 ? 'Neno linalofuata' : 'Jipime sasa'} ${icon('chevR', 22)}</button>
         </div>
       </div>`;
-    const sayIt = () => speak(w.say, L.tts);
+    const sayIt = () => speak(w.say, tts);
     $('#say', el).onclick = sayIt; setTimeout(sayIt, 250);
     $('#bk', el).onclick = () => HK.back();
     $('#prev', el).onclick = () => { if (i > 0) { i--; card(); } };
@@ -73,7 +76,7 @@ HK.screens.langLesson = (el, p) => {
     runQuiz(el, p.cat, qs.map(row => {
       const w = vocabWord(row, p.lang);
       const others = shuffle(words.filter(r => r !== row)).slice(0, 2);
-      return { html: `<span><span class="${p.lang === 'ar' ? 'arabic' : ''}">${esc(w.word)}</span>${w.sub ? `<br><span style="font-size:15px;color:var(--muted)">${esc(w.sub)}</span>` : ''}<br><span style="font-size:15px;color:var(--muted)">kwa Kiswahili ni?</span></span>`, say: w.say, lang: L.tts, opts: shuffle([row, ...others]).map(r => ({ label: r[0], ok: r === row })) };
+      return { html: `<span><span class="notr ${p.lang === 'ar' ? 'arabic' : ''}">${esc(w.word)}</span>${w.sub ? `<br><span class="notr" style="font-size:15px;color:var(--muted)">${esc(w.sub)}</span>` : ''}<br><span style="font-size:15px;color:var(--muted)">${base ? 'in English is?' : 'kwa Kiswahili ni?'}</span></span>`, say: w.say, lang: tts, notr: true, opts: shuffle([row, ...others]).map(r => ({ label: r[base], ok: r === row })) };
     }), stars => saveLesson(c, 'lang_' + p.lang + '_' + p.cat, stars));
   };
   card();
@@ -163,7 +166,7 @@ function runQuiz(el, title, qs, onDone) {
       <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(title)}</h1></div>
       <div class="g-progress">${qs.map((_, k) => `<i class="${k < i ? 'done' : ''}"></i>`).join('')}</div>
       <div class="g-q">${q.html || `<span>${esc(q.text)}</span>`}${q.say ? `<button class="icon-btn say" id="say">${icon('volume', 22)}</button>` : ''}</div>
-      <div class="g-opts" style="grid-template-columns:repeat(${q.cols || 2},1fr)">${q.opts.map((o, k) => `<button class="g-opt" data-k="${k}" style="${o.style || ''}">${esc(o.label)}</button>`).join('')}</div>`;
+      <div class="g-opts" style="grid-template-columns:repeat(${q.cols || 2},1fr)">${q.opts.map((o, k) => `<button class="g-opt ${q.notr ? 'notr' : ''}" data-k="${k}" style="${o.style || ''}">${esc(o.label)}</button>`).join('')}</div>`;
     $('#bk', el).onclick = () => HK.back();
     if (q.say) { $('#say', el).onclick = () => speak(q.say, q.lang || 'sw'); setTimeout(() => speak(q.say, q.lang || 'sw'), 250); }
     $$('.g-opt', el).forEach(b => b.onclick = () => {

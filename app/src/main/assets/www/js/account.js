@@ -14,12 +14,14 @@ function routeByRole() {
 HK.screens.welcome = (el) => {
   el.classList.add('welcome');
   el.innerHTML = `<div class="center-col">
-    <img class="logo" src="img/logo.png" alt="HUGO KID">
-    <p>Masomo, homework, michezo ya kujifunza na ripoti kwa mzazi, mwalimu na shule.</p>
-    <div style="width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px">
-      <button class="btn block blue" id="parent">${icon('users', 22)} Mimi ni mzazi</button>
-      <button class="btn block navy" id="school">${icon('build', 22)} Shule au mwalimu</button>
-      <button class="btn block ghost small" id="login">${icon('key', 18)} Nina akaunti, ingia</button>
+    <div class="hk-logo" aria-label="HUGO KID">
+      <div class="mark"><img class="book" src="img/logo-book.png" alt=""><img class="star" src="img/logo-star.png" alt=""></div>
+      <img class="word" src="img/logo-word.png" alt="HUGO KID - Learn, Play, Grow">
+    </div>
+    <div class="actions">
+      <button class="btn block blue" id="parent">Mimi ni mzazi</button>
+      <button class="btn block navy" id="school">Shule au mwalimu</button>
+      <button class="link-btn" id="login">Una akaunti? <b>Ingia</b></button>
     </div>
   </div>`;
   $('#parent', el).onclick = () => { Sfx.tap(); HK.go('terms', { mode: 'accept' }); };
@@ -62,8 +64,7 @@ HK.screens.acctAuth = (el, p) => {
             <input type="checkbox" id="ok" style="width:22px;height:22px;flex:none;accent-color:var(--teal)">
             <span style="font-weight:600;font-size:13px">Nimesoma na ninakubali <a href="#" id="tlink" style="color:var(--blue)">Masharti na Sera ya Faragha</a>.</span></label>
           <button class="btn block" id="go">${icon('check', 20)} Jisajili</button>`}
-        <details style="margin-top:22px"><summary class="muted" style="font-size:12px;font-weight:600">Anwani ya server</summary>
-          <input class="field" id="srv" value="${esc(Net.base())}" style="margin-top:8px;font-size:14px"></details>
+
       </div>`;
     const bk = $('#bk', el); if (bk) bk.onclick = () => HK.back();
     const sk = $('#skip', el); if (sk) sk.onclick = () => HK.go(p.next || 'childForm', p.nextParams || { first: true }, { reset: true });
@@ -75,7 +76,6 @@ HK.screens.acctAuth = (el, p) => {
     $('#go', el).onclick = submit;
   };
   const submit = async () => {
-    const srv = $('#srv', el).value.trim(); if (srv && srv !== Net.base()) Store.set('server', srv);
     const b = $('#go', el); b.disabled = true;
     try {
       let r;

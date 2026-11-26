@@ -56,7 +56,7 @@ function homeToddler(el, c) {
   const art = {
     colors: `<svg viewBox="0 0 100 100" width="96" height="96"><circle cx="34" cy="38" r="20" fill="#F65B4F"/><circle cx="66" cy="38" r="20" fill="#FFC20E"/><circle cx="34" cy="68" r="20" fill="#1EA7F0"/><circle cx="66" cy="68" r="20" fill="#0FB394"/></svg>`,
     animals: `<div style="width:104px;height:104px">${ANIMALS.Tembo()}</div>`,
-    numbers: `<svg viewBox="0 0 100 100" width="96" height="96"><text x="50" y="72" text-anchor="middle" font-family="Poppins,Roboto" font-weight="700" font-size="64" fill="#fff">123</text></svg>`,
+    numbers: `<svg viewBox="0 0 100 100" width="96" height="96"><text x="50" y="72" text-anchor="middle" font-family="Outfit,Roboto" font-weight="700" font-size="64" fill="#fff">123</text></svg>`,
     shapes: `<svg viewBox="0 0 100 100" width="96" height="96"><circle cx="30" cy="34" r="18" fill="#fff"/><path d="M70 14l20 36H50z" fill="#FFE27A"/><rect x="18" y="58" width="30" height="30" rx="4" fill="#FFE27A"/><path d="M72 56l6 13 14 1-11 9 4 14-13-8-13 8 4-14-11-9 14-1z" fill="#fff"/></svg>`,
   };
   const tile = (go, p, say, label, cls, pic) => `<button class="tile big-t ${cls}" data-go="${go}" data-p='${p}' data-say="${esc(say)}">${pic}<div class="t-name">${label}</div></button>`;
@@ -103,7 +103,7 @@ function homeStandard(el, c, mode) {
 
   let tiles = '';
   if (mode === 'beginner') {
-    tiles = T('abc', '{}', 'blue', `<svg class="art" viewBox="0 0 110 110"><text x="16" y="78" font-family="Poppins,Roboto" font-weight="700" font-size="58" fill="#fff">Aa</text></svg>`, 'Herufi', 'A B C kwa sauti')
+    tiles = T('abc', '{}', 'blue', `<svg class="art" viewBox="0 0 110 110"><text x="16" y="78" font-family="Outfit,Roboto" font-weight="700" font-size="58" fill="#fff">Aa</text></svg>`, 'Herufi', 'A B C kwa sauti')
       + T('hwList', '{}', 'sun', ART.homework, 'Homework', 'Kazi za shule', '', '<span class="badge hidden" id="hwbadge"></span>')
       + T('games', '{}', 'coral', ART.games, 'Michezo', left > 0 ? 'Dakika ' + Math.ceil(left / 60) : 'Ya kujifunza')
       + T('lessons', '{}', 'teal', ART.lessons, 'Masomo', 'Namba, lugha, sayansi')

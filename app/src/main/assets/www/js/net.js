@@ -1,13 +1,11 @@
 /* HUGO KID - net.js : mawasiliano na server (akaunti, API, faili, WebSocket) */
 
 /* Anwani ya server. Kwenye web app ni ileile; kwenye APK weka anwani ya Railway hapa. */
-const HK_SERVER_DEFAULT = 'https://hugo-kid.up.railway.app';
+const HK_SERVER_DEFAULT = 'https://smartmark.space';
 const IS_WEB = /^https?:$/.test(location.protocol) && location.hostname !== 'appassets.androidplatform.net';
 
 const Net = {
   base() {
-    const custom = Store.get('server', '');
-    if (custom) return custom.replace(/\/+$/, '');
     if (IS_WEB) return location.origin;
     return HK_SERVER_DEFAULT;
   },
@@ -28,7 +26,8 @@ const Net = {
         body: body !== undefined ? JSON.stringify(body) : undefined,
       });
     } catch (e) { throw new Error('Hakuna mtandao au server haipatikani'); }
-    const j = await r.json().catch(() => ({}));
+    const j = await r.json().catch(() => null);
+    if (j === null) throw new Error('Server haipatikani kwenye anwani hii: ' + this.base());
     if (r.status === 401 && this.token()) { Store.set('acct', null); }
     if (!r.ok) throw new Error(j.error || ('Hitilafu ' + r.status));
     return j;

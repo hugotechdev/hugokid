@@ -49,7 +49,7 @@ async function drawPageBg(ctx, pg) {
   // maswali
   const qs = pg.questions || [];
   ctx.fillStyle = '#0D2461';
-  ctx.font = 'bold 34px Nunito, Roboto, sans-serif';
+  ctx.font = 'bold 34px Outfit, Roboto, sans-serif';
   ctx.textBaseline = 'alphabetic';
   let y = 112;
   qs.forEach((q, i) => {

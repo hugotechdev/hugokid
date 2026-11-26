@@ -38,7 +38,7 @@ HK.screens.g_balloons = (el, p) => {
       const col = COLS[(i + k) % COLS.length];
       b.style.cssText = 'position:absolute;border:0;background:none;padding:0;width:84px;height:118px;cursor:pointer';
       b.innerHTML = `<svg width="84" height="118" viewBox="0 0 84 118"><path d="M42 4C20 4 6 22 6 42c0 24 22 44 36 46 14-2 36-22 36-46C78 22 64 4 42 4z" fill="${col}"/><path d="M42 88l-5 8h10z" fill="${col}"/><path d="M42 96q-6 10 0 20" stroke="#8A97B2" stroke-width="2" fill="none"/><ellipse cx="28" cy="26" rx="7" ry="11" fill="#fff" opacity=".35"/>
-        <text x="42" y="54" text-anchor="middle" font-family="Nunito,Roboto,sans-serif" font-weight="900" font-size="${String(v).length > 2 ? 24 : 30}" fill="#fff">${v}</text></svg>`;
+        <text x="42" y="54" text-anchor="middle" font-family="Outfit,Roboto,sans-serif" font-weight="900" font-size="${String(v).length > 2 ? 24 : 30}" fill="#fff">${v}</text></svg>`;
       const it = { b, v, x: (W / 4) * k + (W / 4 - 84) / 2, y: H * 0.3 + rnd(Math.max(40, H * 0.6)), sp: 30 + rnd(20) + kit.level * 3, wob: Math.random() * 6 };
       b.onclick = () => {
         if (kit.ended) return;
@@ -79,14 +79,14 @@ const WORDS_SW = [['TEMBO', 'Mnyama mkubwa mwenye mkonga'], ['SIMBA', 'Mfalme wa
 const WORDS_EN = [['ELEPHANT', 'A big animal with a trunk'], ['LION', 'The king of the jungle'], ['GIRAFFE', 'An animal with a long neck'], ['FISH', 'It lives in water'], ['BANANA', 'A long yellow fruit'], ['MANGO', 'A sweet fruit'], ['SCHOOL', 'Where we learn'], ['BOOK', 'We read it'], ['WATER', 'We drink it'], ['SUN', 'It shines in the sky'], ['HOUSE', 'We live in it'], ['BALL', 'We play with it'], ['CAR', 'It drives on the road'], ['PEN', 'We write with it'], ['DOG', 'It says woof'], ['CAT', 'It says meow'], ['BIRD', 'It can fly'], ['TREE', 'It has leaves'], ['APPLE', 'A red or green fruit'], ['CHAIR', 'We sit on it']];
 HK.screens.g_letters = (el, p) => {
   const kit = GK.frame(el, 'letters', { level: p.level });
-  const en = kit.level % 2 === 0;
+  const en = I18N.lang === 'en' || kit.level % 2 === 0;
   const list = shuffle((en ? WORDS_EN : WORDS_SW).slice());
   const ABC = 'ABCDEFGHIJKLMNOPRSTUVWYZ';
   GK.quiz(kit, {
     total: 8,
     make: (i) => {
       const [w, clue] = list[i % list.length];
-      const lang = en ? 'en' : 'sw';
+      const lang = en ? 'en' : 'sw-raw';
       if (kit.g === 0) {
         const opts = new Set([w[0]]); while (opts.size < 3) opts.add(pick(ABC));
         return { html: `<span style="font-size:20px">${en ? 'Starts with which letter?' : 'Linaanza na herufi gani?'}<br><b style="font-size:30px">${esc(w)}</b></span>`, say: w.toLowerCase(), lang, cols: 3, opts: shuffle([...opts]).map(l => ({ label: l, ok: l === w[0] })) };
@@ -269,7 +269,9 @@ HK.screens.g_market = (el, p) => {
         const [a, b] = shuffle(FRUITS.slice()).slice(0, 2);
         const pa = (1 + rnd(5)) * 100, pb = (1 + rnd(5)) * 100, na = 1 + rnd(kit.level < 4 ? 2 : 3), nb = rnd(3);
         const ans = pa * na + pb * nb;
-        const txt = `${a[0]} ni ${pa}/=, ${b[0]} ni ${pb}/=. Mteja ananunua ${a[0].toLowerCase()} ${na}${nb ? ' na ' + b[0].toLowerCase() + ' ' + nb : ''}. Jumla ni?`;
+        const txt = I18N.lang === 'en'
+          ? `${T(a[0])}: ${pa}/= each, ${T(b[0])}: ${pb}/= each. The customer buys ${na} ${T(a[0]).toLowerCase()}${nb ? ' and ' + nb + ' ' + T(b[0]).toLowerCase() : ''}. What is the total?`
+          : `${a[0]} ni ${pa}/=, ${b[0]} ni ${pb}/=. Mteja ananunua ${a[0].toLowerCase()} ${na}${nb ? ' na ' + b[0].toLowerCase() + ' ' + nb : ''}. Jumla ni?`;
         const s = new Set([ans]); while (s.size < 4) { const v = ans + (rnd(2) ? 1 : -1) * 100 * (1 + rnd(3)); if (v > 0) s.add(v); }
         return { html: `<span style="font-size:18px;line-height:1.4">${esc(txt)}</span>`, say: txt.replace(/\/=/g, ' shilingi'), opts: shuffle([...s]).map(v => ({ label: v + '/=', ok: v === ans, style: 'font-size:22px' })) };
       },

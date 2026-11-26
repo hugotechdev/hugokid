@@ -100,7 +100,7 @@ HK.screens.childForm = (el, p) => {
   const editing = p.id ? Store.child(p.id) : null;
   const c = editing ? { ...editing } : {
     id: uid(), name: '', birth: '', color: AVATAR_COLORS[Store.children().length % AVATAR_COLORS.length],
-    religion: 'values', faithOn: true, grade: '', lang: 'sw', needs: [], stars: 0, coins: 0, created: Date.now(),
+    religion: 'values', faithOn: true, grade: '', lang: I18N.lang, needs: [], stars: 0, coins: 0, created: Date.now(),
   };
   c.needs = c.needs || [];
   const chipRow = (id, items, isOn) => `<div class="chips" id="${id}">${items.map(([v, l]) => `<button class="chip ${isOn(v) ? 'on' : ''}" data-v="${esc(v)}">${esc(l)}</button>`).join('')}</div>`;
@@ -194,8 +194,8 @@ HK.screens.parentHome = (el, p) => {
 
   el.innerHTML = `
     <div class="topbar">
-      <img src="img/mark.png" style="width:40px;height:40px;object-fit:contain">
-      <div class="grow"><h1 style="font-size:19px">Eneo la Mzazi</h1><div class="sub">HUGO KID</div></div>
+      <img src="img/mark.png" style="width:34px;height:34px;object-fit:contain">
+      <div class="grow" style="min-width:0"><h1 style="font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Mzazi</h1></div>
       <button class="btn small" id="tochild">${icon('home', 18)} Kwa mtoto</button>
     </div>
     <div class="seg">
@@ -263,7 +263,7 @@ HK.screens.parentHome = (el, p) => {
           <span class="row" style="gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:var(--teal)"></i>Kujifunza</span>
           <span class="row" style="gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:var(--blue)"></i>Michezo</span>
         </div>
-        <div class="btn-row">
+        <div class="btn-row kid-actions">
           ${Store.activeId() === c.id ? '' : `<button class="btn small blue" data-use="${c.id}">${icon('user', 18)} Mpe simu</button>`}
           <button class="btn small ghost" data-edit="${c.id}">${icon('edit', 18)} Hariri</button>
           <button class="btn small sun" data-bonus="${c.id}">${icon('plus', 18)} Dakika 10</button>
@@ -339,7 +339,7 @@ HK.screens.parentHome = (el, p) => {
       <button class="btn block ghost" id="chpin">${icon('key', 20)} Badilisha PIN</button>
       <div style="height:12px"></div>
       <button class="btn block ghost" id="terms">${icon('file', 20)} Masharti na Faragha</button>
-      <p class="muted" style="text-align:center;font-size:12px;font-weight:800;margin-top:22px">HUGO KID 2.1 · Learn, Play, Grow<br>HUGO TECH · info@hugotech.co.tz</p>`;
+      <p class="muted" style="text-align:center;font-size:12px;font-weight:800;margin-top:22px">HUGO KID 2.2 · Learn, Play, Grow<br>HUGO TECH · info@hugotech.co.tz</p>`;
 
     const bind = (id, key, num) => $$('#' + id + ' .chip', body).forEach(b => b.onclick = () => {
       Sfx.tap();

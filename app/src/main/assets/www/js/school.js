@@ -225,7 +225,7 @@ HK.screens.tClass = (el, p) => {
 };
 function printCodes(c, list) {
   const w = window.open('', '_blank');
-  const html = `<html><head><title>Misimbo ${esc(c.name)}</title><style>body{font-family:Poppins,Arial;padding:20px}.k{display:inline-block;width:46%;border:2px dashed #999;border-radius:12px;padding:14px;margin:6px;vertical-align:top}b{font-size:22px;letter-spacing:2px}</style></head><body>
+  const html = `<html><head><title>Misimbo ${esc(c.name)}</title><style>body{font-family:Arial;padding:20px}.k{display:inline-block;width:46%;border:2px dashed #999;border-radius:12px;padding:14px;margin:6px;vertical-align:top}b{font-size:22px;letter-spacing:2px}</style></head><body>
     <h2>${esc((Net.user().school || {}).name || '')} · ${esc(c.name)}</h2>
     ${list.map(s => `<div class="k">Mzazi wa <strong>${esc(s.name)}</strong><br>Pakua HUGO KID, fungua Mipangilio, kisha "Unganisha na shule" na uweke msimbo:<br><b>${esc(s.link_code || '')}</b></div>`).join('')}
     <script>window.print()<\/script></body></html>`;
