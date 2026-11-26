@@ -1,10 +1,9 @@
-// HUGO KID server - routes-school.js : masomo, mahudhurio, matangazo, ujumbe, ripoti ya mzazi, malipo
+
 const { q } = require('./db');
 const hub = require('./hub');
 const ai = require('./ai');
 const { route, fail, need, J, now, role, classFor, childFor, className } = require('./router');
 
-/* ---------- Masomo ya shule ---------- */
 const DEFAULT_SUBJECTS = ['Kiswahili', 'English', 'Hisabati', 'Sayansi', 'Maarifa ya Jamii', 'Uraia na Maadili', 'Dini', 'Michezo na Sanaa'];
 route('GET', '/api/subjects', u => {
   if (!u || !u.school_id) fail(403, 'Huna shule');
@@ -62,7 +61,6 @@ route('GET', '/api/announcements', u => {
 });
 route('DELETE', '/api/announcements/:id', (u, b, req, p) => { role(u, 'school_admin'); q.run('DELETE FROM announcements WHERE id = ? AND school_id = ?', +p.id, u.school_id); return { ok: true }; });
 
-/* ---------- Ujumbe kati ya mzazi na mwalimu ---------- */
 function otherParty(u, ch) {
   if (u.role === 'parent') {
     const c = ch.class_id ? q.get('SELECT teacher_id FROM classes WHERE id = ?', ch.class_id) : null;
@@ -93,7 +91,6 @@ route('GET', '/api/inbox', u => {
     FROM messages m JOIN children c ON c.id = m.child_id WHERE m.from_id = ? OR m.to_id = ? GROUP BY m.child_id ORDER BY last DESC`, u.id, u.id, u.id);
 });
 
-/* ---------- Ripoti ya mtoto kwa mzazi ---------- */
 function childStats(ch) {
   const hws = ch.class_id ? q.all('SELECT id, title, subject, max_score, due, created FROM homework WHERE class_id = ?', ch.class_id) : [];
   const subs = q.all('SELECT * FROM submissions WHERE child_id = ?', ch.id);
@@ -204,7 +201,7 @@ route('PUT', '/api/admin/ai', (u, b) => {
   setSetting('ai', { provider: ['gemini', 'claude', 'openai'].includes(b.provider) ? b.provider : 'gemini', key: (b.key || '').trim() || old.key, model: (b.model || '').trim() });
   return { ok: true };
 });
-/* sauti ya Nuru (Azure Speech) */
+
 route('GET', '/api/admin/tts', u => { role(u, 'superadmin'); const c = require('./tts').cfg(); return { region: c.region, has_key: !!c.key, enabled: c.enabled }; });
 route('PUT', '/api/admin/tts', (u, b) => {
   role(u, 'superadmin');

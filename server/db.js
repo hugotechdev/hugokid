@@ -1,4 +1,4 @@
-// HUGO KID server - db.js : hifadhidata (SQLite iliyo ndani ya Node 22)
+
 const { DatabaseSync } = require('node:sqlite');
 const fs = require('fs');
 const path = require('path');
@@ -165,7 +165,6 @@ CREATE TABLE IF NOT EXISTS calls (
 );
 `);
 
-/* maboresho ya hifadhidata zilizopo (yanaongezwa mara moja) */
 for (const sql of ['ALTER TABLE children ADD COLUMN progress TEXT']) { try { db.exec(sql); } catch (e) { /* tayari ipo */ } }
 
 const q = {

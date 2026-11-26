@@ -1,5 +1,5 @@
-// HUGO KID server - server.js : inaanza server, API, web app na WebSocket
-// Inaendeshwa: node server/server.js   (Node 22.12 au zaidi, bila maktaba za nje)
+/* HTTP server, static assets, API and WebSocket entry point. */
+
 process.removeAllListeners('warning');
 const http = require('http');
 const fs = require('fs');
@@ -59,12 +59,12 @@ const server = http.createServer(async (req, res) => {
   try {
     if (url.pathname.startsWith('/api/')) {
       if (url.pathname === '/api/health') return json(res, 200, { ok: true });
-      /* sauti ya Nuru: mp3 ya sentensi (inahifadhiwa, kisha inatumwa tena bila kutengenezwa upya) */
+
       if (url.pathname === '/api/tts/status') return json(res, 200, { enabled: tts.ready() });
       if (url.pathname === '/api/tts' && req.method === 'GET') {
         try {
           const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-          const f = await tts.file(url.searchParams.get('lang') || 'sw', url.searchParams.get('text') || '', ip);
+          const f = await tts.file(url.searchParams.get('text') || '', ip);
           const st = fs.statSync(f);
           res.writeHead(200, { 'content-type': 'audio/mpeg', 'content-length': st.size, 'cache-control': 'public, max-age=2592000, immutable' });
           return fs.createReadStream(f).pipe(res);
@@ -83,13 +83,12 @@ const server = http.createServer(async (req, res) => {
       if (raw && raw.length) { try { body = JSON.parse(raw.toString()); } catch (e) { return json(res, 400, { error: 'JSON si sahihi' }); } }
       return json(res, 200, await router.handle(req, res, body));
     }
-    // web app (code ileile ya programu ya simu)
+
     let p = decodeURIComponent(url.pathname);
     if (p === '/' || !path.extname(p)) p = '/index.html';
     const file = path.normalize(path.join(WEB, p));
     if (!file.startsWith(WEB) || !fs.existsSync(file)) { res.writeHead(404); return res.end('Haipo'); }
-    /* code (html, js, css) inakaguliwa kila mara ili toleo jipya lionekane mara moja;
-       picha, sauti na fonts zinahifadhiwa siku moja */
+
     const st = fs.statSync(file);
     const etag = '"' + st.size.toString(36) + '-' + Math.floor(st.mtimeMs).toString(36) + '"';
     const code = ['.html', '.js', '.css', '.webmanifest', '.json'].includes(path.extname(file));

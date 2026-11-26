@@ -1,10 +1,9 @@
-// HUGO KID server - routes-core.js : akaunti, shule, madarasa, walimu, wanafunzi, wazazi
+
 const { q } = require('./db');
 const A = require('./auth');
 const hub = require('./hub');
 const { route, fail, need, J, now, role, classFor, childFor, className, childOut, hwOut, uniqueLinkCode, LEVELS, TERMS_VERSION } = require('./router');
 
-/* Akaunti */
 route('POST', '/api/register', (u, b) => {
   const kind = need(b.kind, 'Chagua aina ya akaunti');
   if (!['parent', 'school', 'tutor'].includes(kind)) fail(400, 'Aina si sahihi');
@@ -29,7 +28,7 @@ route('POST', '/api/register', (u, b) => {
   const user = q.get('SELECT * FROM users WHERE id = ?', id);
   return { token: A.newToken(id), user: A.publicUser(user) };
 });
-/* kuzuia kubahatisha nenosiri: majaribio 8 yaliyoshindwa kwa dakika 15 */
+
 const tries = new Map();
 route('POST', '/api/login', (u, b) => {
   const login = need(b.login, 'Weka simu au barua pepe').replace(/\s+/g, '').toLowerCase();
@@ -51,7 +50,6 @@ route('POST', '/api/password', (u, b) => {
   return { ok: true };
 });
 
-/* Shule (mkuu wa shule / mwalimu binafsi) */
 route('GET', '/api/school', u => {
   role(u, 'school_admin', 'teacher');
   const s = q.get('SELECT * FROM schools WHERE id = ?', u.school_id);

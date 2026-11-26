@@ -1,19 +1,11 @@
-// HUGO KID server - tts.js : sauti ya Nuru (Microsoft Azure Speech, sauti za neural)
-// Kiswahili: Rehema (sw-TZ), Kiingereza: Imani (en-TZ). Sauti moja ya kike ya Tanzania kwa lugha zote mbili.
-// Weka kwenye Railway: AZURE_SPEECH_KEY na AZURE_SPEECH_REGION, au uweke kwenye dashboard ya HUGO TECH.
-// Kila sentensi inatengenezwa mara moja tu, kisha inahifadhiwa kwenye DATA_DIR/tts.
+/* English narration using Azure Speech. */
+
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { q, DATA_DIR } = require('./db');
 
-const VOICES = {
-  sw: ['sw-TZ', 'sw-TZ-RehemaNeural'],
-  en: ['en-TZ', 'en-TZ-ImaniNeural'],
-  fr: ['fr-FR', 'fr-FR-DeniseNeural'],
-  zh: ['zh-CN', 'zh-CN-XiaoxiaoNeural'],
-  ar: ['ar-SA', 'ar-SA-ZariyahNeural'],
-};
+const VOICE = { locale: 'en-TZ', name: 'en-TZ-ImaniNeural' };
 const DIR = path.join(DATA_DIR, 'tts');
 fs.mkdirSync(DIR, { recursive: true });
 
@@ -26,9 +18,8 @@ function cfg() {
     enabled: db.enabled !== false,
   };
 }
-const ready = () => { const c = cfg(); return !!(c.key && c.region && c.enabled); };
+const ready = () => { const c = cfg(); return !!(c.key && /^[a-z0-9]+$/i.test(c.region) && c.enabled); };
 
-/* kikomo: sentensi mpya 150 kwa kila anwani ya mtandao ndani ya dakika 10 (zilizohifadhiwa hazihesabiwi) */
 const hits = new Map();
 function allow(ip) {
   const now = Date.now(), h = (hits.get(ip) || []).filter(t => now - t < 600000);
@@ -39,29 +30,30 @@ function allow(ip) {
 
 const xml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-/* rudisha njia ya faili la mp3 la sentensi hii (linatengenezwa kama halipo) */
-async function file(lang, text, ip) {
-  const v = VOICES[lang] || VOICES.sw;
+async function file(text, ip) {
   text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 600);
   if (!text) throw Object.assign(new Error('Hakuna maandishi'), { code: 400 });
-  const id = crypto.createHash('sha1').update(v[1] + '|' + text).digest('hex');
+  const id = crypto.createHash('sha1').update(VOICE.name + '|' + text).digest('hex');
   const out = path.join(DIR, id + '.mp3');
   if (fs.existsSync(out)) return out;
   if (!ready()) throw Object.assign(new Error('Sauti ya Nuru haijawekwa'), { code: 503 });
   if (!allow(ip)) throw Object.assign(new Error('Maombi mengi mno'), { code: 429 });
   const c = cfg();
-  /* pumziko fupi kati ya sentensi ili mtoto asikie kitendo kimoja kwa wakati */
+
   const body = xml(text).replace(/([.!?])\s+/g, '$1 <break time="350ms"/> ');
-  const ssml = `<speak version="1.0" xml:lang="${v[0]}"><voice name="${v[1]}"><prosody rate="-8%">${body}</prosody></voice></speak>`;
+  const ssml = `<speak version="1.0" xml:lang="${VOICE.locale}"><voice name="${VOICE.name}"><prosody rate="-8%">${body}</prosody></voice></speak>`;
   const r = await fetch(`https://${c.region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
     method: 'POST',
     headers: { 'Ocp-Apim-Subscription-Key': c.key, 'Content-Type': 'application/ssml+xml', 'X-Microsoft-OutputFormat': 'audio-24khz-48kbitrate-mono-mp3', 'User-Agent': 'hugo-kid' },
     body: ssml,
+    signal: AbortSignal.timeout(12000),
   });
   if (!r.ok) throw Object.assign(new Error('Azure Speech: ' + r.status), { code: 502 });
   const buf = Buffer.from(await r.arrayBuffer());
-  fs.writeFileSync(out + '.tmp', buf); fs.renameSync(out + '.tmp', out);
+  const temporary = out + '.' + crypto.randomUUID() + '.tmp';
+  try { fs.writeFileSync(temporary, buf); fs.renameSync(temporary, out); }
+  finally { fs.rmSync(temporary, { force: true }); }
   return out;
 }
 
-module.exports = { cfg, ready, file, VOICES };
+module.exports = { cfg, ready, file };

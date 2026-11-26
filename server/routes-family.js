@@ -1,10 +1,9 @@
-// HUGO KID server - routes-family.js : mzazi, watoto, marafiki
+
 const { q } = require('./db');
 const A = require('./auth');
 const hub = require('./hub');
 const { route, fail, need, J, now, role, classFor, childFor, className, childOut, hwOut, uniqueLinkCode, LEVELS, TERMS_VERSION } = require('./router');
 
-/* Mzazi na watoto */
 route('GET', '/api/children', u => { role(u, 'parent'); return q.all('SELECT * FROM children WHERE parent_id = ? ORDER BY id', u.id).map(childOut); });
 route('POST', '/api/children', (u, b) => {
   role(u, 'parent');
@@ -15,7 +14,7 @@ route('POST', '/api/children', (u, b) => {
   const id = q.run('INSERT INTO children(name, birth, color, parent_id, local_id, created) VALUES (?,?,?,?,?,?)', need(b.name, 'Andika jina'), b.birth || null, b.color || null, u.id, b.local_id || null, now()).lastInsertRowid;
   return childOut(q.get('SELECT * FROM children WHERE id = ?', Number(id)));
 });
-/* Mzazi anaweka msimbo wa shule: mwanafunzi wa shule anaunganishwa na mtoto wake */
+
 route('POST', '/api/children/link', (u, b) => {
   role(u, 'parent');
   const code = need(b.code, 'Weka msimbo').toUpperCase().replace(/\s+/g, '');
@@ -24,7 +23,7 @@ route('POST', '/api/children/link', (u, b) => {
   if (st.parent_id && st.parent_id !== u.id) fail(409, 'Msimbo huu umeshatumika na mzazi mwingine');
   const mine = b.child_id ? q.get('SELECT * FROM children WHERE id = ? AND parent_id = ?', +b.child_id, u.id) : null;
   if (mine && mine.id !== st.id) {
-    // unganisha: mtoto wa mzazi anachukua darasa la shule, rekodi ya shule inaunganishwa
+
     q.run('UPDATE submissions SET child_id = ? WHERE child_id = ?', mine.id, st.id);
     q.run('UPDATE children SET school_id = ?, class_id = ?, link_code = NULL WHERE id = ?', st.school_id, st.class_id, mine.id);
     q.run('DELETE FROM children WHERE id = ?', st.id);
@@ -42,7 +41,7 @@ route('PUT', '/api/children/:id', (u, b, req, p) => {
     b.allow_audio === undefined ? ch.allow_audio : (b.allow_audio ? 1 : 0), b.allow_video === undefined ? ch.allow_video : (b.allow_video ? 1 : 0), ch.id);
   return childOut(q.get('SELECT * FROM children WHERE id = ?', ch.id));
 });
-/* Maendeleo ya mtoto (nakala ya simu: nyota, ngazi, ujuzi, wasifu) */
+
 route('PUT', '/api/children/:id/progress', (u, b, req, p) => {
   role(u, 'parent');
   const ch = childFor(u, p.id);
@@ -52,7 +51,6 @@ route('PUT', '/api/children/:id/progress', (u, b, req, p) => {
   return { ok: true };
 });
 
-/* Mzazi anafuta akaunti yake (haki ya kufuta taarifa) */
 route('DELETE', '/api/account', (u) => {
   role(u, 'parent');
   q.run('UPDATE children SET parent_id = NULL, progress = NULL, local_id = NULL WHERE parent_id = ? AND school_id IS NOT NULL', u.id);

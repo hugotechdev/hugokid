@@ -1,4 +1,4 @@
-// HUGO KID server - router.js : msingi wa API (njia, ruhusa, msaada)
+
 const { q } = require('./db');
 const A = require('./auth');
 const userFromReq = req => A.userFromToken(A.tokenOf(req) || new URL(req.url, 'http://x').searchParams.get('token'));
@@ -46,7 +46,6 @@ const hwOut = (h, full) => ({
 });
 function uniqueLinkCode() { let c; do { c = A.code(6); } while (q.get('SELECT id FROM children WHERE link_code = ?', c)); return c; }
 
-/* ---------- njia ---------- */
 const R = [];
 const route = (method, pattern, fn) => {
   const keys = [];

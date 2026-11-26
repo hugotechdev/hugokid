@@ -1,5 +1,5 @@
-// HUGO KID server - ai.js : AI ya server (kusahihisha, msaidizi wa mwalimu, ripoti)
-// Weka kwenye Railway: AI_PROVIDER = gemini | claude | openai, AI_KEY = ..., AI_MODEL (si lazima)
+
+
 const { q } = require('./db');
 
 const DEF = { gemini: 'gemini-2.0-flash', claude: 'claude-sonnet-4-5', openai: 'gpt-4o-mini' };
@@ -53,8 +53,7 @@ async function askJSON(opts) {
 
 const TEACHER_SYS = 'Wewe ni msaidizi wa walimu wa shule za msingi Tanzania (Awali hadi Darasa la 7). Andika maudhui sahihi, yanayofaa umri, kwa lugha rahisi. Fuata mtaala wa Tanzania inapowezekana.';
 
-/* Msaidizi wa mwalimu: quiz au worksheet */
-async function generate({ task, level, subject, topic, count = 5, lang = 'Kiswahili' }) {
+async function generate({ task, level, subject, topic, count = 5, lang = 'English' }) {
   const n = Math.max(3, Math.min(20, +count || 5));
   if (task === 'quiz') {
     return askJSON({
@@ -71,7 +70,6 @@ Changanya aina hizi: "mcq" (chaguo 3-4), "short" (jibu fupi), "math" (jibu la na
   return { text: txt };
 }
 
-/* Alama inayopendekezwa na AI kwa kazi ya wazi (insha, mchoro, hadithi, mradi) */
 async function suggest({ homework, images, answersText }) {
   return askJSON({
     system: TEACHER_SYS + ' Unasahihisha kazi ya mwanafunzi kwa haki na upole. Mwalimu ndiye atathibitisha alama.',
@@ -82,10 +80,9 @@ Toa alama kati ya 0 na ${homework.max_score}. Rudisha {"score": namba, "comment"
   });
 }
 
-/* Ripoti fupi ya maendeleo ya mtoto kwa mzazi */
 async function childReport({ name, stats }) {
   return ask({
-    system: 'Wewe ni mshauri wa elimu anayeandikia mzazi wa Tanzania kwa Kiswahili rahisi na cha upole.',
+    system: 'You are an education adviser writing to a parent in Tanzania. Use clear, kind English.',
     max: 400,
     text: `Andika ripoti fupi (sentensi 3-4) kuhusu ${name}. Taja anapofanya vizuri, sehemu moja inayohitaji msaada, na pendekezo moja la mazoezi nyumbani wiki hii. Takwimu: ${JSON.stringify(stats)}`,
   });

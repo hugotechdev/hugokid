@@ -1,4 +1,4 @@
-// HUGO KID server - hub.js : WebSocket (bila maktaba za nje): taarifa za papo hapo, simu za WebRTC, kucheza pamoja
+
 const crypto = require('crypto');
 
 const users = new Map();    // userId -> Set(socket)

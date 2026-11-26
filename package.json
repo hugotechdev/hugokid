@@ -1,6 +1,6 @@
 {
   "name": "hugo-kid",
-  "version": "2.4.0",
+  "version": "2.5.2",
   "private": true,
   "description": "HUGO KID - Learn, Play, Grow (server + web app)",
   "scripts": {

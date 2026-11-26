@@ -1,4 +1,4 @@
-// HUGO KID server - routes-homework.js : faili, homework, majibu, kusahihisha (AI + mwalimu), matokeo
+
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -10,7 +10,6 @@ const { route, fail, need, J, now, role, classFor, childFor, className, hwOut } 
 const MAX_FILE = 60 * 1024 * 1024;
 const OK_MIME = /^(image\/(png|jpe?g|webp|gif)|application\/pdf|audio\/[\w.+-]+|video\/[\w.+-]+)$/i;
 
-/* ---------- Faili (PDF, picha, sauti, video) ---------- */
 route('UPLOAD', '/api/upload', (u, buf, req) => {
   if (!u) fail(401, 'Ingia kwanza');
   const url = new URL(req.url, 'http://x');
@@ -48,7 +47,6 @@ route('FILE', '/api/files/:name', (u, b, req, p) => {
   return { path: path.join(FILES_DIR, f.name), mime: f.mime };
 });
 
-/* ---------- Kusahihisha moja kwa moja ---------- */
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[.,;:!?'"]/g, '').replace(/\s+/g, ' ').trim();
 function markQuestion(qn, ans) {
   const pts = +qn.points || 1;
@@ -75,7 +73,6 @@ function autoMark(hw, answers) {
 }
 const starsOf = (score, max) => { const p = max ? score / max : 0; return p >= 0.85 ? 3 : p >= 0.6 ? 2 : p > 0 ? 1 : 0; };
 
-/* ---------- Homework (mwalimu) ---------- */
 route('POST', '/api/homework', (u, b) => {
   role(u, 'school_admin', 'teacher');
   const c = classFor(u, need(b.class_id, 'Chagua darasa'));
@@ -128,7 +125,6 @@ route('DELETE', '/api/homework/:id', (u, b, req, p) => {
   return { ok: true };
 });
 
-/* ---------- Mtoto: homework zake na kutuma majibu ---------- */
 route('GET', '/api/children/:id/homework', (u, b, req, p) => {
   if (!u) fail(401, 'Ingia kwanza');
   const ch = childFor(u, p.id);
@@ -137,7 +133,7 @@ route('GET', '/api/children/:id/homework', (u, b, req, p) => {
     const s = q.get('SELECT id, status, score, max_score, stars, feedback, submitted, reviewed, marked FROM submissions WHERE homework_id = ? AND child_id = ?', h.id, ch.id);
     const author = q.get('SELECT name FROM users WHERE id = ?', h.author_id);
     const out = hwOut(h, true);
-    if (out.kind === 'quiz') out.questions = out.questions.map(x => ({ ...x, answer: undefined })); // majibu hayatumwi kwa mtoto
+    if (out.kind === 'quiz') out.questions = out.questions.map(x => ({ ...x, answer: undefined })); 
     return { ...out, teacher: author ? author.name : '', submission: s ? { ...s, marked: J(s.marked) } : null };
   });
 });
@@ -161,7 +157,6 @@ route('POST', '/api/children/:id/submit', async (u, b, req, p) => {
   if (ex) { q.run(`UPDATE submissions SET status=?, pages=?, answers=?, attachments=?, auto_score=?, score=?, max_score=?, stars=?, submitted=?, marked=NULL, ai_score=NULL, ai_comment=NULL, feedback=NULL, reviewed=NULL WHERE id=?`, ...vals, ex.id); sid = ex.id; }
   else sid = Number(q.run(`INSERT INTO submissions(homework_id, child_id, status, pages, answers, attachments, auto_score, score, max_score, stars, submitted) VALUES (?,?,?,?,?,?,?,?,?,?,?)`, h.id, ch.id, ...vals).lastInsertRowid);
 
-  // AI inapendekeza alama kwa kazi za wazi; mwalimu atathibitisha
   if (status === 'submitted' && ai.ready()) {
     const images = pages.filter(x => typeof x === 'string' && x.startsWith('data:image'));
     const qs = J(h.questions) || [];
@@ -177,7 +172,6 @@ route('POST', '/api/children/:id/submit', async (u, b, req, p) => {
   return { ok: true, status, score, max_score: h.max_score, stars, detail: am ? am.detail : null };
 });
 
-/* ---------- Mwalimu: kuona na kusahihisha ---------- */
 route('GET', '/api/submissions/:id', (u, b, req, p) => {
   if (!u) fail(401, 'Ingia kwanza');
   const s = q.get('SELECT * FROM submissions WHERE id = ?', +p.id); if (!s) fail(404, 'Kazi haipo');
@@ -221,7 +215,6 @@ route('POST', '/api/submissions/:id/ai', async (u, b, req, p) => {
   return { ai_score: score, ai_comment: comment };
 });
 
-/* ---------- Matokeo na ripoti ya darasa ---------- */
 function classStats(classId) {
   const kids = q.all('SELECT id, name FROM children WHERE class_id = ? ORDER BY name', classId);
   const hws = q.all('SELECT id, title, subject, max_score, due, created FROM homework WHERE class_id = ? ORDER BY created', classId);
@@ -252,7 +245,6 @@ route('GET', '/api/classes/:id/results', (u, b, req, p) => {
   };
 });
 
-/* ---------- Msaidizi wa AI wa mwalimu ---------- */
 route('POST', '/api/ai/generate', async (u, b) => {
   role(u, 'school_admin', 'teacher');
   if (!ai.ready()) fail(400, 'AI haijawekwa kwenye server. Mwambie msimamizi wa HUGO TECH');

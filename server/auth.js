@@ -1,4 +1,4 @@
-// HUGO KID server - auth.js : nenosiri, tokeni na msimamizi mkuu wa kwanza
+
 const crypto = require('crypto');
 const { q } = require('./db');
 
@@ -35,7 +35,7 @@ function publicUser(u) {
     school: school ? { id: school.id, name: school.name, type: school.type, region: school.region, district: school.district, levels: JSON.parse(school.levels || '[]') } : null,
   };
 }
-/* Msimbo rahisi kusoma (bila 0/O, 1/I) */
+
 function code(n = 6) {
   const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let s = '';
@@ -44,7 +44,6 @@ function code(n = 6) {
 }
 function tempPassword() { return 'HK-' + code(6); }
 
-/* Mara ya kwanza: akaunti ya HUGO TECH (lazima ibadilishe nenosiri) */
 function bootstrap() {
   const has = q.get(`SELECT id FROM users WHERE role = 'superadmin'`);
   if (has) return;
