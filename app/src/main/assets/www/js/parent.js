@@ -103,6 +103,10 @@ HK.screens.childForm = (el, p) => {
     religion: 'values', faithOn: true, grade: '', lang: I18N.lang, needs: [], stars: 0, coins: 0, created: Date.now(),
   };
   c.needs = c.needs || [];
+  const AGES = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+  const used = Store.children().filter(k => k.id !== c.id).map(k => k.avatar);
+  if (!editing) c.avatar = KID_AVATARS.find(a => !used.includes(a)) || KID_AVATARS[0];
+  let age0 = c.birth ? Math.min(13, Math.max(3, ageYears(c.birth))) : 0;
   const chipRow = (id, items, isOn) => `<div class="chips" id="${id}">${items.map(([v, l]) => `<button class="chip ${isOn(v) ? 'on' : ''}" data-v="${esc(v)}">${esc(l)}</button>`).join('')}</div>`;
 
   el.innerHTML = `
@@ -115,8 +119,8 @@ HK.screens.childForm = (el, p) => {
       <label class="label">Jina la mtoto</label>
       <input class="field" id="name" maxlength="20" placeholder="Mfano: Amani" value="${esc(c.name)}">
 
-      <label class="label">Tarehe ya kuzaliwa</label>
-      <input class="field" id="birth" type="date" value="${esc(c.birth)}">
+      <label class="label">Umri wa mtoto</label>
+      <div class="chips age-chips" id="age">${AGES.map(a => `<button class="chip ${age0 === a ? 'on' : ''}" data-v="${a}">${a === 13 ? '13+' : a}</button>`).join('')}</div>
       <div id="grp" style="margin-top:10px"></div>
 
       <label class="label">Darasa</label>
@@ -125,8 +129,8 @@ HK.screens.childForm = (el, p) => {
       <label class="label">Lugha ya kujifunzia</label>
       ${chipRow('lang', [['sw', 'Kiswahili'], ['en', 'English']], v => c.lang === v)}
 
-      <label class="label">Rangi ya mhusika wake</label>
-      <div class="avatar-pick">${AVATAR_COLORS.map(col => `<button data-c="${col}" class="${col === c.color ? 'on' : ''}">${avatarSVG(col, 54)}</button>`).join('')}</div>
+      <label class="label">Avatar yake (ataigusa kuingia)</label>
+      <div class="avatar-pick">${KID_AVATARS.map(id => `<button data-a="${id}" class="${c.avatar === id ? 'on' : ''}">${kidAvatar({ ...c, avatar: id, acc: '' }, 54)}</button>`).join('')}</div>
 
       <label class="label">Sehemu ya imani</label>
       ${chipRow('fon', [['1', 'Iwepo'], ['0', 'Isiwepo']], v => (v === '1') === faithOn(c))}
@@ -139,18 +143,21 @@ HK.screens.childForm = (el, p) => {
 
       <div style="height:22px"></div>
       <button class="btn block" id="save">${icon('check', 22)} Hifadhi</button>
+      ${editing ? '' : `<div style="height:12px"></div><button class="btn block ghost" id="more">${icon('plus', 20)} Hifadhi na ongeza mtoto mwingine</button>`}
       ${editing ? `<div style="height:12px"></div><button class="btn block ghost" id="place">${icon('repeat', 20)} Pima uwezo tena</button>` : ''}
       ${editing && Store.children().length > 1 ? `<div style="height:12px"></div><button class="btn block ghost" id="del">${icon('trash', 20)} Futa wasifu huu</button>` : ''}
     </div>`;
 
   const bk = $('#bk', el); if (bk) bk.onclick = () => HK.back();
+  /* umri unageuzwa kuwa tarehe ya kukadiria, ili mtoto akue mwenyewe kila mwaka */
+  const birthFor = a => { const d = new Date(); d.setFullYear(d.getFullYear() - a); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
   const showMode = () => {
-    const b = $('#birth', el).value;
-    if (!b) { $('#grp', el).innerHTML = ''; return; }
-    const m = kidMode({ ...c, birth: b });
-    $('#grp', el).innerHTML = `<span class="chip-tag teal">${esc(MODES[m].name)} · Miaka ${Math.max(0, ageYears(b))}</span>`;
+    if (!age0) { $('#grp', el).innerHTML = ''; return; }
+    const m = kidMode({ ...c, birth: birthFor(age0) });
+    $('#grp', el).innerHTML = `<span class="chip-tag teal">${esc(MODES[m].name)} · Miaka ${age0}</span>`;
   };
-  $('#birth', el).oninput = showMode; showMode();
+  $$('#age .chip', el).forEach(b => b.onclick = () => { Sfx.tap(); age0 = +b.dataset.v; $$('#age .chip', el).forEach(x => x.classList.toggle('on', x === b)); showMode(); });
+  showMode();
   const single = (id, fn) => $$('#' + id + ' .chip', el).forEach(b => b.onclick = () => { Sfx.tap(); fn(b.dataset.v); $$('#' + id + ' .chip', el).forEach(x => x.classList.toggle('on', x === b)); });
   single('lang', v => { c.lang = v; });
   single('fon', v => { c.faithOn = v === '1'; $('#relbox', el).classList.toggle('hidden', !c.faithOn); });
@@ -161,24 +168,31 @@ HK.screens.childForm = (el, p) => {
     b.classList.toggle('on', c.needs.includes(v));
   });
   $$('.avatar-pick button', el).forEach(b => b.onclick = () => {
-    Sfx.tap(); c.color = b.dataset.c;
+    Sfx.tap(); c.avatar = b.dataset.a; c.color = AVATAR_COLORS[(+b.dataset.a - 1) % AVATAR_COLORS.length];
     $$('.avatar-pick button', el).forEach(x => x.classList.toggle('on', x === b));
   });
 
-  $('#save', el).onclick = () => {
+  const save = (another) => {
     c.name = $('#name', el).value.trim();
-    c.birth = $('#birth', el).value;
     c.grade = $('#grade', el).value;
     if (!c.name) return toast('Andika jina la mtoto');
-    if (!c.birth) return toast('Chagua tarehe ya kuzaliwa');
-    const a = ageYears(c.birth);
-    if (a < 2 || a > 14) return toast('Programu ni ya watoto wa miaka 3 hadi 12');
+    if (!age0) return toast('Chagua umri wa mtoto');
+    if (!c.birth || Math.min(13, Math.max(3, ageYears(c.birth))) !== age0) c.birth = birthFor(age0);
     Store.saveChild(c);
     if (Net.online() && Net.role() === 'parent') SchoolSync.pushChildren().catch(() => {});
     Sfx.good();
-    if (!editing) { Store.setActive(c.id); return HK.go('placement', {}, { reset: !!p.first }); }
-    HK.back();
+    if (editing) return HK.back();
+    if (another) {
+      toast(c.name + ' ameongezwa');
+      return HK.go('childForm', { first: p.first }, { replace: true });
+    }
+    /* watoto zaidi ya mmoja: kila mmoja anaingia kwa kugusa avatar yake */
+    if (Store.children().length > 1) return HK.go('pickChild', {}, { reset: true });
+    Store.setActive(c.id); c.placeAsked = true; Store.saveChild(c);
+    return HK.go('placement', {}, { reset: !!p.first });
   };
+  $('#save', el).onclick = () => save(false);
+  const more = $('#more', el); if (more) more.onclick = () => save(true);
   const pl = $('#place', el); if (pl) pl.onclick = () => { Store.setActive(c.id); HK.go('placement'); };
   const del = $('#del', el);
   if (del) del.onclick = () => confirmBox(el, 'Futa ' + c.name + '?', 'Nyota, sarafu na maendeleo yake vitafutika.', 'Ndiyo, futa', () => {
@@ -226,7 +240,21 @@ HK.screens.parentHome = (el, p) => {
   function renderKids(body) {
     const kids = Store.children();
     const s = Store.settings();
-    body.innerHTML = kids.map(c => {
+    const learnMin = kids.reduce((t, k) => t + Math.round((Store.usage(k.id).learn || 0) / 60), 0);
+    const starsAll = kids.reduce((t, k) => t + (k.stars || 0), 0);
+    const pname = (Net.user() && Net.user().name || '').split(' ')[0];
+    const hour = new Date().getHours();
+    const hero = `<div class="parent-hero">
+        <div class="ph-text"><small>${hour < 12 ? 'Habari za asubuhi' : hour < 16 ? 'Habari za mchana' : 'Habari za jioni'}${pname ? ', ' + esc(pname) : ''}</small>
+          <b>Maendeleo ya watoto wako leo</b></div>
+        <div class="ph-stats">
+          <div><b>${kids.length}</b><span>Watoto</span></div>
+          <div><b>${learnMin}</b><span>Dk za kujifunza</span></div>
+          <div><b>${starsAll}</b><span>Nyota</span></div>
+        </div>
+        <div class="ph-kids">${kids.slice(0, 4).map(k => kidAvatar(k, 34)).join('')}</div>
+      </div>`;
+    body.innerHTML = hero + kids.map(c => {
       const u = Store.usage(c.id);
       const g = MODES[kidMode(c)];
       const used = Math.round((u.game || 0) / 60);
@@ -234,9 +262,9 @@ HK.screens.parentHome = (el, p) => {
       const week = Store.weekUsage(c.id);
       const max = Math.max(1, ...week.map(w => (w.game || 0) + (w.learn || 0)));
       const days = ['Jpl', 'Jtt', 'Jnn', 'Jtn', 'Alh', 'Iju', 'Jms'];
-      return `<div class="card">
+      return `<div class="card kid-card" style="--kc:${c.color || '#1EA7F0'}">
         <div class="row">
-          ${avatarSVG(c.color, 56)}
+          ${kidAvatar(c, 56)}
           <div class="grow">
             <h3 style="margin:0">${esc(c.name)} ${Store.activeId() === c.id ? '<span class="chip-tag teal">anatumia sasa</span>' : ''}</h3>
             <div class="muted" style="font-size:13px;font-weight:600">${esc(g.name)} · Miaka ${ageYears(c.birth)}${c.grade && c.grade !== GRADES[0] ? ' · ' + esc(c.grade) : ''} · ${faithOn(c) ? esc(RELIGIONS[c.religion].name) : 'Imani: imezimwa'}</div>
@@ -312,34 +340,28 @@ HK.screens.parentHome = (el, p) => {
   function renderSettings(body) {
     const s = Store.settings();
     const opt = (arr, cur, fmt) => arr.map(v => `<button class="chip ${String(v) === String(cur) ? 'on' : ''}" data-v="${v}">${fmt(v)}</button>`).join('');
+    const setCard = (acc, ic, title, text, id, chips) => `
+      <div class="card set-card" style="--acc:${acc}">
+        <div class="set-head"><span class="set-ic">${icon(ic, 22)}</span><div><h3>${title}</h3><p>${text}</p></div></div>
+        <div class="chips set-chips" id="${id}" style="--n:${Math.min(3, (chips.match(/class="chip/g) || []).length) === 3 && (chips.match(/class="chip/g) || []).length === 4 ? 4 : Math.min(3, (chips.match(/class="chip/g) || []).length)}">${chips}</div>
+      </div>`;
+    const row = (id, acc, ic, title, sub) => `<button class="set-row" id="${id}" style="--acc:${acc}"><span class="set-ic">${icon(ic, 20)}</span><span class="grow"><b>${title}</b>${sub ? `<small id="${id}-sub">${sub}</small>` : ''}</span>${icon('chevR', 20)}</button>`;
     body.innerHTML = `
-      <div class="card">
-        <h3>${icon('game', 20)} Muda wa michezo kwa siku</h3>
-        <p>Ukiisha, michezo inajifunga. Mtoto anaweza kupata dakika za ziada akifanya homework vizuri.</p>
-        <div class="chips" id="lim" style="margin-top:12px">${opt([10, 15, 20, 30, 45, 60], s.gameLimitMin, v => v + ' dk')}</div>
+      <div class="set-group">Muda na michezo</div>
+      ${setCard('#1EA7F0', 'game', 'Muda wa michezo kwa siku', 'Ukiisha, michezo inajifunga. Mtoto anaweza kupata dakika za ziada akifanya homework vizuri.', 'lim', opt([10, 15, 20, 30, 45, 60], s.gameLimitMin, v => v + ' dk'))}
+      ${setCard('#E0A100', 'gift', 'Zawadi ya homework', 'Dakika za ziada za michezo ukikubali homework yake.', 'bon', opt([0, 5, 10, 15], s.bonusMin, v => v ? '+' + v + ' dk' : 'Hapana'))}
+      ${setCard('#7B61FF', 'moon', 'Muda wa kulala', 'Baada ya saa hii programu inamwambia mtoto akalale (hadi saa 11:30 alfajiri).', 'bed', opt(['off', '19:30', '20:00', '20:30', '21:00', '21:30'], s.bedtime, v => v === 'off' ? 'Zima' : v))}
+      <div class="set-group">Usalama na AI</div>
+      <div class="card set-list">
+        ${row('aiset', '#0D2461', 'robot', 'HUGOKID AI', ' ')}
+        ${row('lmset', '#0FB394', 'lock', 'Learning Mode', LM.state().on ? 'Imewashwa' : 'Ficha programu nyingine na dhibiti muda wake')}
       </div>
-      <div class="card">
-        <h3>${icon('gift', 20)} Zawadi ya homework</h3>
-        <p>Dakika za ziada za michezo ukikubali homework yake.</p>
-        <div class="chips" id="bon" style="margin-top:12px">${opt([0, 5, 10, 15], s.bonusMin, v => v ? '+' + v + ' dk' : 'Hapana')}</div>
+      <div class="set-group">Akaunti</div>
+      <div class="card set-list">
+        ${row('chpin', '#F65B4F', 'key', 'Badilisha PIN', '')}
+        ${row('terms', '#6B778C', 'file', 'Masharti na Faragha', '')}
       </div>
-      <div class="card">
-        <h3>${icon('moon', 20)} Muda wa kulala</h3>
-        <p>Baada ya saa hii programu inamwambia mtoto akalale (hadi saa 11:30 alfajiri).</p>
-        <div class="chips" id="bed" style="margin-top:12px">${opt(['off', '19:30', '20:00', '20:30', '21:00', '21:30'], s.bedtime, v => v === 'off' ? 'Zima' : v)}</div>
-      </div>
-      <button class="item" id="aiset">
-        <div class="i-ic" style="background:var(--navy)">${icon('bell', 26)}</div>
-        <div class="grow"><div class="i-title">AI ya HUGO KID</div><div class="i-sub" id="aisub"></div></div>${icon('chevR', 22)}
-      </button>
-      <button class="item" id="lmset">
-        <div class="i-ic" style="background:var(--teal)">${icon('lock', 26)}</div>
-        <div class="grow"><div class="i-title">Learning Mode</div><div class="i-sub">${LM.state().on ? 'Imewashwa' : 'Ficha programu nyingine na dhibiti muda wake'}</div></div>${icon('chevR', 22)}
-      </button>
-      <button class="btn block ghost" id="chpin">${icon('key', 20)} Badilisha PIN</button>
-      <div style="height:12px"></div>
-      <button class="btn block ghost" id="terms">${icon('file', 20)} Masharti na Faragha</button>
-      <p class="muted" style="text-align:center;font-size:12px;font-weight:800;margin-top:22px">HUGO KID 2.2 · Learn, Play, Grow<br>HUGO TECH · info@hugotech.co.tz</p>`;
+      <p class="set-foot">HUGO KID 2.4 · Learn, Play, Grow<br>HUGO TECH · info@hugotech.co.tz</p>`;
 
     const bind = (id, key, num) => $$('#' + id + ' .chip', body).forEach(b => b.onclick = () => {
       Sfx.tap();
@@ -355,7 +377,7 @@ HK.screens.parentHome = (el, p) => {
     $('#chpin', body).onclick = () => HK.go('pin', { mode: 'change' });
     $('#terms', body).onclick = () => HK.go('terms', { mode: 'view' });
     const ac = AI.cfg();
-    $('#aisub', body).textContent = ac.key ? AI_PROVIDERS[ac.provider].name + (ac.enabled ? ' · imewashwa' : ' · imezimwa') : 'Chagua Gemini, Claude au ChatGPT';
+    $('#aiset-sub', body).textContent = ac.key ? AI_PROVIDERS[ac.provider].name + (ac.enabled ? ' · imewashwa' : ' · imezimwa') : 'Chagua Gemini, Claude au ChatGPT';
     $('#aiset', body).onclick = () => HK.go('aiSettings');
     $('#lmset', body).onclick = () => HK.go('learningMode');
   }

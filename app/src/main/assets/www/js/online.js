@@ -3,7 +3,7 @@
 /* ---------- Mzazi: shule na ripoti (ndani ya Eneo la Mzazi) ---------- */
 async function renderParentSchool(body) {
   if (!(Net.online() && Net.role() === 'parent')) {
-    body.innerHTML = `<div class="card" style="text-align:center"><div style="display:flex;justify-content:center">${nuruSVG(80)}</div>
+    body.innerHTML = `<div class="card" style="text-align:center"><div style="display:flex;justify-content:center">${mascot('nuru', 80)}</div>
       <h3 style="margin-top:8px">Unganisha na shule</h3><p>Fungua akaunti ya mzazi ili kupokea homework za mwalimu, alama, ripoti, mahudhurio na ujumbe wa mwalimu.</p>
       <div style="height:14px"></div><button class="btn block blue" id="acct">${icon('user', 20)} Fungua akaunti au ingia</button></div>`;
     $('#acct', body).onclick = () => HK.go('acctAuth', { kind: 'parent', tab: 'register', next: 'parentHome', nextParams: { tab: 'school' } });
@@ -38,7 +38,7 @@ async function renderParentSchool(body) {
         ${s.subjects.length ? `<div style="margin-top:10px">${s.subjects.map(x => `<div class="row" style="justify-content:space-between;margin:6px 0;font-weight:600"><span>${esc(x.name)}</span><span>${x.pct}%</span></div><div class="lvl-bar" style="background:#E8EEF7"><i style="width:${x.pct}%;background:${x.pct >= 75 ? 'var(--teal)' : x.pct >= 50 ? 'var(--sun)' : 'var(--coral)'};box-shadow:none"></i></div>`).join('')}</div>` : ''}
         ${s.upcoming.length ? `<p style="margin-top:12px"><b>Deadline zinazokuja:</b><br>${s.upcoming.map(u => `${esc(u.title)} (${esc(u.subject || '')}) · ${esc(u.due)}`).join('<br>')}</p>` : ''}
         ${s.overdue ? `<p style="color:var(--coral);font-weight:600;margin-top:6px">Homework ${s.overdue} zimepita muda</p>` : ''}
-        <div class="ai-card card" style="margin:12px 0 0"><div class="row"><span>${nuruSVG(36)}</span><b class="grow">Ripoti ya Nuru</b><button class="btn small ghost" data-ai="${c.id}">${icon('repeat', 14)} Andaa</button></div>
+        <div class="ai-card card" style="margin:12px 0 0"><div class="row"><span>${mascot('nuru', 36)}</span><b class="grow">Ripoti ya Nuru</b><button class="btn small ghost" data-ai="${c.id}">${icon('repeat', 14)} Andaa</button></div>
           <p id="air-${c.id}" style="margin-top:6px">${r.ai ? esc(r.ai.text) : 'Bonyeza "Andaa" kupata muhtasari wa maendeleo na pendekezo la mazoezi.'}</p></div>
         <button class="btn small ghost" data-res="${c.id}" style="margin-top:10px">${icon('file', 16)} Homework na alama</button>
       </div>`);

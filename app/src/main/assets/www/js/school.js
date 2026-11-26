@@ -268,7 +268,7 @@ HK.screens.tHwNew = (el, p) => {
             <input class="field" id="qa" style="margin-top:8px" placeholder="">
             <button class="btn small" id="addq" style="margin-top:10px">${icon('plus', 16)} Ongeza swali</button></div>` : ''}
 
-        <div class="card ai-card"><div class="row"><span>${nuruSVG(44)}</span><div class="grow"><h3 style="margin:0">Msaidizi wa AI wa mwalimu</h3><p style="font-size:13px">Mfano: "quiz ya hesabu ya kujumlisha" au "worksheet ya English kuhusu familia"</p></div></div>
+        <div class="card ai-card"><div class="row"><span>${mascot('nuru', 44)}</span><div class="grow"><h3 style="margin:0">Msaidizi wa AI wa mwalimu</h3><p style="font-size:13px">Mfano: "quiz ya hesabu ya kujumlisha" au "worksheet ya English kuhusu familia"</p></div></div>
           <div class="form-row" style="margin-top:10px"><input class="field" id="topic" placeholder="Mada"><input class="field" id="cnt" type="number" value="5" style="max-width:90px">
             <select class="field" id="lang" style="max-width:140px"><option>Kiswahili</option><option>English</option></select></div>
           <div class="btn-row" style="margin-top:10px"><button class="btn small blue" id="genq">${icon('check', 16)} Tengeneza quiz</button><button class="btn small ghost" id="genw">${icon('file', 16)} Tengeneza worksheet</button></div></div>
@@ -371,7 +371,7 @@ HK.screens.tReview = (el, p) => {
         <button class="tool" id="mundo">${icon('undo', 22)}</button></div>
         <div id="pages">${s.pages.map((pg, i) => `<div class="mark-wrap" data-i="${i}"><img src="${pg}" class="review-page" style="margin:0"><canvas></canvas></div>`).join('')}</div>` : ''}
       ${(s.attachments || []).length ? `<div class="card"><h3>Majibu ya ziada</h3>${(s.attachments || []).map(a => /^audio/.test(a.mime) ? `<p>${esc(a.label)}</p><audio controls src="${Net.fileUrl(a.file)}" style="width:100%"></audio>` : /^video/.test(a.mime) ? `<p>${esc(a.label)}</p><video controls playsinline src="${Net.fileUrl(a.file)}" style="width:100%;border-radius:12px"></video>` : `<img class="review-page" src="${Net.fileUrl(a.file)}">`).join('')}</div>` : ''}
-      <div class="card ai-card"><div class="row"><span>${nuruSVG(40)}</span><div class="grow"><h3 style="margin:0">Pendekezo la AI</h3>
+      <div class="card ai-card"><div class="row"><span>${mascot('nuru', 40)}</span><div class="grow"><h3 style="margin:0">Pendekezo la AI</h3>
         <p id="aitext">${s.ai_score != null ? `Alama inayopendekezwa: <b>${s.ai_score}/${s.max_score}</b><br>${esc(s.ai_comment || '')}` : s.auto_score != null ? `Alama ya moja kwa moja: <b>${s.auto_score}/${s.max_score}</b>` : 'Bado hakuna pendekezo.'}</p></div></div>
         <button class="btn small ghost" id="ask">${icon('help', 16)} Omba AI ipendekeze</button></div>
       <div class="card"><h3>Alama ya mwisho (mwalimu)</h3>

@@ -1,8 +1,8 @@
 /* HUGO KID - schoolhw.js : homework kutoka kwa mwalimu (kupokea, kujibu, kutuma, kuona alama) */
 
 /* Nakala ya maendeleo ya mtoto (inarejeshwa kwenye simu mpya au web) */
-const PROFILE_KEYS = ['religion', 'faithOn', 'grade', 'lang', 'needs', 'acc', 'place', 'modeOverride'];
-const PROGRESS_KEYS = ['stars', 'coins', 'racing', 'gp', 'learned', 'skillLog', 'tut', 'daily'];
+const PROFILE_KEYS = ['religion', 'faithOn', 'grade', 'lang', 'needs', 'acc', 'avatar', 'place', 'placeAsked', 'modeOverride'];
+const PROGRESS_KEYS = ['stars', 'coins', 'racing', 'gp', 'learned', 'skillLog', 'tut', 'daily', 'saladStory'];
 function progressOf(c) {
   const o = { profile: {}, at: Date.now(), lessons: Store.get('lessons_' + c.id, {}), week: Store.weekUsage(c.id).map(w => ({ game: w.game || 0, learn: w.learn || 0 })) };
   PROFILE_KEYS.forEach(k => { if (c[k] !== undefined) o.profile[k] = c[k]; });

@@ -7,9 +7,9 @@ const RACE_CARS = [
   { name: 'Tai', color: '#7B61FF', dark: '#5A43D6', cost: 300 },
 ];
 const RACE_THEMES = [
-  { name: 'Serengeti', c: 'var(--sun)', cd: 'var(--sun-d)', ground: '#9BC85A', ground2: '#8AB84B', deco: 'acacia' },
-  { name: 'Ufukweni', c: 'var(--blue)', cd: 'var(--blue-d)', ground: '#F1D59A', ground2: '#E8C985', deco: 'palm', sea: true },
-  { name: 'Kilimanjaro', c: 'var(--teal)', cd: 'var(--teal-d)', ground: '#A9C3B0', ground2: '#9AB6A1', deco: 'pine', snow: true },
+  { name: 'Serengeti', c: 'var(--sun)', cd: 'var(--sun-d)', ground: '#9BC85A', ground2: '#8AB84B', deco: 'acacia', scene: 'race-serengeti' },
+  { name: 'Ufukweni', c: 'var(--blue)', cd: 'var(--blue-d)', ground: '#F1D59A', ground2: '#E8C985', deco: 'palm', sea: true, scene: 'lugha' },
+  { name: 'Kilimanjaro', c: 'var(--teal)', cd: 'var(--teal-d)', ground: '#A9C3B0', ground2: '#9AB6A1', deco: 'pine', snow: true, scene: 'race-kilimanjaro' },
 ];
 
 function raceData(c) {
@@ -28,14 +28,24 @@ function drawCar(ctx, x, y, w, h, color, dark, glow) {
   [[-w / 2 - ww * 0.35, -h * 0.32], [w / 2 - ww * 0.65, -h * 0.32], [-w / 2 - ww * 0.35, h * 0.14], [w / 2 - ww * 0.65, h * 0.14]]
     .forEach(([a, b]) => { rr(ctx, a, b, ww, wh, 4); ctx.fill(); });
   // bodi
-  ctx.fillStyle = color;
+  const paint = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+  paint.addColorStop(0, dark); paint.addColorStop(.28, color);
+  paint.addColorStop(.55, color); paint.addColorStop(1, dark);
+  ctx.fillStyle = paint;
+  ctx.shadowColor = '#10162677'; ctx.shadowBlur = glow ? 18 : 8;
   rr(ctx, -w / 2, -h / 2, w, h, w * 0.32); ctx.fill();
   ctx.shadowBlur = 0;
   ctx.fillStyle = dark;
   rr(ctx, -w / 2 + w * 0.12, -h * 0.05, w * 0.76, h * 0.42, w * 0.18); ctx.fill();
   // kioo
-  ctx.fillStyle = '#BFE6FB';
+  const windshield = ctx.createLinearGradient(0, -h * .3, 0, -h * .08);
+  windshield.addColorStop(0, '#e1f6ff'); windshield.addColorStop(.42, '#89b9d0'); windshield.addColorStop(1, '#273a51');
+  ctx.fillStyle = windshield;
   rr(ctx, -w / 2 + w * 0.17, -h * 0.3, w * 0.66, h * 0.22, w * 0.14); ctx.fill();
+  ctx.fillStyle = '#6d9ab2';
+  rr(ctx, -w * .25, h * .25, w * .5, h * .11, w * .08); ctx.fill();
+  ctx.fillStyle = '#f4b3a5';
+  ctx.fillRect(-w * .28, h * .42, w * .15, h * .035); ctx.fillRect(w * .13, h * .42, w * .15, h * .035);
   // mstari
   ctx.fillStyle = 'rgba(255,255,255,.85)';
   rr(ctx, -w * 0.07, -h / 2 + 4, w * 0.14, h * 0.18, 3); ctx.fill();
@@ -59,14 +69,14 @@ HK.screens.raceMenu = (el) => {
       <span class="hud-pill" style="background:#fff">${icon('coin', 18)} <span id="coins">${c.coins || 0}</span></span></div>
     <div class="scroll">
       ${RACE_THEMES.map((t, ti) => `
-        <div class="section-title">${t.name}</div>
+        <section class="race-region scene-${t.scene}"><h2>${t.name}</h2>
         <div class="levels">${[1, 2, 3].map(n => {
           const lv = ti * 3 + n, open = lv <= rd.unlocked, b = rd.best[lv] || 0;
           return `<button class="level ${open ? '' : 'locked'}" data-lv="${lv}" style="--c:${t.c};--cd:${t.cd}">
             ${open ? lv : icon('lock', 26)}
             <span class="lv-stars">${[1, 2, 3].map(s => `<svg width="14" height="14" viewBox="0 0 24 24" class="${s <= b ? 'on' : ''}"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6L3.4 9.5l6-.8z"/></svg>`).join('')}</span>
           </button>`;
-        }).join('')}</div>`).join('')}
+        }).join('')}</div></section>`).join('')}
       <div class="section-title">Gereji</div>
       <div class="garage" id="garage"></div>
     </div>`;
@@ -150,7 +160,7 @@ HK.screens.racePlay = (el, p) => {
   }[group];
   const LENGTH = 9000 + level * 1400;
 
-  el.classList.add('race-screen');
+  el.classList.add('race-screen', 'scene-' + theme.scene);
   el.innerHTML = `
     <canvas id="cv"></canvas>
     <div class="race-hud">
@@ -247,10 +257,12 @@ HK.screens.racePlay = (el, p) => {
   function drawWorld() {
     const r = road();
     // ardhi
-    ctx.fillStyle = theme.ground; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = theme.ground;
+    ctx.globalAlpha = .27; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = theme.ground2;
     const off = S.dist % 160;
     for (let y = -160 + off; y < H; y += 160) { ctx.fillRect(0, y, r.l, 80); ctx.fillRect(r.l + r.w, y, W, 80); }
+    ctx.globalAlpha = 1;
     if (theme.sea) {
       const sx = r.l + r.w + 22;
       ctx.fillStyle = '#4FC3F7'; ctx.fillRect(sx, 0, W - sx, H);
@@ -263,7 +275,16 @@ HK.screens.racePlay = (el, p) => {
     }
     S.decos.forEach(drawDeco);
     // barabara
-    ctx.fillStyle = '#4A5163'; ctx.fillRect(r.l, 0, r.w, H);
+    const asphalt = ctx.createLinearGradient(r.l, 0, r.l + r.w, 0);
+    asphalt.addColorStop(0, '#353d4a'); asphalt.addColorStop(.14, '#4b515a');
+    asphalt.addColorStop(.56, '#545d66'); asphalt.addColorStop(1, '#373e49');
+    ctx.fillStyle = asphalt; ctx.fillRect(r.l, 0, r.w, H);
+    ctx.fillStyle = '#fff2';
+    const grain = S.dist % 92;
+    for (let y = -92 + grain; y < H; y += 92) {
+      ctx.fillRect(r.l + r.w * .22, y, 13, 1);
+      ctx.fillRect(r.l + r.w * .63, y + 43, 7, 1);
+    }
     ctx.fillStyle = '#fff';
     const st = S.dist % 40;
     for (let y = -40 + st; y < H; y += 40) {
@@ -382,7 +403,7 @@ HK.screens.racePlay = (el, p) => {
         S.gate.done = true;
         const ok = S.gate.q.opts[S.lane].ok;
         if (ok) {
-          S.correct++; S.coins += 5; S.boost = 1.6; Sfx.good(); msg('Hongera! +5', '#FFE07A');
+          S.correct++; S.coins += 5; S.boost = 1.6; Sfx.good(); celebrateMascot(el); msg('Hongera! +5', '#FFE07A');
           speak(['Hongera!', 'Safi sana!', 'Umeweza!'][Math.floor(Math.random() * 3)]);
         } else { Sfx.bad(); msg('Karibu! Jaribu tena'); }
         $('#q', el).classList.add('hidden-q');
@@ -405,6 +426,7 @@ HK.screens.racePlay = (el, p) => {
   }
 
   function render() {
+    ctx.clearRect(0, 0, W, H);
     ctx.save();
     if (S.shake > 0) ctx.translate((Math.random() - 0.5) * 12 * S.shake / 0.35, 0);
     drawWorld(); drawObjs(); drawPlayer();

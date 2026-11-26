@@ -40,7 +40,7 @@ HK.screens.together = (el) => {
   el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Pamoja</h1></div><div class="scroll" id="b"><div class="empty">Inapakia...</div></div>`;
   $('#bk', el).onclick = () => HK.back();
   const b = $('#b', el);
-  if (!(Net.online() && c.serverId)) { b.innerHTML = `<div class="empty">${nuruSVG(80)}<br>Mwombe mzazi afungue akaunti na akuongezee marafiki.</div>`; return; }
+  if (!(Net.online() && c.serverId)) { b.innerHTML = `<div class="empty">${mascot('nuru', 80)}<br>Mwombe mzazi afungue akaunti na akuongezee marafiki.</div>`; return; }
   Net.connect(c.serverId);
   const draw = async () => {
     try {
@@ -50,7 +50,7 @@ HK.screens.together = (el) => {
           ${f.allow_audio ? `<button class="btn small blue" data-call="${f.child_id}" data-m="audio" data-n="${esc(f.name)}" ${f.online ? '' : 'disabled'}>${icon('mic', 18)} Sauti</button>` : ''}
           ${f.allow_video ? `<button class="btn small coral" data-call="${f.child_id}" data-m="video" data-n="${esc(f.name)}" ${f.online ? '' : 'disabled'}>${icon('camera', 18)} Video</button>` : ''}
           <button class="btn small" data-play="${f.child_id}" data-n="${esc(f.name)}" ${f.online ? '' : 'disabled'}>${icon('game', 18)} Cheza</button></div></div>`).join('')
-        : `<div class="empty">${nuruSVG(80)}<br>Bado huna marafiki. Mwombe mzazi akuongezee.</div>`;
+        : `<div class="empty">${mascot('nuru', 80)}<br>Bado huna marafiki. Mwombe mzazi akuongezee.</div>`;
       $$('[data-call]', b).forEach(x => x.onclick = () => HK.go('call', { to: +x.dataset.call, name: x.dataset.n, media: x.dataset.m, caller: true }));
       $$('[data-play]', b).forEach(x => x.onclick = () => HK.go('battle', { to: +x.dataset.play, name: x.dataset.n, host: true }));
     } catch (e) { b.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
@@ -162,7 +162,7 @@ HK.screens.battle = (el, p) => {
   let i = 0, mine = 0, theirs = 0, theirsDone = false, started = !p.host, finished = false;
   const draw = () => {
     if (!started) {
-      el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Cheza na ${esc(p.name)}</h1></div><div class="center-col">${nuruSVG(90)}<p style="margin-top:12px">Tunamsubiri ${esc(p.name)} akubali...</p></div>`;
+      el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Cheza na ${esc(p.name)}</h1></div><div class="center-col">${mascot('nuru', 90)}<p style="margin-top:12px">Tunamsubiri ${esc(p.name)} akubali...</p></div>`;
       $('#bk', el).onclick = () => HK.back(); return;
     }
     if (i >= qs.length) {

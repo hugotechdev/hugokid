@@ -99,6 +99,8 @@ function learned(kind, item) {
 
 /* ---------- Mchezo wa "Gusa..." (sauti tu, bila kusoma) ---------- */
 HK.screens.tapGame = (el, p) => {
+  const scenes = { colors: 'bubbles', animals: 'serengeti', numbers: 'namba', shapes: 'maumbo' };
+  el.classList.add('game-world', 'scene-' + (scenes[p.kind] || 'serengeti'));
   const c = Store.active();
   const kind = p.kind || 'animals';
   const total = 6; let i = 0, first = 0, missed = false;
@@ -163,14 +165,14 @@ HK.screens.abc = (el, p) => {
   const t0 = Date.now();
   const draw = () => {
     const [L, w] = list()[i];
-    const pic = ANIMALS[w] || ANIMALS[EN_PIC[w]];
+    const art = pic(w, 120) || pic(EN_PIC[w], 120);
     el.innerHTML = `
       <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Herufi</h1>
         <div class="chips"><button class="chip ${lang === 'sw' ? 'on' : ''}" data-l="sw">Kiswahili</button><button class="chip ${lang === 'en' ? 'on' : ''}" data-l="en">English</button></div></div>
       <div class="center-col" style="justify-content:flex-start;padding-top:6px">
         <div class="lesson-card" style="width:100%;max-width:380px;padding:18px">
           <div style="font-size:120px;font-weight:700;line-height:1;color:var(--blue)">${L}<span style="font-size:80px;color:var(--coral)">${L.toLowerCase()}</span></div>
-          ${pic ? `<div style="width:120px;height:120px;margin:6px auto">${pic()}</div>` : ''}
+          ${art ? `<div style="display:flex;justify-content:center;margin:6px auto">${art}</div>` : ''}
           <div class="big notr" style="font-size:34px">${esc(w)}</div>
         </div>
         <div class="btn-row" style="width:100%;max-width:380px;margin:14px 0">
@@ -197,7 +199,7 @@ HK.screens.abc = (el, p) => {
         const said = (res || [])[0] || '';
         const ok = (res || []).some(x => x.toLowerCase().includes(w.toLowerCase()));
         $('#heard', el).textContent = said ? 'Umesema: ' + said : 'Sijasikia vizuri';
-        if (ok) { Sfx.good(); speak('Safi sana!'); learned('words', w); } else if (said) speak('Karibu! Sikiliza tena: ' + w, lang === 'sw' ? 'sw-raw' : lang);
+        if (ok) { Sfx.good(); celebrateMascot(el, 'kobe'); speak('Safi sana!'); learned('words', w); } else if (said) speak('Karibu! Sikiliza tena: ' + w, lang === 'sw' ? 'sw-raw' : lang);
       };
       HugoNative.listen(lang);
     };
@@ -223,7 +225,7 @@ HK.screens.placement = (el, p) => {
   let i = 0;
   const intro = () => {
     el.innerHTML = `<div class="center-col">
-      ${nuruSVG(110)}
+      ${mascot('nuru', 110)}
       <h2 style="font-size:24px;margin:14px 0 6px">Tucheze kidogo, ${esc(c.name)}!</h2>
       <p class="muted" style="font-weight:500;max-width:320px">Maswali machache ya kujua kiwango chako ili tukuandalie masomo yanayokufaa. Mzazi anaweza kusaidia kusoma maelekezo.</p>
       <div style="height:20px"></div>

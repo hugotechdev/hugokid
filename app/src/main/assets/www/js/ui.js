@@ -3,6 +3,8 @@
 const ICONS = {
   home: '<path d="M3 11l9-7 9 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
+  eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  eyeOff: '<path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-2.6 3.5M6.6 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>',
   chevR: '<path d="M9 5l7 7-7 7"/>',
   chevL: '<path d="M15 5l-7 7 7 7"/>',
   game: '<rect x="2.5" y="7" width="19" height="11" rx="5.5"/><path d="M7.5 10.5v4M5.5 12.5h4"/><circle cx="15.5" cy="11.5" r="1"/><circle cx="18" cy="14" r="1"/>',
@@ -87,24 +89,65 @@ const ACCESSORIES = {
   bow: { name: 'Kipepeo', cost: 30, svg: '<path d="M50 20l-18-10v20zM50 20l18-10v20z" fill="#E0476B"/><circle cx="50" cy="20" r="5" fill="#C1305A"/>' },
   crown: { name: 'Taji', cost: 80, svg: '<path d="M26 26l8 14 16-22 16 22 8-14 2 18H24z" fill="#FFC20E" stroke="#D29E00" stroke-width="2" stroke-linejoin="round"/><circle cx="50" cy="20" r="3" fill="#F65B4F"/>' },
 };
-function kidAvatar(c, size = 56, mood = 'happy') { return avatarSVG(c ? c.color : '#1EA7F0', size, mood, c ? c.acc : ''); }
-
-/* Nuru: msaidizi wa AI wa watoto (nyota yenye tabasamu) */
-function nuruSVG(size = 48) {
-  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" class="avatar">
-    <path d="M50 4c4 22 16 34 38 40-22 6-34 18-38 40-4-22-16-34-38-40 22-6 34-18 38-40z" fill="#FFC20E" stroke="#E0A800" stroke-width="3" stroke-linejoin="round"/>
-    <circle cx="42" cy="44" r="4.5" fill="#0D2461"/><circle cx="58" cy="44" r="4.5" fill="#0D2461"/>
-    <path d="M41 53 Q50 61 59 53" stroke="#0D2461" stroke-width="4" fill="none" stroke-linecap="round"/>
-    <circle cx="36" cy="52" r="3.5" fill="#F65B4F" opacity=".35"/><circle cx="64" cy="52" r="3.5" fill="#F65B4F" opacity=".35"/>
-  </svg>`;
+const KID_AVATARS = ['1', '2', '3', '4', '5', '6'];
+function kidAvatarSrc(c) {
+  return KID_AVATARS.includes(c?.avatar) ? `img/safari/avatar-${c.avatar}.webp` : '';
+}
+function kidAvatar(c, size = 56, mood = 'happy', accessory = c?.acc) {
+  const src = kidAvatarSrc(c);
+  if (!src) return avatarSVG(c?.color || '#1EA7F0', size, mood, accessory || '');
+  const extra = ACCESSORIES[accessory];
+  return `<span class="kid-portrait" style="--portrait-size:${size}px" aria-hidden="true"><img src="${src}" alt="" decoding="async">${extra ? `<svg class="portrait-accessory" viewBox="0 0 100 100">${extra.svg}</svg>` : ''}</span>`;
 }
 
-/* Michoro ya vigae vya home */
+/* Wahusika wa HUGO KID */
+function mascot(name, size = 88, cls = '') {
+  const eyes = name === 'nuru' ? '<i class="mascot-lid"></i><i class="mascot-lid right"></i>' : '';
+  return `<span class="mascot ${cls}" style="--mascot-size:${size}px" aria-hidden="true"><img src="img/safari/${name}.webp" alt="" decoding="async">${eyes}</span>`;
+}
+
+const GAME_SCENES = {
+  racing: 'town', runner: 'runner', pilot: 'pilot', penalty: 'penalty',
+  bubbles: 'bubbles', village: 'village', kitchen: 'kitchen', balloons: 'namba',
+  letters: 'herufi', memory: 'ziwa', robot: 'roboti', market: 'soko',
+  shapes: 'maumbo', speak: 'lugha', faith: 'kilimanjaro',
+};
+
+function sceneBanner(scene, character) {
+  return `<div class="scene-banner scene-${scene}" aria-hidden="true">${mascot(character, 104, 'mascot-peek')}</div>`;
+}
+
+function celebrateMascot(root, name = 'nuru') {
+  if (root.querySelector('.mascot-feedback')) return;
+  const feedback = document.createElement('div');
+  feedback.className = 'mascot-feedback';
+  /* nyota ndogo zinaruka kuzunguka mhusika */
+  const sparks = Array.from({ length: 7 }, (_, i) => {
+    const a = (i / 7) * Math.PI * 2 - Math.PI / 2, d = 46 + (i % 3) * 10;
+    return `<i class="spark" style="--sx:${Math.round(Math.cos(a) * d)}px;--sy:${Math.round(Math.sin(a) * d)}px;--sd:${i * 25}ms"></i>`;
+  }).join('');
+  feedback.innerHTML = mascot(name, 76) + sparks;
+  root.appendChild(feedback);
+  setTimeout(() => feedback.remove(), 900);
+}
+
+/* mtoto akigusa mhusika au avatar, anaruka kidogo */
+document.addEventListener('pointerdown', e => {
+  const host = e.target.closest && e.target.closest('.tile, .scene-banner, .game-card, .profile-avatars button, .trophy-hero, .home-hero, .mascot, .kid-portrait');
+  if (!host) return;
+  const m = host.matches('.mascot, .kid-portrait') ? host : host.querySelector('.mascot, .kid-portrait');
+  if (!m) return;
+  m.classList.remove('is-tapped'); void m.offsetWidth; m.classList.add('is-tapped');
+  clearTimeout(m._tap); m._tap = setTimeout(() => m.classList.remove('is-tapped'), 650);
+}, { passive: true });
+
 const ART = {
-  homework: `<svg class="art" viewBox="0 0 110 110"><rect x="22" y="14" width="58" height="76" rx="10" fill="#fff" transform="rotate(-8 51 52)"/><g transform="rotate(-8 51 52)" stroke="#9CC9F0" stroke-width="3" stroke-linecap="round"><path d="M34 36h34M34 48h34M34 60h24"/></g><circle cx="30" cy="22" r="0" /><rect x="62" y="20" width="12" height="62" rx="4" fill="#F65B4F" transform="rotate(32 68 51)"/><path d="M80 86l-5 9 9-5z" fill="#0D2461"/><rect x="62" y="20" width="12" height="10" rx="3" fill="#FFB3AC" transform="rotate(32 68 51)"/></svg>`,
-  games: `<svg class="art" viewBox="0 0 110 110"><rect x="14" y="36" width="82" height="46" rx="23" fill="#fff"/><circle cx="36" cy="59" r="11" fill="#FFE2DF"/><path d="M36 52v14M29 59h14" stroke="#F65B4F" stroke-width="5" stroke-linecap="round"/><circle cx="72" cy="54" r="5.5" fill="#FFC20E"/><circle cx="83" cy="63" r="5.5" fill="#1EA7F0"/><circle cx="72" cy="70" r="0"/><path d="M48 30q7-14 18-6" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" opacity=".8"/></svg>`,
-  lessons: `<svg class="art" viewBox="0 0 110 110"><rect x="18" y="66" width="70" height="16" rx="5" fill="#FFC20E"/><rect x="24" y="50" width="64" height="16" rx="5" fill="#fff"/><rect x="14" y="34" width="68" height="16" rx="5" fill="#F65B4F"/><path d="M24 34v16M28 66v16" stroke="rgba(0,0,0,.12)" stroke-width="4"/><text x="66" y="30" font-family="Outfit,Roboto" font-weight="700" font-size="20" fill="#fff">ABC</text></svg>`,
-  faith: `<svg class="art" viewBox="0 0 110 110"><circle cx="58" cy="70" r="24" fill="#FFE27A"/><g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M58 30v-10M30 44l-7-7M86 44l7-7M20 70H10M96 70h10"/></g><path d="M8 78q30-14 50-4t52-4v40H8z" fill="#fff"/></svg>`,
+  homework: mascot('tembo', 108, 'mascot-tile mascot-peek'),
+  games: mascot('simba', 108, 'mascot-tile mascot-peek'),
+  lessons: mascot('twiga', 110, 'mascot-tile mascot-peek'),
+  reading: mascot('kobe', 108, 'mascot-tile mascot-peek'),
+  math: mascot('pundamilia', 108, 'mascot-tile mascot-peek'),
+  faith: `<svg class="art" viewBox="0 0 110 110"><circle cx="58" cy="70" r="24" fill="#FFE27A"/><g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M58 30v-10M38 44l-7-7M86 44l7-7M20 70H10M96 70h10"/></g><path d="M8 78q30-14 50-4t52-4v40H8z" fill="#fff"/></svg>`,
 };
 
 /* ---------- sauti (Text to Speech) ---------- */
@@ -198,7 +241,7 @@ function modal(root, { iconName, iconColor = 'var(--teal)', title, text, html = 
   const ov = document.createElement('div');
   ov.className = 'overlay';
   ov.innerHTML = `<div class="modal">
-    ${iconName === 'nuru' ? `<div style="display:flex;justify-content:center;margin-bottom:4px">${nuruSVG(100)}</div>` : iconName ? `<div class="big-ic" style="background:${iconColor}">${icon(iconName, 50, 2.4)}</div>` : ''}
+    ${iconName === 'nuru' ? `<div style="display:flex;justify-content:center;margin-bottom:4px">${mascot('nuru', 100)}</div>` : iconName ? `<div class="big-ic" style="background:${iconColor}">${icon(iconName, 50, 2.4)}</div>` : ''}
     ${title ? `<h2>${esc(title)}</h2>` : ''}
     ${text ? `<p>${esc(text)}</p>` : ''}
     ${html}
@@ -230,4 +273,26 @@ function starsHTML(n, max = 3, size = 30) {
   let s = '';
   for (let i = 0; i < max; i++) s += `<svg class="${i < n ? '' : 'off'}" width="${size}" height="${size}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="${'M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6L3.4 9.5l6-.8z'}"/></svg>`;
   return s;
+}
+
+/* kitufe cha kuonyesha / kuficha nenosiri kwenye kila sehemu ya nenosiri */
+function enhancePasswords(root = document) {
+  root.querySelectorAll && root.querySelectorAll('input[type="password"]:not([data-pw])').forEach(inp => {
+    inp.dataset.pw = '1';
+    const wrap = document.createElement('div');
+    wrap.className = 'pw-wrap';
+    inp.parentNode.insertBefore(wrap, inp);
+    wrap.appendChild(inp);
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'pw-eye'; b.title = 'Onyesha nenosiri';
+    b.innerHTML = icon('eye', 20);
+    b.onclick = () => {
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      b.innerHTML = icon(show ? 'eyeOff' : 'eye', 20);
+      b.title = show ? 'Ficha nenosiri' : 'Onyesha nenosiri';
+      inp.focus();
+    };
+    wrap.appendChild(b);
+  });
 }
