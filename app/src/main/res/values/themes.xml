@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.HugoKid" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@color/hk_bg</item>
+        <item name="android:statusBarColor">@color/hk_bg</item>
+        <item name="android:navigationBarColor">@color/hk_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
