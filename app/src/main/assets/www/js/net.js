@@ -1,7 +1,7 @@
 /* HUGO KID - net.js : mawasiliano na server (akaunti, API, faili, WebSocket) */
 
 /* Anwani ya server. Kwenye web app ni ileile; kwenye APK weka anwani ya Railway hapa. */
-const HK_SERVER_DEFAULT = 'https://smartmark.space';
+const HK_SERVER_DEFAULT = 'https://kid.hugotech.co.tz';
 const IS_WEB = /^https?:$/.test(location.protocol) && location.hostname !== 'appassets.androidplatform.net';
 
 const Net = {
