@@ -8,6 +8,7 @@ const { q } = require('./db');
 const A = require('./auth');
 const hub = require('./hub');
 const router = require('./router');
+const tts = require('./tts');
 require('./routes-core');
 require('./routes-homework');
 require('./routes-family');
@@ -58,6 +59,17 @@ const server = http.createServer(async (req, res) => {
   try {
     if (url.pathname.startsWith('/api/')) {
       if (url.pathname === '/api/health') return json(res, 200, { ok: true });
+      /* sauti ya Nuru: mp3 ya sentensi (inahifadhiwa, kisha inatumwa tena bila kutengenezwa upya) */
+      if (url.pathname === '/api/tts/status') return json(res, 200, { enabled: tts.ready() });
+      if (url.pathname === '/api/tts' && req.method === 'GET') {
+        try {
+          const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+          const f = await tts.file(url.searchParams.get('lang') || 'sw', url.searchParams.get('text') || '', ip);
+          const st = fs.statSync(f);
+          res.writeHead(200, { 'content-type': 'audio/mpeg', 'content-length': st.size, 'cache-control': 'public, max-age=2592000, immutable' });
+          return fs.createReadStream(f).pipe(res);
+        } catch (e) { return json(res, e.code || 500, { error: e.message }); }
+      }
       if (url.pathname === '/api/upload' && req.method === 'POST') {
         const buf = await readBody(req, 61 * 1024 * 1024);
         return json(res, 200, await router.handle(req, res, buf, 'UPLOAD'));
@@ -76,7 +88,14 @@ const server = http.createServer(async (req, res) => {
     if (p === '/' || !path.extname(p)) p = '/index.html';
     const file = path.normalize(path.join(WEB, p));
     if (!file.startsWith(WEB) || !fs.existsSync(file)) { res.writeHead(404); return res.end('Haipo'); }
-    res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'application/octet-stream', 'cache-control': p === '/index.html' ? 'no-cache' : 'public, max-age=3600' });
+    /* code (html, js, css) inakaguliwa kila mara ili toleo jipya lionekane mara moja;
+       picha, sauti na fonts zinahifadhiwa siku moja */
+    const st = fs.statSync(file);
+    const etag = '"' + st.size.toString(36) + '-' + Math.floor(st.mtimeMs).toString(36) + '"';
+    const code = ['.html', '.js', '.css', '.webmanifest', '.json'].includes(path.extname(file));
+    const head = { 'content-type': MIME[path.extname(file)] || 'application/octet-stream', etag, 'cache-control': code ? 'no-cache' : 'public, max-age=86400' };
+    if (req.headers['if-none-match'] === etag) { res.writeHead(304, head); return res.end(); }
+    res.writeHead(200, head);
     fs.createReadStream(file).pipe(res);
   } catch (e) {
     if (e instanceof router.HttpError) return json(res, e.code, { error: e.message });

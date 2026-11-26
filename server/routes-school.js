@@ -204,4 +204,12 @@ route('PUT', '/api/admin/ai', (u, b) => {
   setSetting('ai', { provider: ['gemini', 'claude', 'openai'].includes(b.provider) ? b.provider : 'gemini', key: (b.key || '').trim() || old.key, model: (b.model || '').trim() });
   return { ok: true };
 });
+/* sauti ya Nuru (Azure Speech) */
+route('GET', '/api/admin/tts', u => { role(u, 'superadmin'); const c = require('./tts').cfg(); return { region: c.region, has_key: !!c.key, enabled: c.enabled }; });
+route('PUT', '/api/admin/tts', (u, b) => {
+  role(u, 'superadmin');
+  const old = getSetting('tts', {});
+  setSetting('tts', { key: (b.key || '').trim() || old.key || '', region: (b.region || '').trim().toLowerCase() || old.region || '', enabled: b.enabled !== false });
+  return { ok: true };
+});
 route('GET', '/api/admin/ai', u => { role(u, 'superadmin'); const c = ai.cfg(); return { provider: c.provider, model: c.model, has_key: !!c.key }; });
