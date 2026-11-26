@@ -22,7 +22,7 @@ HK.nativeRoute = (route, app) => {
   setTimeout(() => {
     if (route === 'appTimeUp') {
       speak('Muda wa ' + app + ' umekwisha kwa leo');
-      modal(null, { iconName: 'clock', iconColor: 'var(--blue)', title: 'Muda umekwisha', text: `Muda wa ${app} wa leo umekwisha. Twende tukasome au tucheze michezo ya kujifunza!`, buttons: [{ label: 'Sawa' }] });
+      modal(null, { iconName: 'clock', iconColor: 'var(--blue)', title: "Time's up", text: `Muda wa ${app} wa leo umekwisha. Twende tukasome au tucheze michezo ya kujifunza!`, buttons: [{ label: 'Sawa' }] });
     } else {
       speak("This app is not allowed");
       modal(null, { iconName: 'lock', iconColor: 'var(--coral)', title: 'Haijaruhusiwa', text: `${app} haiko kwenye orodha ya mzazi. Muombe mzazi akuruhusu.`, buttons: [{ label: 'Sawa' }] });
@@ -59,10 +59,10 @@ HK.screens.learningMode = (el) => {
       </div>
 
       <div class="section-title">Setup steps (one time only)</div>
-      ${step(st.usageAccess, '1. Ruhusa ya matumizi', 'Kujua programu inayotumika', 'p1')}
-      ${step(st.overlay, '2. Kuonekana juu ya programu', 'Kurudi HUGO KID muda ukiisha', 'p2')}
-      ${step(st.home, '3. HUGO KID iwe Home', st.on ? 'Chagua HUGO KID kama Home app' : 'Washa Learning Mode kwanza', 'p3')}
-      ${step(st.admin, '4. Zuia kufutwa', 'Mtoto asiweze kufuta HUGO KID', 'p4')}
+      ${step(st.usageAccess, "1. Usage access permission", 'Kujua programu inayotumika', 'p1')}
+      ${step(st.overlay, "2. Display over other apps", "Return to HUGO KID when time runs out", 'p2')}
+      ${step(st.home, '3. HUGO KID iwe Home', st.on ? "Choose HUGO KID as the Home app" : "Turn on Learning Mode first", 'p3')}
+      ${step(st.admin, '4. Zuia kufutwa', "Child can't uninstall HUGO KID", 'p4')}
 
       <div class="section-title">Programu anazoruhusiwa</div>
       <p class="muted" style="font-weight:700;font-size:13px;margin:0 2px 10px">Tap an app to allow it, then choose its daily time.</p>
@@ -84,7 +84,7 @@ HK.screens.learningMode = (el) => {
     HugoNative.setLearningMode(on);
     if (on) {
       toast("Learning Mode is on");
-      setTimeout(() => { HK.render(); if (!LM.state().home) modal(el, { iconName: 'home', title: "Last step", text: 'Chagua HUGO KID kama Home app ya simu hii, ili mtoto akibonyeza Home arudi HUGO KID.', buttons: [{ label: "Open settings", onClick: () => HugoNative.openHomeSettings() }, { label: 'Baadaye', cls: 'ghost' }] }); }, 400);
+      setTimeout(() => { HK.render(); if (!LM.state().home) modal(el, { iconName: 'home', title: "Last step", text: "Choose HUGO KID as this phone's Home app, so when the child presses Home they return to HUGO KID.", buttons: [{ label: "Open settings", onClick: () => HugoNative.openHomeSettings() }, { label: 'Baadaye', cls: 'ghost' }] }); }, 400);
     } else { toast("Learning Mode is off"); setTimeout(() => HK.render(), 300); }
   };
   const pz = $('#pause', el); if (pz) pz.onclick = () => { HugoNative.pauseGuard(30); toast("Protection paused for 30 minutes"); HK.render(); };

@@ -10,7 +10,7 @@ const dash = (el, title, sub, body, back = true, actions = '') => {
   return $('.dash-body', el);
 };
 const loading = '<div class="empty">Inapakia...</div>';
-const errBox = e => `<div class="empty">${esc(e.message)}<br><button class="btn small ghost" onclick="HK.render()" style="margin-top:12px">Jaribu tena</button></div>`;
+const errBox = e => `<div class="empty">${esc(e.message)}<br><button class="btn small ghost" onclick="HK.render()" style="margin-top:12px">Try again</button></div>`;
 const pct = v => v == null ? '-' : v + '%';
 const fmtDate = t => t ? new Date(t).toLocaleDateString('sw-TZ', { day: 'numeric', month: 'short' }) : '';
 const statCard = (n, v, ic, col) => `<div class="stat-card" style="--sc:${col}"><span class="sc-ic">${icon(ic, 22)}</span><b>${v ?? '-'}</b><span>${esc(n)}</span></div>`;
@@ -45,7 +45,7 @@ HK.screens.schoolHome = (el) => {
         ${classes.length ? `<div class="class-grid">${classes.map(c => `<button class="item" data-class="${c.id}">
           <div class="i-ic" style="background:var(--blue)">${icon('build', 24)}</div>
           <div class="grow"><div class="i-title">${esc(c.name)}</div><div class="i-sub">Wanafunzi ${c.students}${c.teacher ? ' · Mwl. ' + esc(c.teacher) : ''}</div></div>${icon('chevR', 20)}</button>`).join('')}</div>`
-        : `<div class="empty">${admin ? 'Bado hakuna madarasa. Fungua "Madarasa" uanze.' : 'Bado hujapangiwa darasa. Mwombe mkuu wa shule.'}</div>`}
+        : `<div class="empty">${admin ? "No classes yet. Open \"Classes\" to start." : "You haven't been assigned a class yet. Ask the head teacher."}</div>`}
         ${admin && an.classes.length ? `<div class="section-title">Performance by class</div><div class="card table-card"><table><tr><th>Class</th><th>Wanafunzi</th><th>Ufaulu</th><th>Homework</th><th>Mahudhurio</th></tr>
           ${an.classes.map(c => `<tr><td>${esc(c.name)}</td><td>${c.students}</td><td>${pct(c.performance)}</td><td>${pct(c.completion)}</td><td>${pct(c.attendance)}</td></tr>`).join('')}</table></div>` : ''}
         ${anns.length ? `<div class="section-title">Matangazo</div>${anns.slice(0, 3).map(a => `<div class="card"><h3>${esc(a.title)}</h3><p>${esc(a.body || '')}</p><p class="muted" style="font-size:12px">${fmtDate(a.created)}</p></div>`).join('')}` : ''}`;
@@ -56,7 +56,6 @@ HK.screens.schoolHome = (el) => {
   return off;
 };
 
-/* ---------- Madarasa (msimamizi) ---------- */
 HK.screens.aClasses = (el) => {
   const body = dash(el, 'Madarasa', '', loading);
   (async () => {
@@ -67,7 +66,7 @@ HK.screens.aClasses = (el) => {
           <h3>Add class</h3>
           <div class="form-row"><select class="field" id="lv">${levels.map(l => `<option>${esc(l)}</option>`).join('')}</select>
           <input class="field" id="st" placeholder="Mkondo (mf. A)" style="max-width:140px">
-          <select class="field" id="tc"><option value="">Mwalimu wa darasa</option>${teachers.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('')}<option value="${Net.user().id}">Mimi (${esc(Net.user().name)})</option></select></div>
+          <select class="field" id="tc"><option value="">Class teacher</option>${teachers.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('')}<option value="${Net.user().id}">Mimi (${esc(Net.user().name)})</option></select></div>
           <button class="btn" id="add" style="margin-top:12px">${icon('plus', 20)} Ongeza</button></div>
         ${classes.map(c => `<div class="item" style="cursor:default"><div class="i-ic" style="background:var(--blue)">${icon('build', 22)}</div>
           <div class="grow"><div class="i-title">${esc(c.name)}</div><div class="i-sub">Wanafunzi ${c.students}</div></div>
@@ -83,7 +82,7 @@ HK.screens.aClasses = (el) => {
 /* ---------- Walimu ---------- */
 HK.screens.aTeachers = (el) => {
   const body = dash(el, 'Walimu', '', loading);
-  const showCreds = r => modal(null, { iconName: 'key', title: 'Taarifa za kuingia', html: `<div class="card" style="text-align:left"><p>Simu/barua pepe: <b>${esc(r.login)}</b></p><p>Nenosiri la muda: <b style="font-size:20px;letter-spacing:1px">${esc(r.password)}</b></p></div><p style="font-size:13px">Give the teacher these details. They will change the password on first sign-in.</p>`, buttons: [{ label: 'Sawa' }] });
+  const showCreds = r => modal(null, { iconName: 'key', title: "Sign-in details", html: `<div class="card" style="text-align:left"><p>Simu/barua pepe: <b>${esc(r.login)}</b></p><p>Nenosiri la muda: <b style="font-size:20px;letter-spacing:1px">${esc(r.password)}</b></p></div><p style="font-size:13px">Give the teacher these details. They will change the password on first sign-in.</p>`, buttons: [{ label: 'Sawa' }] });
   (async () => {
     try {
       const list = await Net.get('/api/teachers');
@@ -100,9 +99,8 @@ HK.screens.aTeachers = (el) => {
   })();
 };
 
-/* ---------- Wazazi wa shule ---------- */
 HK.screens.aParents = (el) => {
-  const body = dash(el, 'Wazazi', 'Wazazi walioungana na wanafunzi wa shule', loading);
+  const body = dash(el, 'Wazazi', "Parents linked to the school's students", loading);
   Net.get('/api/parents').then(list => {
     body.innerHTML = list.length ? `<input class="field" id="f" placeholder="Tafuta jina au simu" style="margin-bottom:12px"><div class="card table-card"><table id="t"><tr><th>Parent</th><th>Simu</th><th>Watoto</th></tr>
       ${list.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.phone || p.email || '')}</td><td>${p.children.map(c => esc(c.name) + ' (' + esc(c.class_name) + ')').join('<br>')}</td></tr>`).join('')}</table></div>`
@@ -127,7 +125,7 @@ HK.screens.aSettings = (el) => {
   (async () => {
     let s = null;
     if (isAdmin()) { try { s = await Net.get('/api/school'); } catch (e) {} }
-    body.innerHTML = `${s ? `<div class="card"><h3>Taarifa za shule</h3>
+    body.innerHTML = `${s ? `<div class="card"><h3>School details</h3>
         <label class="label">Jina</label><input class="field" id="n" value="${esc(s.school.name)}">
         <div class="form-row"><div class="grow"><label class="label">Mkoa</label><input class="field" id="r" value="${esc(s.school.region || '')}"></div><div class="grow"><label class="label">Wilaya</label><input class="field" id="d" value="${esc(s.school.district || '')}"></div></div>
         <label class="label">Madarasa</label><div class="chips" id="lv">${s.levels.map(l => `<button class="chip ${s.school.levels.includes(l) ? 'on' : ''}" data-l="${esc(l)}" style="padding:8px 12px;font-size:13px">${esc(l.replace('Awali - ', ''))}</button>`).join('')}</div>
@@ -169,7 +167,7 @@ HK.screens.tClass = (el, p) => {
       }
       if (tab === 'st') {
         const list = await Net.get(`/api/classes/${c.id}/students`);
-        html = `<div class="card"><h3>Ongeza wanafunzi</h3><p style="font-size:13px">Andika jina moja kwa kila mstari.</p>
+        html = `<div class="card"><h3>Ongeza wanafunzi</h3><p style="font-size:13px">Write one name per line.</p>
           <textarea class="field" id="names" placeholder="Amani Juma&#10;Neema Ali"></textarea>
           <div class="btn-row" style="margin-top:12px"><button class="btn" id="add">${icon('plus', 20)} Ongeza</button><button class="btn ghost" id="print">${icon('file', 20)} Chapisha misimbo</button></div></div>
           <div class="card table-card"><table><tr><th>Mwanafunzi</th><th>Parent code</th><th>Parent</th>${isAdmin() ? '<th></th>' : ''}</tr>
@@ -239,12 +237,12 @@ HK.screens.tHwNew = (el, p) => {
     const draw = () => {
       body.innerHTML = `
         <label class="label">Homework type</label>
-        <div class="seg" style="margin:0">${[['paper', 'Karatasi (kuandika/kuchora)'], ['quiz', 'Quiz (inasahihishwa na AI)'], ['open', 'Kazi ya wazi (insha, mradi)']].map(([k, n]) => `<button data-k="${k}" class="${st.kind === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+        <div class="seg" style="margin:0">${[['paper', 'Karatasi (kuandika/kuchora)'], ['quiz', "Quiz (marked by AI)"], ['open', "Open task (essay, project)"]].map(([k, n]) => `<button data-k="${k}" class="${st.kind === k ? 'on' : ''}">${n}</button>`).join('')}</div>
         <div class="form-row"><div class="grow"><label class="label">Kichwa</label><input class="field" id="title" value="${esc(st.title || '')}" placeholder="Mfano: Sentensi 5 kuhusu familia"></div>
-          <div><label class="label">Somo</label><select class="field" id="subj"><option value="">Chagua somo</option>${subjects.map(s => `<option ${st.subject === s.name ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></div></div>
-        <label class="label">Maelekezo kwa mwanafunzi</label><textarea class="field" id="ins" placeholder="Mfano: Andika sentensi 5 za English kuhusu familia yako.">${esc(st.instructions || '')}</textarea>
+          <div><label class="label">Lesson</label><select class="field" id="subj"><option value="">Choose a subject</option>${subjects.map(s => `<option ${st.subject === s.name ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></div></div>
+        <label class="label">Instructions for the student</label><textarea class="field" id="ins" placeholder="Mfano: Andika sentensi 5 za English kuhusu familia yako.">${esc(st.instructions || '')}</textarea>
         <div class="form-row"><div class="grow"><label class="label">Mwisho (deadline)</label><input class="field" type="date" id="due" value="${esc(st.due || '')}"></div>
-          <div class="grow"><label class="label">Alama za juu</label><input class="field" type="number" id="max" value="${st.max || 10}" min="1" max="100"></div></div>
+          <div class="grow"><label class="label">Top scores</label><input class="field" type="number" id="max" value="${st.max || 10}" min="1" max="100"></div></div>
 
         <label class="label">File (PDF, image, audio)</label>
         <div class="chips">${st.attachments.map((a, i) => `<span class="chip">${esc(a.label)} <button data-rma="${i}" style="border:0;background:none;padding:0">${icon('x', 14)}</button></span>`).join('')}
@@ -258,12 +256,12 @@ HK.screens.tHwNew = (el, p) => {
         ${st.kind === 'quiz' ? `<label class="label">Maswali (${st.questions.length})</label>
           <div class="card">${st.questions.map(qRow).join('') || '<p class="muted">Ongeza maswali au tumia AI.</p>'}</div>
           <div class="card"><h3>Ongeza swali</h3>
-            <div class="form-row"><select class="field" id="qt" style="max-width:170px"><option value="mcq">Chaguo</option><option value="short">Jibu fupi</option><option value="math">Hesabu</option><option value="spelling">Tahajia</option><option value="match">Unganisha</option><option value="text">Maelezo (mwalimu)</option></select>
+            <div class="form-row"><select class="field" id="qt" style="max-width:170px"><option value="mcq">Chaguo</option><option value="short">Short answer</option><option value="math">Hesabu</option><option value="spelling">Tahajia</option><option value="match">Unganisha</option><option value="text">Notes (teacher)</option></select>
               <input class="field" id="qq" placeholder="Swali"></div>
             <input class="field" id="qa" style="margin-top:8px" placeholder="">
             <button class="btn small" id="addq" style="margin-top:10px">${icon('plus', 16)} Ongeza swali</button></div>` : ''}
 
-        <div class="card ai-card"><div class="row"><span>${mascot('nuru', 44)}</span><div class="grow"><h3 style="margin:0">Msaidizi wa AI wa mwalimu</h3><p style="font-size:13px">Mfano: "quiz ya hesabu ya kujumlisha" au "worksheet ya English kuhusu familia"</p></div></div>
+        <div class="card ai-card"><div class="row"><span>${mascot('nuru', 44)}</span><div class="grow"><h3 style="margin:0">Teacher's AI assistant</h3><p style="font-size:13px">Example: "addition math quiz" or "English worksheet about family"</p></div></div>
           <div class="form-row" style="margin-top:10px"><input class="field" id="topic" placeholder="Mada"><input class="field" id="cnt" type="number" value="5" style="max-width:90px">
             <select class="field" id="lang" style="max-width:140px"><option>English</option></select></div>
           <div class="btn-row" style="margin-top:10px"><button class="btn small blue" id="genq">${icon('check', 16)} Tengeneza quiz</button><button class="btn small ghost" id="genw">${icon('file', 16)} Tengeneza worksheet</button></div></div>
@@ -272,7 +270,7 @@ HK.screens.tHwNew = (el, p) => {
       const keep = () => { st.title = $('#title', body).value; st.subject = $('#subj', body).value; st.instructions = $('#ins', body).value; st.due = $('#due', body).value; st.max = +$('#max', body).value || 10; };
       $$('[data-k]', body).forEach(b => b.onclick = () => { keep(); st.kind = b.dataset.k; draw(); });
       const qt = $('#qt', body), qa = $('#qa', body);
-      const hint = () => { if (!qt) return; qa.placeholder = { mcq: 'Chaguo zitenganishwe kwa | na la kwanza liwe sahihi: 7|6|8', short: 'Jibu sahihi (majibu mbadala kwa |): kijani|green', math: 'Jibu la namba: 12', spelling: 'Neno sahihi: elephant', match: 'Jozi kwa | na = : Paka=Cat|Mbwa=Dog', text: 'Hakuna jibu (mwalimu/AI atasahihisha)' }[qt.value]; };
+      const hint = () => { if (!qt) return; qa.placeholder = { mcq: 'Chaguo zitenganishwe kwa | na la kwanza liwe sahihi: 7|6|8', short: 'Jibu sahihi (majibu mbadala kwa |): kijani|green', math: 'Jibu la namba: 12', spelling: 'Neno sahihi: elephant', match: 'Jozi kwa | na = : Paka=Cat|Mbwa=Dog', text: "No answer (teacher/AI will mark)" }[qt.value]; };
       if (qt) { qt.onchange = hint; hint(); }
       const aq = $('#addq', body);
       if (aq) aq.onclick = () => {
@@ -344,7 +342,6 @@ HK.screens.tHw = (el, p) => {
   return Net.on(m => { if (m.t === 'refresh') draw(); });
 };
 
-/* ---------- Kusahihisha: kalamu nyekundu, alama, maoni ---------- */
 HK.screens.tReview = (el, p) => {
   const body = dash(el, 'Sahihisha', '', loading);
   let marks = []; // [{canvas, strokes}]
@@ -366,11 +363,11 @@ HK.screens.tReview = (el, p) => {
         <div id="pages">${s.pages.map((pg, i) => `<div class="mark-wrap" data-i="${i}"><img src="${pg}" class="review-page" style="margin:0"><canvas></canvas></div>`).join('')}</div>` : ''}
       ${(s.attachments || []).length ? `<div class="card"><h3>Extra answers</h3>${(s.attachments || []).map(a => /^audio/.test(a.mime) ? `<p>${esc(a.label)}</p><audio controls src="${Net.fileUrl(a.file)}" style="width:100%"></audio>` : /^video/.test(a.mime) ? `<p>${esc(a.label)}</p><video controls playsinline src="${Net.fileUrl(a.file)}" style="width:100%;border-radius:12px"></video>` : `<img class="review-page" src="${Net.fileUrl(a.file)}">`).join('')}</div>` : ''}
       <div class="card ai-card"><div class="row"><span>${mascot('nuru', 40)}</span><div class="grow"><h3 style="margin:0">Pendekezo la AI</h3>
-        <p id="aitext">${s.ai_score != null ? `Alama inayopendekezwa: <b>${s.ai_score}/${s.max_score}</b><br>${esc(s.ai_comment || '')}` : s.auto_score != null ? `Alama ya moja kwa moja: <b>${s.auto_score}/${s.max_score}</b>` : 'Bado hakuna pendekezo.'}</p></div></div>
+        <p id="aitext">${s.ai_score != null ? `Alama inayopendekezwa: <b>${s.ai_score}/${s.max_score}</b><br>${esc(s.ai_comment || '')}` : s.auto_score != null ? `Alama ya moja kwa moja: <b>${s.auto_score}/${s.max_score}</b>` : "No suggestion yet."}</p></div></div>
         <button class="btn small ghost" id="ask">${icon('help', 16)} Omba AI ipendekeze</button></div>
       <div class="card"><h3>Final score (teacher)</h3>
         <div class="form-row"><input class="field" type="number" id="score" min="0" max="${s.max_score}" step="0.5" value="${s.score ?? s.ai_score ?? s.auto_score ?? ''}" style="max-width:120px"><span style="font-weight:700;font-size:18px">/ ${s.max_score}</span></div>
-        <label class="label">Maoni kwa mwanafunzi na mzazi</label><textarea class="field" id="fb" placeholder="Mfano: Kazi nzuri! Rekebisha herufi kubwa mwanzoni mwa sentensi.">${esc(s.feedback || '')}</textarea>
+        <label class="label">Comments for the student and parent</label><textarea class="field" id="fb" placeholder="Mfano: Kazi nzuri! Rekebisha herufi kubwa mwanzoni mwa sentensi.">${esc(s.feedback || '')}</textarea>
         <div class="btn-row" style="margin-top:12px"><button class="btn sun" id="ret">${icon('repeat', 18)} Arekebishe</button><button class="btn" id="ok" style="flex:2">${icon('check', 18)} Thibitisha alama</button></div></div>`;
 
     let tool = 'pen';
@@ -419,7 +416,7 @@ HK.screens.tReview = (el, p) => {
       if (status === 'marked' && score === '') return toast("Set the final score");
       try {
         await Net.post(`/api/submissions/${s.id}/review`, { status, score: score === '' ? null : +score, feedback: $('#fb', body).value, marked: marks.length ? merged() : undefined });
-        Sfx.good(); toast(status === 'marked' ? 'Alama imetumwa kwa mzazi na mwanafunzi' : 'Imerudishwa kwa mwanafunzi'); HK.back();
+        Sfx.good(); toast(status === 'marked' ? "Score sent to parent and student" : "Returned to the student"); HK.back();
       } catch (e) { toast(e.message); }
     };
     $('#ok', body).onclick = () => send('marked');
@@ -435,7 +432,7 @@ HK.screens.announce = (el) => {
     body.innerHTML = `${admin ? `<div class="card"><h3>Tangazo jipya</h3>
         <input class="field" id="t" placeholder="Kichwa">
         <textarea class="field" id="b" placeholder="Ujumbe" style="margin-top:8px"></textarea>
-        <label class="label">Linaenda kwa</label><div class="chips" id="aud">${[['all', 'Wote'], ['parents', 'Wazazi'], ['teachers', 'Walimu'], ['students', 'Wanafunzi']].map(([k, n], i) => `<button class="chip ${i ? '' : 'on'}" data-a="${k}">${n}</button>`).join('')}</div>
+        <label class="label">It goes to</label><div class="chips" id="aud">${[['all', 'Wote'], ['parents', 'Wazazi'], ['teachers', 'Walimu'], ['students', 'Wanafunzi']].map(([k, n], i) => `<button class="chip ${i ? '' : 'on'}" data-a="${k}">${n}</button>`).join('')}</div>
         <button class="btn" id="send" style="margin-top:12px">${icon('send', 18)} Tuma</button></div>` : ''}
       ${list.length ? list.map(a => `<div class="card"><div class="row"><h3 class="grow">${esc(a.title)}</h3><span class="chip-tag">${{ all: 'Wote', parents: 'Wazazi', teachers: 'Walimu', students: 'Wanafunzi' }[a.audience]}</span>${admin ? `<button class="icon-btn" data-del="${a.id}" style="width:34px;height:34px">${icon('trash', 16)}</button>` : ''}</div><p>${esc(a.body || '')}</p><p class="muted" style="font-size:12px">${fmtDate(a.created)}${a.school ? ' · ' + esc(a.school) : ''}</p></div>`).join('') : '<div class="empty">Hakuna matangazo.</div>'}`;
     let aud = 'all';

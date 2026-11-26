@@ -4,10 +4,10 @@ LESSONS.ai = {
   name: 'AI ni nini?', icon: 'robot', color: 'var(--navy)', hidden: true,
   cards: [
     { t: 'AI ni nini', x: 'AI ni programu ya kompyuta iliyojifunza kutoka kwa mifano mingi sana. Inaweza kuandika, kujibu maswali na kusaidia kuunda vitu.', q: ['AI inajifunza kutoka wapi?', ['Mifano mingi', 'Ndoto', 'Hewa'], 0] },
-    { t: 'Agizo (prompt)', x: 'Unachoiambia AI kinaitwa agizo. Agizo zuri linasema: unataka nini, kwa ajili ya nani, na kwa mtindo gani.', q: ['Agizo lipi ni bora?', ['"Hadithi"', '"Hadithi fupi ya kuchekesha kuhusu twiga anayejifunza kuogelea"', '"Andika"'], 1] },
-    { t: 'AI inaweza kukosea', x: 'AI haijui kila kitu. Wakati mwingine inakosea au inabuni mambo. Kagua majibu yake kwenye kitabu au muulize mwalimu.', q: ['AI ikikupa jibu, ufanye nini?', ['Uamini kila kitu', 'Ulikague', 'Ulifute'], 1] },
-    { t: 'Usalama', x: 'Usiiambie AI jina lako kamili, anwani, shule, namba ya simu wala picha zako. Ukiona jambo baya, mwambie mzazi.', q: ['Ni kipi hupaswi kuiambia AI?', ['Rangi unayopenda', 'Anwani ya nyumbani', 'Mnyama unayempenda'], 1] },
-    { t: 'Kuwa mkweli', x: 'AI ni msaidizi, si mbadala wako. Tumia mawazo yako kwanza. Ukitumia AI kwenye kazi, sema ulisaidiwa na AI.', q: ['Ukitumia AI kwenye kazi yako ufanye nini?', ['Uifiche', 'Useme ulisaidiwa', 'Umlaumu mwenzako'], 1] },
+    { t: 'Agizo (prompt)', x: 'Unachoiambia AI kinaitwa agizo. Agizo zuri linasema: unataka nini, kwa ajili ya nani, na kwa mtindo gani.', q: ['Agizo lipi ni bora?', ['"Hadithi"', "\"A funny short story about a giraffe learning to swim\"", '"Andika"'], 1] },
+    { t: 'AI inaweza kukosea', x: 'AI haijui kila kitu. Wakati mwingine inakosea au inabuni mambo. Kagua majibu yake kwenye kitabu au muulize mwalimu.', q: ["If AI gives you an answer, what should you do?", ['Uamini kila kitu', 'Ulikague', 'Ulifute'], 1] },
+    { t: 'Usalama', x: 'Usiiambie AI jina lako kamili, anwani, shule, namba ya simu wala picha zako. Ukiona jambo baya, mwambie mzazi.', q: ["What should you NOT tell an AI?", ['Rangi unayopenda', 'Anwani ya nyumbani', 'Mnyama unayempenda'], 1] },
+    { t: 'Kuwa mkweli', x: 'AI ni msaidizi, si mbadala wako. Tumia mawazo yako kwanza. Ukitumia AI kwenye kazi, sema ulisaidiwa na AI.', q: ["What should you do if you use AI in your work?", ['Uifiche', 'Useme ulisaidiwa', 'Umlaumu mwenzako'], 1] },
     { t: 'Wewe ni mbunifu', x: 'AI inasaidia, lakini wazo bora linatoka kwako. Ukiwa na wazo zuri, AI inakusaidia kulijenga haraka.', q: ['Wazo bora linatoka wapi?', ['Kwako', 'Kwenye simu tu', 'Hakuna'], 0] },
   ],
 };
@@ -17,11 +17,11 @@ const STUDIO_RULES = AI_CHILD_RULES + `
 - Mpongeze mtoto kwa mawazo yake na umpe kidokezo kimoja cha kuboresha agizo lake.`;
 
 const PROJECTS = [
-  { id: 'story', name: 'Tunga hadithi', sub: 'Wewe na Nuru mnaandika pamoja', icon: 'book', color: '#7B61FF' },
+  { id: 'story', name: 'Tunga hadithi', sub: "You and Nuru write together", icon: 'book', color: '#7B61FF' },
   { id: 'quiz', name: 'Tengeneza mchezo wa maswali', sub: 'Kisha uucheze', icon: 'game', color: '#F65B4F' },
-  { id: 'draw', name: 'Chora kwa maneno', sub: 'Eleza picha, AI inaichora', icon: 'image', color: '#1EA7F0' },
-  { id: 'video', name: 'Panga video fupi', sub: 'Matukio ya kuigiza na kurekodi', icon: 'camera', color: '#0FB394' },
-  { id: 'design', name: 'Buni mchezo', sub: 'Sheria, ngazi na lengo', icon: 'robot', color: '#FF8A3D' },
+  { id: 'draw', name: 'Chora kwa maneno', sub: "Describe a picture, AI draws it", icon: 'image', color: '#1EA7F0' },
+  { id: 'video', name: 'Panga video fupi', sub: "Scenes to act out and record", icon: 'camera', color: '#0FB394' },
+  { id: 'design', name: 'Buni mchezo', sub: "Rules, levels and goal", icon: 'robot', color: '#FF8A3D' },
 ];
 
 function studioAllowed(c) { return ageYears(c.birth) >= 8; }
@@ -35,7 +35,7 @@ function saveCreation(c, item) {
 async function askJSON(text, maxTokens = 900) {
   const raw = await AI.ask({ system: STUDIO_RULES + '\nJibu kwa JSON halali TU, bila maelezo mengine.', text, maxTokens });
   const m = raw.match(/[\[{][\s\S]*[\]}]/);
-  if (!m) throw new Error('Jibu la AI halikueleweka');
+  if (!m) throw new Error("The AI answer could not be understood");
   return JSON.parse(m[0]);
 }
 
@@ -74,7 +74,7 @@ HK.screens.aiStudio = (el) => {
   $('#bk', el).onclick = () => HK.back();
   $('[data-lesson]', el).onclick = () => HK.go('cardLesson', { key: 'ai' });
   $$('[data-p]', el).forEach(b => b.onclick = () => {
-    if (!AI.ready()) return modal(el, { iconName: 'nuru', title: "Ask your parent", text: 'Studio ya AI inahitaji mzazi aweke AI kwenye Mipangilio.', buttons: [{ label: 'Sawa' }] });
+    if (!AI.ready()) return modal(el, { iconName: 'nuru', title: "Ask your parent", text: "AI Studio needs a parent to set up AI in Settings.", buttons: [{ label: 'Sawa' }] });
     HK.go('proj_' + b.dataset.p);
   });
   $$('[data-m]', el).forEach(b => b.onclick = () => HK.go('creation', { id: b.dataset.m }));
@@ -94,7 +94,7 @@ const promptTip = (txt) => `<div class="card" style="background:#F2EEFF;border-c
 
 /* ---------- 1. Hadithi ---------- */
 HK.screens.proj_story = (el) => {
-  const P = projFrame(el, 'Tunga hadithi', 'Chagua mhusika, mahali na tatizo. Nitaandika mwanzo, kisha wewe utaamua kinachofuata!');
+  const P = projFrame(el, 'Tunga hadithi', "Choose a character, a place and a problem. I will write the beginning, then you decide what happens next!");
   const story = [];
   P.body.innerHTML = `
     <label class="label">Mhusika mkuu</label><input class="field" id="who" placeholder="Mfano: Twiga mdogo anayeitwa Zuri">
@@ -136,7 +136,7 @@ HK.screens.proj_story = (el) => {
 };
 
 HK.screens.proj_quiz = (el) => {
-  const P = projFrame(el, 'Mchezo wa maswali', 'Chagua mada unayoipenda. Nitatengeneza maswali, wewe utayakagua kisha utacheza mchezo wako!');
+  const P = projFrame(el, 'Mchezo wa maswali', "Choose a topic you like. I will make questions, you check them, then you play your own game!");
   P.body.innerHTML = `
     <label class="label">Mada</label><input class="field" id="topic" placeholder="Mfano: Wanyama wa Serengeti">
     <label class="label">Ugumu</label><div class="chips" id="lvl"><button class="chip on">Easy</button><button class="chip">Wastani</button><button class="chip">Mgumu</button></div>
@@ -175,9 +175,9 @@ HK.screens.playQuiz = (el, p) => {
 };
 
 HK.screens.proj_draw = (el) => {
-  const P = projFrame(el, 'Chora kwa maneno', 'Eleza picha unayotaka: nini kiwepo, rangi zake, na kiko wapi. Kadiri unavyoeleza vizuri, ndivyo picha inavyokuwa bora!');
+  const P = projFrame(el, 'Chora kwa maneno', "Describe the picture you want: what is in it, its colors, and where it is. The better you describe it, the better the picture!");
   P.body.innerHTML = `
-    <label class="label">Eleza picha yako</label>
+    <label class="label">Describe your picture</label>
     <textarea class="field" id="d" placeholder="Mfano: Nyumba ndogo ya bluu juu ya mlima, jua la njano angani, na mti wa kijani pembeni"></textarea>
     <div class="chips" style="margin-top:10px">${['rangi angavu', 'mtindo wa katuni', 'usiku wenye nyota', 'ufukweni'].map(x => `<button class="chip add">+ ${x}</button>`).join('')}</div>
     <div style="height:16px"></div><button class="btn block" id="go">${icon('image', 20)} Chora</button><div id="out"></div>`;
@@ -203,7 +203,7 @@ HK.screens.proj_draw = (el) => {
 
 /* ---------- 4. Video fupi (matukio) ---------- */
 HK.screens.proj_video = (el) => {
-  const P = projFrame(el, 'Panga video fupi', 'Video nzuri huanza na mpango. Niambie wazo lako, nitakusaidia kupanga matukio 4 ya kuigiza na kurekodi na mzazi.');
+  const P = projFrame(el, 'Panga video fupi', "A good video starts with a plan. Tell me your idea, I will help you plan 4 scenes to act out and record with your parent.");
   P.body.innerHTML = `
     <label class="label">Wazo la video</label><input class="field" id="idea" placeholder="Mfano: Jinsi ya kupanda mti nyumbani">
     <label class="label">Aina</label><div class="chips" id="kind">${['Ya kufundisha', 'Ya kuchekesha', 'Hadithi'].map((k, i) => `<button class="chip ${i ? '' : 'on'}">${k}</button>`).join('')}</div>
@@ -227,9 +227,9 @@ HK.screens.proj_video = (el) => {
 };
 
 HK.screens.proj_design = (el) => {
-  const P = projFrame(el, 'Buni mchezo', 'Kila mchezo una lengo, sheria na ngazi. Niambie wazo lako, tutaujenga pamoja!');
+  const P = projFrame(el, 'Buni mchezo', "Every game has a goal, rules and levels. Tell me your idea, we will build it together!");
   P.body.innerHTML = `
-    <label class="label">Wazo la mchezo</label><textarea class="field" id="idea" placeholder="Mfano: Kobe anakusanya matunda msituni huku akiepuka mvua"></textarea>
+    <label class="label">Game idea</label><textarea class="field" id="idea" placeholder="Mfano: Kobe anakusanya matunda msituni huku akiepuka mvua"></textarea>
     <div style="height:16px"></div><button class="btn block" id="go">${icon('robot', 20)} Buni mchezo</button><div id="out"></div>`;
   $('#go', el).onclick = async () => {
     const idea = $('#idea', el).value.trim(); if (idea.length < 8) return toast("Describe the idea a little more");

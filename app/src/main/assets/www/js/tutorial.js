@@ -1,88 +1,88 @@
 
 
 const TUT = {
-  racing: { rules: 'Gusa kushoto au kulia kuhamisha gari. Epuka magari na mawe. Okota sarafu. Swali likitokea, pita kwenye lango lenye jibu sahihi.', steps: () => [
-    { t: 'Gusa upande wa kushoto au kulia wa skrini kuhamisha gari lako.', g: 'lr', ic: 'car' },
-    { t: 'Epuka magari mengine na mawe. Okota sarafu za njano.', g: 'tap', ic: 'coin' },
-    { t: 'Swali likitokea juu, hamia kwenye lango lenye jibu sahihi.', g: 'lr', ic: 'flag' },
+  racing: { rules: "Tap left or right to move the car. Avoid cars and rocks. Collect coins. When a question appears, drive through the gate with the correct answer.", steps: () => [
+    { t: "Tap the left or right side of the screen to move your car.", g: 'lr', ic: 'car' },
+    { t: "Avoid other cars and rocks. Collect yellow coins.", g: 'tap', ic: 'coin' },
+    { t: "When a question appears above, move to the gate with the correct answer.", g: 'lr', ic: 'flag' },
   ] },
-  runner: { rules: 'Gusa skrini kuruka. Ruka juu ya mawe na magogo. Okota sarafu. Fika kwenye bendera.', steps: g => [
-    { t: 'Gusa skrini popote ili kuruka.', g: 'tap', ic: 'run' },
-    { t: 'Ruka juu ya mawe na magogo.' + (g === 2 ? ' Ndege wakija, usiruke!' : ''), g: 'tap', ic: 'heart' },
-    { t: 'Okota sarafu na ufike kwenye bendera.', g: 'none', ic: 'flag' },
+  runner: { rules: "Tap the screen to jump. Jump over rocks and logs. Collect coins. Reach the flag.", steps: g => [
+    { t: "Tap anywhere on the screen to jump.", g: 'tap', ic: 'run' },
+    { t: "Jump over rocks and logs." + (g === 2 ? ' Stay low when birds fly past.' : ''), g: 'tap', ic: 'heart' },
+    { t: "Collect coins and reach the flag.", g: 'none', ic: 'flag' },
   ] },
-  pilot: { rules: 'Shikilia skrini ndege ipande, achia ishuke. Pita katikati ya pete za njano.', steps: g => [
-    { t: 'Shikilia kidole kwenye skrini, ndege inapanda.', g: 'hold', ic: 'plane' },
+  pilot: { rules: "Hold the screen so the plane goes up, release so it goes down. Fly through the yellow rings.", steps: g => [
+    { t: "Hold your finger on the screen and the plane goes up.", g: 'hold', ic: 'plane' },
     { t: 'Achia kidole, ndege inashuka taratibu.', g: 'tap', ic: 'plane' },
-    { t: 'Pita katikati ya pete za njano.' + (g ? ' Epuka ndege wa angani.' : ''), g: 'none', ic: 'coin' },
+    { t: "Fly through the yellow rings." + (g ? " Avoid birds in the sky." : ''), g: 'none', ic: 'coin' },
   ] },
-  penalty: { rules: 'Gusa sehemu ya goli unayotaka kupiga mpira. Ukiwa kipa, gusa upande mpira unaoelekea.', steps: g => [
-    { t: 'Gusa sehemu yoyote ya goli. Mpira utaenda pale.', g: 'tap', ic: 'ball' },
-    { t: 'Chagua upande ambao kipa hayupo ili ufunge goli.', g: 'lr', ic: 'ball' },
-    ...(g ? [{ t: 'Zamu yako ya kuwa kipa: angalia mpira, kisha gusa upande unaoelekea.', g: 'tap', ic: 'user' }] : []),
+  penalty: { rules: "Tap the part of the goal where you want to kick the ball. As goalkeeper, tap the side the ball is going.", steps: g => [
+    { t: "Tap any part of the goal. The ball will go there.", g: 'tap', ic: 'ball' },
+    { t: "Choose the side where the goalkeeper isn't, to score a goal.", g: 'lr', ic: 'ball' },
+    ...(g ? [{ t: "Your turn to be goalkeeper: watch the ball, then tap the side it is going.", g: 'tap', ic: 'user' }] : []),
   ] },
-  bubbles: { rules: 'Gusa mapovu mawili au zaidi ya rangi moja yaliyogusana. Kundi kubwa linaleta alama nyingi.', steps: () => [
-    { t: 'Tafuta mapovu ya rangi moja yaliyogusana.', g: 'none', ic: 'bubbles' },
-    { t: 'Gusa moja wapo. Kundi lote linapasuka.', g: 'tap', ic: 'bubbles' },
-    { t: 'Kundi kubwa linaleta alama nyingi. Fikia alama za lengo.', g: 'none', ic: 'star' },
+  bubbles: { rules: "Tap two or more touching bubbles of the same color. A bigger group earns more points.", steps: () => [
+    { t: "Find touching bubbles of the same color.", g: 'none', ic: 'bubbles' },
+    { t: "Tap any one. The whole group pops.", g: 'tap', ic: 'bubbles' },
+    { t: "A bigger group earns more points. Reach the target score.", g: 'none', ic: 'star' },
   ] },
-  village: { rules: 'Chagua jengo chini, kisha gusa kiwanja. Jenga vitu vyote kwenye orodha ya kazi bila kuzidi pesa.', steps: g => [
-    { t: 'Chagua jengo kwenye orodha ya chini.', g: 'tap', ic: 'build' },
-    { t: 'Gusa kiwanja ulipotaka kujenga.', g: 'drag', ic: 'home' },
-    { t: 'Jenga vitu vyote vya kazi. Usimalize pesa zote: akiba inaleta nyota.' + (g ? ' Kila nyumba iwe karibu na kisima au mti.' : ''), g: 'none', ic: 'coin' },
+  village: { rules: "Choose a building below, then tap a plot. Build everything on the task list without going over budget.", steps: g => [
+    { t: "Choose a building from the list below.", g: 'tap', ic: 'build' },
+    { t: "Tap the plot where you want to build.", g: 'drag', ic: 'home' },
+    { t: "Build everything on the task list. Don't spend all the money: savings earn stars." + (g ? " Every house should be near a well or a tree." : ''), g: 'none', ic: 'coin' },
   ] },
-  kitchen: { rules: 'Soma mapishi. Gusa kila kiungo mara ngapi kinahitajika. Bonyeza Pika.', steps: g => [
-    { t: 'Soma mapishi juu. Gusa spika kusikiliza.', g: 'tap', ic: 'volume' },
-    { t: g ? 'Gusa kila kiungo idadi ya mara inayotakiwa.' : 'Gusa kila kiungo kinachohitajika mara moja.', g: 'tap', ic: 'pot' },
-    { t: 'Bonyeza Pika. Ukikosea, bonyeza Mwaga uanze upya.', g: 'tap', ic: 'check' },
+  kitchen: { rules: "Read the recipe. Tap each ingredient as many times as needed. Tap Cook.", steps: g => [
+    { t: "Read the recipe above. Tap the speaker to listen.", g: 'tap', ic: 'volume' },
+    { t: g ? "Tap each ingredient the required number of times." : "Tap each needed ingredient once.", g: 'tap', ic: 'pot' },
+    { t: "Tap Cook. If you make a mistake, tap Empty to start again.", g: 'tap', ic: 'check' },
   ] },
-  balloons: { rules: 'Soma au sikiliza swali juu. Gusa puto lenye jibu sahihi kabla halijapaa.', steps: g => [
-    { t: g === 0 ? 'Hesabu nyota zilizo juu.' : 'Soma swali la hesabu juu.', g: 'none', ic: 'star' },
-    { t: 'Gusa puto lenye jibu sahihi.', g: 'tap', ic: 'balloon' },
+  balloons: { rules: "Read or listen to the question above. Tap the balloon with the correct answer before it floats away.", steps: g => [
+    { t: g === 0 ? "Count the stars above." : "Read the math question above.", g: 'none', ic: 'star' },
+    { t: "Tap the balloon with the correct answer.", g: 'tap', ic: 'balloon' },
   ] },
-  letters: { rules: 'Soma au sikiliza neno au maelezo. Chagua herufi au neno sahihi.', steps: g => [
-    { t: 'Gusa spika kusikiliza neno.', g: 'tap', ic: 'volume' },
-    { t: ['Chagua herufi ambayo neno linaanza nayo.', 'Chagua herufi iliyopotea kwenye neno.', 'Chagua neno lililoandikwa sawasawa.'][g], g: 'tap', ic: 'letters' },
+  letters: { rules: "Read or listen to the word or description. Choose the correct letter or word.", steps: g => [
+    { t: "Tap the speaker to hear the word.", g: 'tap', ic: 'volume' },
+    { t: ["Choose the letter the word starts with.", "Choose the missing letter in the word.", "Choose the correctly spelled word."][g], g: 'tap', ic: 'letters' },
   ] },
-  memory: { rules: 'Gusa kadi mbili. Zikifanana zinabaki wazi. Tafuta jozi zote kwa hatua chache.', steps: g => [
-    { t: 'Gusa kadi moja, kisha nyingine.', g: 'tap', ic: 'cards' },
-    { t: g ? 'Neno na maana yake zikikutana, zinabaki wazi.' : 'Picha zikifanana, zinabaki wazi.', g: 'none', ic: 'check' },
+  memory: { rules: "Tap two cards. If they match, they stay open. Find all the pairs in as few moves as possible.", steps: g => [
+    { t: "Tap one card, then another.", g: 'tap', ic: 'cards' },
+    { t: g ? "When a word meets its meaning, they stay open." : "When pictures match, they stay open.", g: 'none', ic: 'check' },
     { t: 'Kumbuka kadi ulizoona ili umalize haraka.', g: 'none', ic: 'star' },
   ] },
-  robot: { rules: 'Mpeleke roboti kwenye zawadi kwa kutumia mishale. Epuka kuta za kijivu.', steps: g => g === 0 ? [
-    { t: 'Gusa mishale kumsogeza roboti hatua moja moja.', g: 'tap', ic: 'robot' },
-    { t: 'Mfikishe kwenye zawadi. Kuta za kijivu haziruhusu kupita.', g: 'none', ic: 'gift' },
+  robot: { rules: "Take the robot to the prize using the arrows. Avoid the grey walls.", steps: g => g === 0 ? [
+    { t: "Tap the arrows to move the robot one step at a time.", g: 'tap', ic: 'robot' },
+    { t: "Get it to the prize. Grey walls can't be crossed.", g: 'none', ic: 'gift' },
   ] : [
-    { t: 'Panga mishale yote kwanza, kama maagizo kwa roboti.', g: 'tap', ic: 'robot' },
-    { t: 'Bonyeza Endesha. Roboti atafuata mishale yako.', g: 'tap', ic: 'play' },
-    { t: 'Akigonga ukuta, rekebisha mishale ujaribu tena.', g: 'none', ic: 'undo' },
+    { t: "Arrange all the arrows first, like instructions for the robot.", g: 'tap', ic: 'robot' },
+    { t: "Tap Run. The robot will follow your arrows.", g: 'tap', ic: 'play' },
+    { t: 'If the robot hits a wall, adjust the arrows and try again.', g: 'none', ic: 'undo' },
   ] },
-  market: { rules: 'Wewe ni muuzaji sokoni. Msikilize mteja na umpe anachotaka au chenji sahihi.', steps: g => [
-    [{ t: 'Sikiliza mteja anataka matunda mangapi.', g: 'none', ic: 'volume' }, { t: 'Gusa matunda kuweka kwenye kikapu, kisha Mpe mteja.', g: 'tap', ic: 'shop' }],
-    [{ t: 'Soma bei ya kila tunda.', g: 'none', ic: 'shop' }, { t: 'Jumlisha bei, kisha chagua jibu sahihi.', g: 'tap', ic: 'coin' }],
-    [{ t: 'Chenji = pesa aliyolipa toa bei.', g: 'none', ic: 'shop' }, { t: 'Gusa noti na sarafu kufikia chenji, kisha Mpe chenji.', g: 'tap', ic: 'coin' }],
+  market: { rules: "You are a market seller. Listen to the customer and give them what they want or the correct change.", steps: g => [
+    [{ t: "Listen to how many fruits the customer wants.", g: 'none', ic: 'volume' }, { t: "Tap fruits to put them in the basket, then Give to customer.", g: 'tap', ic: 'shop' }],
+    [{ t: "Read the price of each fruit.", g: 'none', ic: 'shop' }, { t: "Add up the prices, then choose the correct answer.", g: 'tap', ic: 'coin' }],
+    [{ t: 'Subtract the price from the amount paid to find the change.', g: 'none', ic: 'shop' }, { t: "Tap notes and coins to make the change, then Give change.", g: 'tap', ic: 'coin' }],
   ][g] },
-  shapes: { rules: 'Chagua umbo chini, kisha gusa mahali pake juu.', steps: g => g === 2 ? [
-    { t: 'Soma swali kuhusu umbo.', g: 'none', ic: 'shapes' },
-    { t: 'Hesabu pande za kila umbo, kisha chagua jibu.', g: 'tap', ic: 'check' },
+  shapes: { rules: "Choose a shape below, then tap its place above.", steps: g => g === 2 ? [
+    { t: "Read the question about the shape.", g: 'none', ic: 'shapes' },
+    { t: "Count the sides of each shape, then choose the answer.", g: 'tap', ic: 'check' },
   ] : [
-    { t: 'Gusa umbo moja chini kulichagua.', g: 'tap', ic: 'shapes' },
-    { t: 'Gusa nafasi juu yenye umbo kama hilo.', g: 'drag', ic: 'check' },
+    { t: "Tap one shape below to choose it.", g: 'tap', ic: 'shapes' },
+    { t: "Tap the space above with the same shape.", g: 'drag', ic: 'check' },
   ] },
-  speak: { rules: 'Sikiliza neno, kisha lisema kwa sauti ili mlango ufunguke.', steps: () => [
-    { t: 'Chagua lugha juu.', g: 'tap', ic: 'letters' },
-    { t: 'Gusa Sikiliza ili kusikia neno.', g: 'tap', ic: 'volume' },
-    { t: 'Gusa Sema neno, kisha lisema kwa sauti. Mlango utafunguka!', g: 'hold', ic: 'mic' },
+  speak: { rules: "Listen to the word, then say it out loud to open the door.", steps: () => [
+    { t: "Choose a language at the top.", g: 'tap', ic: 'letters' },
+    { t: "Tap Listen to hear the word.", g: 'tap', ic: 'volume' },
+    { t: "Tap Say the word, then say it out loud. The door will open!", g: 'hold', ic: 'mic' },
   ] },
-  faith: { rules: 'Soma au sikiliza swali, kisha chagua jibu sahihi.', steps: () => [
-    { t: 'Gusa spika kusikiliza swali.', g: 'tap', ic: 'volume' },
-    { t: 'Chagua jibu sahihi.', g: 'tap', ic: 'check' },
+  faith: { rules: "Read or listen to the question, then choose the correct answer.", steps: () => [
+    { t: "Tap the speaker to hear the question.", g: 'tap', ic: 'volume' },
+    { t: "Choose the correct answer.", g: 'tap', ic: 'check' },
   ] },
-  homework: { rules: 'Andika na chora juu ya karatasi kwa kidole. Ukimaliza bonyeza Wasilisha.', steps: () => [
-    { t: 'Andika au chora juu ya karatasi kwa kidole chako.', g: 'drag', ic: 'pencil' },
-    { t: 'Chagua rangi, unene wa kalamu, au kifutio chini.', g: 'tap', ic: 'eraser' },
-    { t: 'Ukikwama, bonyeza Msaada. Nuru atakupa kidokezo.', g: 'tap', ic: 'help' },
-    { t: 'Ukimaliza kurasa zote, bonyeza Wasilisha.', g: 'tap', ic: 'send' },
+  homework: { rules: "Write and draw on the paper with your finger. When you finish, tap Submit.", steps: () => [
+    { t: "Write or draw on the paper with your finger.", g: 'drag', ic: 'pencil' },
+    { t: "Choose a color, pen size, or the eraser below.", g: 'tap', ic: 'eraser' },
+    { t: "If you get stuck, tap Help. Nuru will give you a hint.", g: 'tap', ic: 'help' },
+    { t: "When you finish all the pages, tap Submit.", g: 'tap', ic: 'send' },
   ] },
 };
 
@@ -101,7 +101,15 @@ const GT = {
     const ov = document.createElement('div');
     ov.className = 'overlay';
     root.appendChild(ov);
-    const close = () => { ov.remove(); GT.mark(id); if (window.speechSynthesis) speechSynthesis.cancel(); onClose && onClose(); };
+    const close = () => {
+      ov.remove();
+      GT.mark(id);
+      if (typeof Voice !== 'undefined') Voice.stop();
+      window.speechSynthesis?.cancel();
+      window.HugoNative?.stopSpeaking?.();
+      onClose?.();
+    };
+    ov.onGameBack = close;
     const draw = () => {
       const s = steps[i];
       ov.innerHTML = `<div class="modal tut">
@@ -109,14 +117,14 @@ const GT = {
           <div class="tut-ic">${icon(s.ic || gm.icon, 64, 2)}</div>
           ${s.g !== 'none' ? `<div class="tut-hand g-${s.g}">${icon('hand', 54, 2)}</div>` : ''}
         </div>
-        <div class="tut-step">Hatua ${i + 1} kati ya ${steps.length}</div>
+        <div class="tut-step">Step ${i + 1} of ${steps.length}</div>
         <p style="font-size:18px;color:var(--navy)">${esc(s.t)}</p>
         <div class="btn-row" style="margin-bottom:12px">
-          <button class="btn ghost small" id="t-say">${icon('volume', 18)} Sikiliza</button>
-          <button class="btn ghost small" id="t-ai">${icon('help', 18)} Muulize Nuru</button>
+          <button class="btn ghost small" id="t-say">${icon('volume', 18)} Listen</button>
+          <button class="btn ghost small" id="t-ai">${icon('help', 18)} Ask Nuru</button>
         </div>
-        <button class="btn block ${i === steps.length - 1 ? 'coral' : ''}" id="t-next">${i === steps.length - 1 ? 'Nimeelewa, tuanze!' : 'Endelea'} ${icon('chevR', 20)}</button>
-        ${i < steps.length - 1 ? '<button class="btn block ghost small" id="t-skip" style="margin-top:10px">Ruka mafunzo</button>' : ''}
+        <button class="btn block ${i === steps.length - 1 ? 'coral' : ''}" id="t-next">${i === steps.length - 1 ? 'Start playing' : 'Continue'} ${icon('chevR', 20)}</button>
+        ${i < steps.length - 1 ? '<button class="btn block ghost small" id="t-skip" style="margin-top:10px">Skip tutorial</button>' : ''}
       </div>`;
       speak(s.t);
       $('#t-say', ov).onclick = () => speak(s.t);
@@ -132,22 +140,21 @@ const GT = {
     const c = Store.active();
     const gm = (typeof GAMES !== 'undefined' && GAMES.find(g => g.id === id)) || { name: id === 'homework' ? 'Homework' : id };
     const fallback = () => {
-      const t = 'Sheria ni hizi: ' + T.rules;
+      const t = "These are the rules: " + T.rules;
       speak(t);
-      modal(root, { iconName: 'nuru', title: 'Nuru anasema', text: t, buttons: [{ label: 'Sawa' }] });
+      modal(root, { iconName: 'nuru', title: 'Nuru says', text: t, buttons: [{ label: 'OK' }] });
     };
     if (!AI.ready()) return fallback();
-    const wait = modal(root, { iconName: 'nuru', title: 'Nuru anafikiri...', text: 'Subiri kidogo', buttons: [] });
+    const wait = modal(root, { iconName: 'nuru', title: 'Nuru is thinking…', text: 'One moment', buttons: [] });
     try {
       const a = await AI.ask({
-        text: `Mtoto ${c.name} (miaka ${ageYears(c.birth)}) anacheza mchezo "${gm.name}" na ameomba msaada.
-Sheria za mchezo: ${T.rules}
-${current ? 'Swali la sasa: ' + current + '\n' : ''}Mweleze kwa sentensi 2-3 rahisi jinsi ya kucheza${current ? ' na umpe kidokezo kimoja cha swali hili BILA kumpa jibu' : ''}.`,
+        text: `Help a child aged ${ageYears(c.birth)} play ${gm.name}. Rules: ${T.rules}
+${current ? "Current question: " + current + ". Give a hint without revealing the answer." : "Explain how to play."} Reply in two or three short English sentences.`,
         maxTokens: 250,
       });
       wait.remove(); speak(a);
-      AI.log(c.id, '[Msaada: ' + gm.name + ']', a);
-      modal(root, { iconName: 'nuru', title: 'Nuru anasema', text: a, buttons: [{ label: 'Sikiliza tena', icon: 'volume', keepOpen: true, onClick: () => speak(a) }, { label: 'Asante Nuru' }] });
+      AI.log(c.id, '[Help: ' + gm.name + ']', a);
+      modal(root, { iconName: 'nuru', title: 'Nuru says', text: a, buttons: [{ label: "Listen again", icon: 'volume', keepOpen: true, onClick: () => speak(a) }, { label: 'Thank you, Nuru' }] });
     } catch (e) { wait.remove(); fallback(); }
   },
 

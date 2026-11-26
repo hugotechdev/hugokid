@@ -99,7 +99,6 @@ function kidAvatar(c, size = 56, mood = 'happy', accessory = c?.acc) {
   return `<span class="kid-portrait" style="--portrait-size:${size}px" aria-hidden="true"><img src="${src}" alt="" decoding="async">${extra ? `<svg class="portrait-accessory" viewBox="0 0 100 100">${extra.svg}</svg>` : ''}</span>`;
 }
 
-/* Wahusika wa HUGO KID */
 function mascot(name, size = 88, cls = '') {
   const eyes = name === 'nuru' ? '<i class="mascot-lid"></i><i class="mascot-lid right"></i>' : '';
   return `<span class="mascot ${cls}" style="--mascot-size:${size}px" aria-hidden="true"><img src="img/safari/${name}.webp" alt="" decoding="async">${eyes}</span>`;
@@ -232,7 +231,6 @@ function confetti(root) {
   setTimeout(() => box.remove(), 4000);
 }
 
-/* Dirisha dogo (modal). buttons: [{label, cls, onClick}] */
 function modal(root, { iconName, iconColor = 'var(--teal)', title, text, html = '', buttons = [] }) {
   const ov = document.createElement('div');
   ov.className = 'overlay';
@@ -256,11 +254,11 @@ function modal(root, { iconName, iconColor = 'var(--teal)', title, text, html = 
 }
 
 function confirmBox(root, title, text, yesLabel, onYes, cls = 'coral') {
-  modal(root, {
+  return modal(root, {
     title, text,
     buttons: [
       { label: yesLabel, cls, onClick: onYes },
-      { label: 'Hapana', cls: 'ghost' },
+      { label: 'No', cls: 'ghost' },
     ],
   });
 }

@@ -43,7 +43,7 @@ HK.screens.acctAuth = (el, p) => {
         <div class="seg" style="margin:4px 0 14px"><button data-t="login" class="${tab === 'login' ? 'on' : ''}">Ingia</button><button data-t="register" class="${tab === 'register' ? 'on' : ''}">Jisajili</button></div>
         ${tab === 'login' ? `
           <label class="label">Phone or email</label><input class="field" id="login" autocomplete="username" placeholder="07xx xxx xxx">
-          <label class="label">Nenosiri</label><input class="field" id="pass" type="password" autocomplete="current-password">
+          <label class="label">Password</label><input class="field" id="pass" type="password" autocomplete="current-password">
           <div style="height:18px"></div><button class="btn block" id="go">${icon('key', 20)} Ingia</button>
           <button class="btn small ghost" id="forgot-password" style="margin-top:14px">Forgot password?</button>
           <p class="muted" style="font-size:13px;margin-top:14px">Teachers get a temporary password from the head teacher.</p>`
@@ -51,15 +51,15 @@ HK.screens.acctAuth = (el, p) => {
           ${kind === 'any' ? `<label class="label">You are registering as</label><div class="chips" id="kind"><button class="chip on" data-k="parent">Parent</button><button class="chip" data-k="school">School / Teacher</button></div>` : ''}
           ${kind === 'school' ? `
             <label class="label">Aina</label>
-            <div class="chips" id="stype"><button class="chip ${schoolType === 'school' ? 'on' : ''}" data-s="school">Shule</button><button class="chip ${schoolType === 'tutor' ? 'on' : ''}" data-s="tutor">Private tutor / Tuition</button></div>
-            ${schoolType === 'school' ? `<label class="label">Jina la shule</label><input class="field" id="sname" placeholder="Mfano: Shule ya Msingi Upendo">` : ''}
+            <div class="chips" id="stype"><button class="chip ${schoolType === 'school' ? 'on' : ''}" data-s="school">School</button><button class="chip ${schoolType === 'tutor' ? 'on' : ''}" data-s="tutor">Private tutor / Tuition</button></div>
+            ${schoolType === 'school' ? `<label class="label">School name</label><input class="field" id="sname" placeholder="Mfano: Shule ya Msingi Upendo">` : ''}
             <div class="row" style="gap:10px"><div class="grow"><label class="label">Mkoa</label><input class="field" id="region" placeholder="Dar es Salaam"></div><div class="grow"><label class="label">Wilaya</label><input class="field" id="district" placeholder="Kinondoni"></div></div>
             <label class="label">Madarasa mnayofundisha</label>
             <div class="chips" id="lv">${levels.map(l => `<button class="chip ${picked.has(l) ? 'on' : ''}" data-l="${esc(l)}" style="padding:8px 12px;font-size:13px">${esc(l.replace('Awali - ', ''))}</button>`).join('')}</div>` : ''}
-          <label class="label">${kind === 'school' && schoolType === 'school' ? 'Jina la mkuu wa shule / msimamizi' : 'Jina lako kamili'}</label><input class="field" id="name">
+          <label class="label">${kind === 'school' && schoolType === 'school' ? "Name of head teacher / administrator" : 'Jina lako kamili'}</label><input class="field" id="name">
           <label class="label">Phone number</label><input class="field" id="phone" inputmode="tel" placeholder="07xx xxx xxx">
-          <label class="label">Barua pepe (si lazima)</label><input class="field" id="email" type="email">
-          <label class="label">Nenosiri (herufi 6+)</label><input class="field" id="pass" type="password" autocomplete="new-password">
+          <label class="label">Email (optional)</label><input class="field" id="email" type="email">
+          <label class="label">Password (6+ characters)</label><input class="field" id="pass" type="password" autocomplete="new-password">
           <label class="card row" style="cursor:pointer;gap:12px;align-items:flex-start;margin-top:16px">
             <input type="checkbox" id="ok" style="width:22px;height:22px;flex:none;accent-color:var(--teal)">
             <span style="font-weight:600;font-size:13px">Nimesoma na ninakubali <a href="#" id="tlink" style="color:var(--blue)">Terms and Privacy Policy</a>.</span></label>
@@ -86,7 +86,7 @@ HK.screens.acctAuth = (el, p) => {
       if (tab === 'login') {
         r = await Net.post('/api/login', { login: $('#login', el).value, password: $('#pass', el).value });
       } else {
-        if (!$('#ok', el).checked) throw new Error('Kubali masharti kwanza');
+        if (!$('#ok', el).checked) throw new Error("Accept the terms first");
         const k = kind === 'any' ? 'parent' : kind === 'school' ? schoolType : 'parent';
         r = await Net.post('/api/register', {
           kind: k, name: $('#name', el).value, phone: $('#phone', el).value, email: $('#email', el).value, password: $('#pass', el).value, terms: TERMS_VERSION,
@@ -112,12 +112,12 @@ HK.screens.acctAuth = (el, p) => {
 
 HK.screens.changePass = (el, p) => {
   el.innerHTML = `
-    <div class="topbar">${p.forced ? '' : `<button class="icon-btn" id="bk">${icon('back')}</button>`}<h1>Badilisha nenosiri</h1></div>
+    <div class="topbar">${p.forced ? '' : `<button class="icon-btn" id="bk">${icon('back')}</button>`}<h1>Change password</h1></div>
     <div class="scroll" style="max-width:480px;margin:0 auto;width:100%">
       ${p.forced ? '<div class="card" style="background:#FFF4D2"><p>Kwa usalama, weka nenosiri jipya kabla ya kuendelea.</p></div>' : ''}
-      <label class="label">Nenosiri la sasa</label><input class="field" id="old" type="password">
-      <label class="label">Nenosiri jipya (herufi 6+)</label><input class="field" id="new" type="password">
-      <label class="label">Rudia nenosiri jipya</label><input class="field" id="new2" type="password">
+      <label class="label">Current password</label><input class="field" id="old" type="password">
+      <label class="label">New password (6+ characters)</label><input class="field" id="new" type="password">
+      <label class="label">Repeat new password</label><input class="field" id="new2" type="password">
       <div style="height:18px"></div><button class="btn block" id="go">${icon('check', 20)} Hifadhi</button>
     </div>`;
   const bk = $('#bk', el); if (bk) bk.onclick = () => HK.back();

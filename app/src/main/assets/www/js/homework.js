@@ -40,7 +40,7 @@ async function drawPageBg(ctx, pg) {
     ctx.drawImage(img, 0, 0, w, h);
     return;
   }
-  // karatasi yenye mistari
+
   ctx.strokeStyle = '#D6E2F3'; ctx.lineWidth = 2;
   for (let y = 120; y < h - 30; y += 56) { ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(w - 40, y); ctx.stroke(); }
   ctx.strokeStyle = '#F7B4AE'; ctx.lineWidth = 3;
@@ -100,7 +100,7 @@ HK.screens.hwNew = (el) => {
       ${kids.length > 1 ? `<label class="label">Whose is it?</label><div class="chips" id="kid">${kids.map(k => `<button class="chip ${k.id === hw.childId ? 'on' : ''}" data-id="${k.id}">${esc(k.name)}</button>`).join('')}</div>` : ''}
       <label class="label">Jina la homework</label>
       <input class="field" id="title" placeholder="Mfano: Hesabu ukurasa 12">
-      <label class="label">Somo</label>
+      <label class="label">Lesson</label>
       <div class="chips" id="sub">${SUBJECTS.map(s => `<button class="chip ${s === hw.subject ? 'on' : ''}">${s}</button>`).join('')}</div>
       <label class="label">Kurasa</label>
       <div class="pages-grid" id="pages"></div>
@@ -142,7 +142,7 @@ HK.screens.hwNew = (el) => {
   };
   $('#blank', el).onclick = () => {
     const ov = modal(el, {
-      title: 'Andika swali', html: '<textarea class="field" id="q" placeholder="Mfano: 1) 5 + 3 = ?  2) Chora miti mitatu" style="margin-bottom:16px;text-align:left"></textarea>',
+      title: "Enter a question", html: '<textarea class="field" id="q" placeholder="Mfano: 1) 5 + 3 = ?  2) Chora miti mitatu" style="margin-bottom:16px;text-align:left"></textarea>',
       buttons: [{ label: 'Ongeza ukurasa', onClick: (o) => {
         const t = $('#q', o).value.trim();
         hw.pages.push({ bg: null, questions: t ? t.split(/\n+/).filter(Boolean) : [], strokes: [] });
@@ -154,7 +154,7 @@ HK.screens.hwNew = (el) => {
 
   $('#ai', el).onclick = async () => {
     if (!AI.cfg().key) {
-      return modal(el, { iconName: 'sliders', title: "Set up AI first", text: 'Chagua Gemini, Claude au ChatGPT na uweke API key kwenye Mipangilio.', buttons: [{ label: "Open AI settings", onClick: () => HK.go('aiSettings') }, { label: 'Baadaye', cls: 'ghost' }] });
+      return modal(el, { iconName: 'sliders', title: "Set up AI first", text: "Choose Gemini, Claude or ChatGPT and enter the API key in Settings.", buttons: [{ label: "Open AI settings", onClick: () => HK.go('aiSettings') }, { label: 'Baadaye', cls: 'ghost' }] });
     }
     const b = $('#ai', el); b.disabled = true; b.innerHTML = 'AI inasoma homework...';
     try {
@@ -235,7 +235,7 @@ HK.screens.hwReview = (el, p) => {
     };
     const ret = $('#ret', el);
     if (ret) ret.onclick = async () => {
-      hw.status = 'returned'; hw.feedback = $('#fb', el).value.trim() || 'Angalia tena kazi yako na urekebishe.';
+      hw.status = 'returned'; hw.feedback = $('#fb', el).value.trim() || "Check your work again and fix it.";
       await HWDB.put(hw); toast("Returned to the child"); HK.back();
     };
     $('#del', el).onclick = () => confirmBox(el, "Delete homework?", "This work will be deleted permanently.", "Delete", async () => { await HWDB.del(hw.id); HK.back(); });
@@ -267,7 +267,7 @@ HK.screens.hwList = (el) => {
     $$('.item', box).forEach(b => b.onclick = () => {
       const h = list.find(x => x.id === b.dataset.id);
       Sfx.tap();
-      if (h.status === 'submitted' && h.kind !== 'quiz') { speak(h.origin === 'school' ? 'Kazi hii inasubiri mwalimu' : 'Kazi hii inasubiri mzazi aikague'); toast(h.origin === 'school' ? 'Inasubiri mwalimu asahihishe' : 'Inasubiri mzazi aikague'); return; }
+      if (h.status === 'submitted' && h.kind !== 'quiz') { speak(h.origin === 'school' ? "This work is waiting for the teacher" : "This work is waiting for the parent to check"); toast(h.origin === 'school' ? "Waiting for the teacher to mark" : 'Inasubiri mzazi aikague'); return; }
       HK.go(h.kind === 'quiz' ? 'hwQuiz' : 'hwDo', { id: h.id });
     });
   });
@@ -446,7 +446,7 @@ HK.screens.hwDo = (el, p) => {
   async function askHelp() {
     if (!AI.ready()) {
       speak("Ask your parent to help you");
-      return modal(el, { iconName: 'user', iconColor: 'var(--blue)', title: "Ask your parent", text: 'Mzazi akiweka AI, Nuru atakusaidia hapa. Kwa sasa, muombe mzazi au mwalimu akusaidie.', buttons: [{ label: 'Sawa' }] });
+      return modal(el, { iconName: 'user', iconColor: 'var(--blue)', title: "Ask your parent", text: "When your parent sets up AI, Nuru will help you here. For now, ask your parent or teacher to help you.", buttons: [{ label: 'Sawa' }] });
     }
     const ov = modal(el, { iconName: 'nuru', title: 'Nuru anafikiri...', text: 'Subiri kidogo', buttons: [] });
     try {
@@ -460,17 +460,17 @@ HK.screens.hwDo = (el, p) => {
       ov.remove();
       speak(a);
       AI.log(c.id, '[Msaada wa homework: ' + hw.title + ']', a);
-      modal(el, { iconName: 'nuru', title: 'Kidokezo cha Nuru', text: a, buttons: [{ label: 'Sikiliza tena', icon: 'volume', keepOpen: true, onClick: () => speak(a) }, { label: 'Asante Nuru' }] });
+      modal(el, { iconName: 'nuru', title: 'Kidokezo cha Nuru', text: a, buttons: [{ label: "Listen again", icon: 'volume', keepOpen: true, onClick: () => speak(a) }, { label: 'Asante Nuru' }] });
     } catch (e) {
       ov.remove();
-      modal(el, { iconName: 'x', iconColor: 'var(--coral)', title: 'Nuru hayupo sasa', text: 'Hakikisha kuna intaneti, kisha jaribu tena.', buttons: [{ label: 'Sawa' }] });
+      modal(el, { iconName: 'x', iconColor: 'var(--coral)', title: 'Nuru hayupo sasa', text: "Make sure there is internet, then try again.", buttons: [{ label: 'Sawa' }] });
     }
   }
 
   function submit() {
     const empty = hw.pages.filter(pg => !pg.strokes || !pg.strokes.length).length;
     const school = hw.origin === 'school';
-    confirmBox(el, "Are you done?", empty && !(hw.attach || []).length ? `Kurasa ${empty} bado hazina majibu. Unataka kutuma hivyo hivyo?` : school ? 'Kazi yako itatumwa kwa mwalimu.' : 'Kazi yako itatumwa kwa mzazi akague.', "Yes, send", async () => {
+    confirmBox(el, "Are you done?", empty && !(hw.attach || []).length ? `Kurasa ${empty} bado hazina majibu. Unataka kutuma hivyo hivyo?` : school ? "Your work will be sent to the teacher." : "Your work will be sent to your parent to check.", "Yes, send", async () => {
       hw.merged = await Promise.all(hw.pages.map(pg => renderPage(pg)));
       if (school) {
         try {
@@ -478,7 +478,7 @@ HK.screens.hwDo = (el, p) => {
           await SchoolSync.submit(hw, { pages: touched });
           Sfx.win(); confetti(el);
           speak('Hongera ' + c.name + '! Kazi yako imetumwa kwa mwalimu.');
-          return modal(el, { iconName: 'trophy', iconColor: 'var(--sun)', title: 'Imetumwa!', text: 'Mwalimu atasahihisha na utaona alama zako hapa.', buttons: [{ label: 'Sawa', onClick: () => HK.back() }] });
+          return modal(el, { iconName: 'trophy', iconColor: 'var(--sun)', title: 'Imetumwa!', text: "The teacher will mark it and you will see your score here.", buttons: [{ label: 'Sawa', onClick: () => HK.back() }] });
         } catch (e) { return toast(e.message); }
       }
       hw.status = 'submitted';
@@ -487,7 +487,7 @@ HK.screens.hwDo = (el, p) => {
       markMission('hw');
       Sfx.win(); confetti(el);
       speak('Hongera ' + c.name + '! Kazi yako imetumwa kwa mzazi.');
-      modal(el, { iconName: 'trophy', iconColor: 'var(--sun)', title: 'Hongera!', text: 'Kazi yako imetumwa kwa mzazi. Akiikubali, utapata nyota na dakika za ziada za michezo.', buttons: [{ label: 'Sawa', onClick: () => HK.back() }] });
+      modal(el, { iconName: 'trophy', iconColor: 'var(--sun)', title: 'Hongera!', text: "Your work has been sent to your parent. If they approve it, you get stars and extra game minutes.", buttons: [{ label: 'Sawa', onClick: () => HK.back() }] });
     }, '');
   }
 

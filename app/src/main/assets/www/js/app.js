@@ -28,7 +28,7 @@ const HK = {
     el.dataset.screen = cur.name;
     root.appendChild(el);
     const fn = this.screens[cur.name];
-    if (!fn) { el.innerHTML = '<div class="center-col">Skrini haipo: ' + esc(cur.name) + '</div>'; return; }
+    if (!fn) { el.innerHTML = '<div class="center-col">Screen not found: ' + esc(cur.name) + '</div>'; return; }
     const out = fn(el, cur.params || {});
     if (typeof out === 'function') this._cleanup = out;
     const dash = el.classList.contains('dash-screen');
@@ -40,7 +40,12 @@ const HK = {
   setBack(fn) { this._onBack = fn; },
 
   back() {
-    if ($('.overlay')) { $('.overlay').remove(); return true; }
+    const overlay = $$('.overlay').at(-1);
+    if (overlay) {
+      if (overlay.onGameBack) overlay.onGameBack();
+      else overlay.remove();
+      return true;
+    }
     if (this._onBack) { const r = this._onBack(); if (r !== false) return true; }
     if (this.stack.length > 1) { this.stack.pop(); this.render(); return true; }
     return false;

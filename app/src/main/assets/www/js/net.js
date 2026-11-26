@@ -1,12 +1,12 @@
 
 
-const HK_SERVER_DEFAULT = 'https://kid.hugotech.co.tz';
+const HK_SERVER_DEFAULT = 'https://kid.hugotech.co.tz/';
 const IS_WEB = /^https?:$/.test(location.protocol) && location.hostname !== 'appassets.androidplatform.net';
 
 const Net = {
   base() {
     if (IS_WEB) return location.origin;
-    return HK_SERVER_DEFAULT;
+    return HK_SERVER_DEFAULT.replace(/\/$/, '');
   },
   acct() { return Store.get('acct', null); },
   user() { const a = this.acct(); return a ? a.user : null; },
@@ -24,7 +24,7 @@ const Net = {
         headers: { 'content-type': 'application/json', ...(this.token() ? { authorization: 'Bearer ' + this.token() } : {}) },
         body: body !== undefined ? JSON.stringify(body) : undefined,
       });
-    } catch (e) { throw new Error('Hakuna mtandao au server haipatikani'); }
+    } catch (e) { throw new Error("No internet or the server is unavailable"); }
     const j = await r.json().catch(() => null);
     if (j === null) throw new Error('Server haipatikani kwenye anwani hii: ' + this.base());
     if (r.status === 401 && this.token()) { Store.set('acct', null); }

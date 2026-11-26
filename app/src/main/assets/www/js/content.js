@@ -2,10 +2,6 @@
 
 const LANGS = {
   en: { name: 'English', tts: 'en' },
-  fr: { name: 'Français', tts: 'fr' },
-  zh: { name: '中文 Kichina', tts: 'zh' },
-  ar: { name: 'العربية Kiarabu', tts: 'ar' },
-  sw: { name: 'Kiswahili', tts: 'sw' },
 };
 
 /* [sw, en, fr, zh, zhPinyin, ar, arTranslit] */
@@ -73,12 +69,8 @@ const VOCAB = {
     ['Mdomo', 'Mouth', 'Bouche', '嘴', 'zuǐ', 'فم', 'fam'],
   ],
 };
-function vocabWord(row, lang) {
-  if (lang === 'sw') return { word: row[0], sub: '', say: row[0] };
-  if (lang === 'en') return { word: row[1], sub: '', say: row[1] };
-  if (lang === 'fr') return { word: row[2], sub: '', say: row[2] };
-  if (lang === 'zh') return { word: row[3], sub: row[4], say: row[3] };
-  return { word: row[5], sub: row[6], say: row[5] };
+function vocabWord(row) {
+  return { word: row[1], say: row[1] };
 }
 
 const LESSONS = {
@@ -135,16 +127,16 @@ const FAITH = {
       { t: 'Salamu', ar: 'السَّلَامُ عَلَيْكُمْ', tr: 'As-salāmu ʿalaykum', x: 'Amani iwe juu yenu. Jibu: Wa ʿalaykumu s-salām.' },
     ],
     quiz: [
-      ['Tunasema nini kabla ya kula?', ['Bismillah', 'Kwaheri', 'Asante'], 0],
-      ['Swala za faradhi ni ngapi kwa siku?', ['Tatu', 'Tano', 'Saba'], 1],
-      ['Kitabu kitakatifu cha Uislamu ni?', ['Qur\'an', 'Kamusi', 'Daftari'], 0],
-      ['Mwezi wa kufunga ni upi?', ['Ramadhani', 'Desemba', 'Shawwal'], 0],
-      ['Kaaba iko mji gani?', ['Madina', 'Makka', 'Dar es Salaam'], 1],
-      ['Tunasema nini baada ya kula?', ['Alhamdulillah', 'Habari', 'Pole'], 0],
-      ['Kabla ya swala tunafanya nini?', ['Tunacheza', 'Tunatawadha (udhu)', 'Tunalala'], 1],
-      ['Sikukuu baada ya Ramadhani ni?', ['Idd el-Fitr', 'Krismasi', 'Mwaka mpya'], 0],
-      ['Mtume wa mwisho ni nani?', ['Mtume Muhammad (s.a.w)', 'Mtume Nuhu (a.s)', 'Mtume Musa (a.s)'], 0],
-      ['Tunamsalimiaje Muislamu mwenzetu?', ['As-salamu alaykum', 'Bonjour', 'Hello'], 0],
+      ["What do we say before eating?",["Bismillah","Goodbye","Thank you"],0],
+      ["How many obligatory prayers are there each day?",["Three","Five","Seven"],1],
+      ["The holy book of Islam is?",["Qur'an","Dictionary","Notebook"],0],
+      ["Which is the month of fasting?",["Ramadan","December","Shawwal"],0],
+      ["Which city is the Kaaba in?",["Medina","Mecca","Dar es Salaam"],1],
+      ["What do we say after eating?",["Alhamdulillah","Hello","Sorry"],0],
+      ["What do we do before prayer?",["We play","We make wudu","We sleep"],1],
+      ["The festival after Ramadan is?",["Eid al-Fitr","Christmas","New Year"],0],
+      ["Who is the last prophet?",["Prophet Muhammad (pbuh)","Prophet Nuh (as)","Prophet Musa (as)"],0],
+      ["How do we greet a fellow Muslim?",["As-salamu alaykum","Goodbye","Hello"],0],
     ],
   },
   christian: {
@@ -160,16 +152,16 @@ const FAITH = {
       { t: 'Msamaria mwema', x: 'Msamaria alimsaidia mtu aliyeumizwa njiani, ingawa hakumjua. Yesu anatufundisha kuwasaidia wote.' },
     ],
     quiz: [
-      ['Yesu alizaliwa mji gani?', ['Bethlehemu', 'Nazareti', 'Dodoma'], 0],
-      ['Mama yake Yesu anaitwa nani?', ['Maria', 'Sara', 'Ruthu'], 0],
-      ['Kitabu kitakatifu cha Wakristo ni?', ['Biblia', 'Kamusi', 'Gazeti'], 0],
-      ['Nani alijenga safina?', ['Musa', 'Nuhu', 'Petro'], 1],
-      ['Daudi alimshinda nani?', ['Goliathi', 'Farao', 'Herode'], 0],
-      ['Sikukuu ya kuzaliwa Yesu ni?', ['Pasaka', 'Krismasi', 'Idd'], 1],
-      ['Sikukuu ya kufufuka Yesu ni?', ['Pasaka', 'Krismasi', 'Mwaka mpya'], 0],
-      ['Sala aliyotufundisha Yesu inaanza na?', ['Baba yetu', 'Habari zenu', 'Asante sana'], 0],
-      ['Yesu alikuwa na wanafunzi wangapi?', ['Saba', 'Kumi na wawili', 'Watatu'], 1],
-      ['Msamaria mwema alifanya nini?', ['Alimsaidia mtu aliyeumia', 'Alikimbia', 'Alicheka'], 0],
+      ["In which town was Jesus born?",["Bethlehem","Nazareth","Dodoma"],0],
+      ["What is the name of Jesus' mother?",["Mary","Sarah","Ruth"],0],
+      ["The holy book of Christians is?",["The Bible","Dictionary","Newspaper"],0],
+      ["Who built the ark?",["Moses","Noah","Peter"],1],
+      ["Who did David defeat?",["Goliath","Pharaoh","Herod"],0],
+      ["The festival of Jesus' birth is?",["Easter","Christmas","Eid"],1],
+      ["The festival of Jesus' resurrection is?",["Easter","Christmas","New Year"],0],
+      ["The prayer Jesus taught us begins with?",["Our Father","Hello everyone","Thank you very much"],0],
+      ["How many disciples did Jesus have?",["Seven","Twelve","Three"],1],
+      ["What did the Good Samaritan do?",["He helped a man who was hurt","He ran away","He laughed"],0],
     ],
   },
   values: {
@@ -183,12 +175,12 @@ const FAITH = {
       { t: 'Bidii', x: 'Fanya kazi zako kwa bidii hata zikiwa ngumu. Kila siku unakua zaidi.' },
     ],
     quiz: [
-      ['Mtu anapokusaidia unasema nini?', ['Asante', 'Nenda', 'Sijali'], 0],
-      ['Ukikosea unafanya nini?', ['Unaficha', 'Unasema ukweli', 'Unamlaumu mwingine'], 1],
-      ['Unamsalimiaje bibi au babu?', ['Shikamoo', 'Mambo vipi', 'Kimya'], 0],
-      ['Rafiki akiomba msamaha?', ['Unamsamehe', 'Unamchukia', 'Unampiga'], 0],
-      ['Mdogo wako akishindwa kazi?', ['Unamcheka', 'Unamsaidia', 'Unamfukuza'], 1],
-      ['Kazi ikiwa ngumu?', ['Unaacha', 'Unajaribu kwa bidii', 'Unalia tu'], 1],
+      ["What do you say when someone helps you?",["Thank you","Go away","I don't care"],0],
+      ["What do you do when you make a mistake?",["Hide it","Tell the truth","Blame someone else"],1],
+      ["How can you show respect when greeting a grandparent?",["Say hello politely","Shout","Ignore them"],0],
+      ["When a friend says sorry?",["You forgive them","You hate them","You hit them"],0],
+      ["When your younger sibling can't do a task?",["You laugh at them","You help them","You send them away"],1],
+      ["When a task is hard?",["You give up","You try hard","You just cry"],1],
     ],
   },
 };

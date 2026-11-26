@@ -9,21 +9,24 @@ HK.screens.g_balloons = (el, p) => {
 
   const makeQ = () => {
     const L = kit.level;
-    if (kit.g === 0) { const n = 1 + rnd(Math.min(10, 4 + L)); return { text: 'Hesabu nyota', dots: n, ans: n, say: 'Hesabu nyota. Ziko ngapi?' }; }
+    if (kit.g === 0) { const n = 1 + rnd(Math.min(10, 4 + L)); return { text: "Count the stars", dots: n, ans: n, say: "Count the stars. How many are there?" }; }
     if (kit.g === 1) {
-      if (L < 4 || rnd(2)) { const a = 1 + rnd(8 + L), b = 1 + rnd(9); return { text: `${a} + ${b} = ?`, ans: a + b, say: `${a} jumlisha ${b}` }; }
-      const a = 6 + rnd(10 + L), b = 1 + rnd(Math.min(a, 9)); return { text: `${a} − ${b} = ?`, ans: a - b, say: `${a} toa ${b}` };
+      if (L < 4 || rnd(2)) { const a = 1 + rnd(8 + L), b = 1 + rnd(9); return { text: `${a} + ${b} = ?`, ans: a + b, say: `${a} plus ${b}` }; }
+      const a = 6 + rnd(10 + L), b = 1 + rnd(Math.min(a, 9)); return { text: `${a} − ${b} = ?`, ans: a - b, say: `${a} minus ${b}` };
     }
-    if (rnd(3)) { const a = 2 + rnd(L < 4 ? 5 : 9), b = 2 + rnd(9); return { text: `${a} × ${b} = ?`, ans: a * b, say: `${a} mara ${b}` }; }
-    const b = 2 + rnd(8), r = 2 + rnd(9); return { text: `${b * r} ÷ ${b} = ?`, ans: r, say: `${b * r} gawanya kwa ${b}` };
+    if (rnd(3)) { const a = 2 + rnd(L < 4 ? 5 : 9), b = 2 + rnd(9); return { text: `${a} × ${b} = ?`, ans: a * b, say: `${a} times ${b}` }; }
+    const b = 2 + rnd(8), r = 2 + rnd(9); return { text: `${b * r} ÷ ${b} = ?`, ans: r, say: `${b * r} divided by ${b}` };
   };
 
   kit.body.innerHTML = `<div class="g-progress" id="pr"></div><div class="g-q" id="q"></div><div id="sky" style="flex:1;position:relative;overflow:hidden;background:transparent"></div>`;
   const sky = $('#sky', el);
 
+  let settled = false;
+  let nextTimer;
   const next = () => {
-    if (i >= total) { cancelAnimationFrame(raf); const s = firstTry >= total - 1 ? 3 : firstTry >= Math.ceil(total * .6) ? 2 : 1; return kit.finish({ stars: s, text: `Sahihi ${firstTry}/${total}` }); }
+    if (i >= total) { cancelAnimationFrame(raf); const s = firstTry >= total - 1 ? 3 : firstTry >= Math.ceil(total * .6) ? 2 : 1; return kit.finish({ stars: s, text: `Correct answers ${firstTry}/${total}` }); }
     missed = false;
+    settled = false;
     const q = makeQ(); ans = q.ans;
     $('#pr', el).innerHTML = Array.from({ length: total }, (_, k) => `<i class="${k < i ? 'done' : ''}"></i>`).join('');
     $('#q', el).innerHTML = q.dots
@@ -41,12 +44,13 @@ HK.screens.g_balloons = (el, p) => {
         <text x="42" y="54" text-anchor="middle" font-family="Outfit,Roboto,sans-serif" font-weight="900" font-size="${String(v).length > 2 ? 24 : 30}" fill="#fff">${v}</text></svg>`;
       const it = { b, v, x: (W / 4) * k + (W / 4 - 84) / 2, y: H * 0.3 + rnd(Math.max(40, H * 0.6)), sp: 30 + rnd(20) + kit.level * 3, wob: Math.random() * 6 };
       b.onclick = () => {
-        if (kit.ended) return;
+        if (kit.paused || kit.ended || settled || it.dead) return;
         if (v === ans) {
+          settled = true;
           if (!missed) firstTry++;
           kit.addCoins(missed ? 1 : 3); Sfx.good(); celebrateMascot(el, 'pundamilia'); speak("Correct!");
           b.style.transition = 'transform .2s, opacity .2s'; b.style.transform += ' scale(1.4)'; b.style.opacity = '0';
-          i++; setTimeout(next, 500);
+          i++; nextTimer = setTimeout(next, 500);
         } else {
           missed = true; Sfx.bad(); vibrate(60);
           b.style.transition = 'opacity .2s'; b.style.opacity = '0'; it.dead = true;
@@ -54,7 +58,7 @@ HK.screens.g_balloons = (el, p) => {
       };
       if (kit.first && i === 0 && v === ans) {
         b.style.filter = 'drop-shadow(0 0 10px #fff) drop-shadow(0 0 14px #FFC20E)';
-        kit.afterTut.push(() => { toast("Example: tap the glowing balloon, it has the correct answer"); speak('Mfano. Gusa puto linalong\'aa. Lina jibu sahihi ' + ans); });
+        kit.afterTut.push(() => { toast("Example: tap the glowing balloon, it has the correct answer"); speak('Tap the glowing balloon. It has the correct answer, ' + ans); });
       }
       sky.appendChild(b); items.push(it);
     });
@@ -70,8 +74,8 @@ HK.screens.g_balloons = (el, p) => {
     });
     raf = requestAnimationFrame(loop);
   };
-  setTimeout(() => { next(); raf = requestAnimationFrame(loop); }, 50);
-  return () => { cancelAnimationFrame(raf); kit.cleanup(); };
+  nextTimer = setTimeout(() => { next(); raf = requestAnimationFrame(loop); }, 50);
+  return () => { clearTimeout(nextTimer); cancelAnimationFrame(raf); kit.cleanup(); };
 };
 
 /* ===== 2. Missing Letters ===== */
@@ -128,9 +132,9 @@ HK.screens.g_memory = (el, p) => {
   }
   cards = shuffle(cards);
   const cols = cards.length <= 8 ? (cards.length <= 6 ? 3 : 4) : 4;
-  kit.body.innerHTML = `<div class="g-q" style="font-size:18px">${kit.g === 0 ? 'Tafuta picha zinazofanana' : 'Match each picture to its English word'}</div>
+  kit.body.innerHTML = `<div class="g-q" style="font-size:18px">${kit.g === 0 ? "Find the matching pictures" : 'Match each picture to its English word'}</div>
     <div class="mem-grid" style="grid-template-columns:repeat(${cols},1fr)">${cards.map((c, i) => `<button class="mem-card" data-i="${i}">${icon('star', 28)}</button>`).join('')}</div>`;
-  speak(kit.g === 0 ? 'Tafuta picha zinazofanana' : 'Match each picture to its English word');
+  speak(kit.g === 0 ? "Find the matching pictures" : 'Match each picture to its English word');
   let open = [], moves = 0, done = 0, busy = false;
   $$('.mem-card', el).forEach(b => b.onclick = () => {
     const i = +b.dataset.i, c = cards[i];
@@ -145,7 +149,7 @@ HK.screens.g_memory = (el, p) => {
         setTimeout(() => {
           [a, d].forEach(x => { cards[x].done = true; $$('.mem-card', el)[x].classList.add('done'); });
           kit.addCoins(2); done++; open = []; busy = false;
-          if (done === pairsN) { const s = moves <= pairsN + 2 ? 3 : moves <= pairsN * 2 ? 2 : 1; setTimeout(() => kit.finish({ stars: s, text: `Hatua ${moves}` }), 400); }
+          if (done === pairsN) { const s = moves <= pairsN + 2 ? 3 : moves <= pairsN * 2 ? 2 : 1; setTimeout(() => kit.finish({ stars: s, text: `Moves: ${moves}` }), 400); }
         }, 350);
       } else {
         setTimeout(() => {
@@ -206,12 +210,12 @@ HK.screens.g_robot = (el, p) => {
   };
   const size = Math.min(window.innerWidth - 40, 360);
   kit.body.innerHTML = `
-    <div class="g-q" style="font-size:17px;min-height:56px">${step ? 'Mpeleke roboti kwenye zawadi' : 'Andika njia ya roboti hadi zawadi'}</div>
+    <div class="g-q" style="font-size:17px;min-height:56px">${step ? "Take the robot to the prize" : "Write the robot's path to the prize"}</div>
     <div class="robot-grid" id="grid" style="width:${size}px;grid-template-columns:repeat(${N},1fr)"></div>
     ${step ? '' : '<div class="cmd-row" id="cmds"></div>'}
     <div class="arrows">${['left', 'up', 'down', 'right'].map(d => `<button class="icon-btn" data-d="${d}">${arrowSvg(d, 30)}</button>`).join('')}</div>
     ${step ? '' : `<div class="btn-row" style="padding:0 16px 16px"><button class="btn ghost" id="undo">${icon('undo', 20)}</button><button class="btn ghost" id="clr">${icon('trash', 20)}</button><button class="btn" id="run" style="flex:2">${icon('play', 20)} Endesha</button></div>`}`;
-  speak(step ? 'Mpeleke roboti kwenye zawadi' : 'Panga mishale kumpeleka roboti kwenye zawadi');
+  speak(step ? "Take the robot to the prize" : "Arrange the arrows to take the robot to the prize");
 
   const moveBot = d => {
     const [dx, dy] = DIRS[d]; const nx = bot[0] + dx, ny = bot[1] + dy;
@@ -259,9 +263,13 @@ HK.screens.g_robot = (el, p) => {
 };
 
 /* ===== 5. Little Market ===== */
-const FRUITS = [['Embe', '#FFB020'], ['Chungwa', '#FF8A3D'], ['Ndizi', '#FFD93D'], ['Nanasi', '#E3B341'], ['Tikiti', '#3FB36B'], ['Parachichi', '#5B8C2A']];
+const FRUITS = [
+  ['Mango', '#FFB020', 'embe'], ['Orange', '#FF8A3D', 'chungwa'],
+  ['Banana', '#FFD93D', 'ndizi'], ['Pineapple', '#E3B341', 'nanasi'],
+  ['Watermelon', '#3FB36B', 'tikiti'], ['Avocado', '#5B8C2A', 'parachichi'],
+];
 
-function fruitPic(f, s = 40) { return pic(f[0], s) || fruitSvg(f[1], s); }
+function fruitPic(f, s = 40) { return pic(f[2], s) || fruitSvg(f[1], s); }
 const picRow = (f, n, s = 30) => `<span class="pic-row">${Array.from({ length: n }, () => fruitPic(f, s)).join('')}</span>`;
 function fruitSvg(col, s = 40) { return `<svg width="${s}" height="${s}" viewBox="0 0 40 40"><circle cx="20" cy="22" r="15" fill="${col}"/><path d="M20 7q4-5 9-3-3 5-9 4z" fill="#3FA34D"/><ellipse cx="14" cy="17" rx="4" ry="6" fill="#fff" opacity=".35"/></svg>`; }
 HK.screens.g_market = (el, p) => {
@@ -274,17 +282,20 @@ HK.screens.g_market = (el, p) => {
         const [a, b] = shuffle(FRUITS.slice()).slice(0, 2);
         const pa = (1 + rnd(5)) * 100, pb = (1 + rnd(5)) * 100, na = 1 + rnd(kit.level < 4 ? 2 : 3), nb = rnd(3);
         const ans = pa * na + pb * nb;
-        const txt = I18N.lang === 'en'
-          ? `${T(a[0])}: ${pa}/= each, ${T(b[0])}: ${pb}/= each. The customer buys ${na} ${T(a[0]).toLowerCase()}${na > 1 ? 's' : ''}${nb ? ' and ' + nb + ' ' + T(b[0]).toLowerCase() + (nb > 1 ? 's' : '') : ''}. What is the total?`
-          : `${a[0]} ni ${pa}/=, ${b[0]} ni ${pb}/=. Mteja ananunua ${a[0].toLowerCase()} ${na}${nb ? ' na ' + b[0].toLowerCase() + ' ' + nb : ''}. Jumla ni?`;
+        const fruitCount = (fruit, count) => {
+          const name = T(fruit[0]).toLowerCase();
+          return count + ' ' + name + (count === 1 ? '' : name === 'mango' ? 'es' : 's');
+        };
+        const purchase = fruitCount(a, na) + (nb ? ' and ' + fruitCount(b, nb) : '');
+        const txt = `${T(a[0])}: TSh ${pa} each. ${T(b[0])}: TSh ${pb} each. The customer buys ${purchase}. What is the total?`;
         const s = new Set([ans]); while (s.size < 4) { const v = ans + (rnd(2) ? 1 : -1) * 100 * (1 + rnd(3)); if (v > 0) s.add(v); }
 
         const tag = (f, pr) => `<span class="price-tag">${fruitPic(f, 46)}<span>${esc(f[0])}</span><b>${pr}/=</b></span>`;
         const html = `<div class="market-q">
             <div class="price-tags">${tag(a, pa)}${tag(b, pb)}</div>
-            <div class="buys"><small>Mteja ananunua:</small>${picRow(a, na)}${nb ? '<i>+</i>' + picRow(b, nb) : ''}</div>
+            <div class="buys"><small>The customer buys:</small>${picRow(a, na)}${nb ? '<i>+</i>' + picRow(b, nb) : ''}</div>
             <b class="q-ask">What is the total?</b></div>`;
-        return { html, say: txt.replace(/\/=/g, ' shilingi'), opts: shuffle([...s]).map(v => ({ label: v + '/=', ok: v === ans, style: 'font-size:22px' })) };
+        return { html, say: txt, opts: shuffle([...s]).map(v => ({ label: v + '/=', ok: v === ans, style: 'font-size:22px' })) };
       },
     });
     return () => kit.cleanup();
@@ -292,22 +303,25 @@ HK.screens.g_market = (el, p) => {
   let round = 0, good = 0;
   const NOTES = [[50, '#C9A227', true], [100, '#B8B8B8', true], [200, '#C47A3A', true], [500, '#3FA34D', false], [1000, '#1EA7F0', false]];
   const next = () => {
-    if (round >= total) return kit.finish({ stars: good >= total ? 3 : good >= total - 2 ? 2 : 1, text: `Wateja ${good}/${total}` });
+    if (kit.ended) return;
+    if (round >= total) return kit.finish({ stars: good >= total ? 3 : good >= total - 2 ? 2 : 1, text: `Customers served ${good}/${total}` });
     round++;
+    let settled = false;
     if (kit.g === 0) {
       const f = pick(FRUITS), n = 1 + rnd(Math.min(5, 2 + kit.level));
       let got = 0;
       kit.body.innerHTML = `<div class="g-progress">${Array.from({ length: total }, (_, k) => `<i class="${k < round - 1 ? 'done' : ''}"></i>`).join('')}</div>
-        <div class="g-q want-q"><div class="want-big">${fruitPic(f, 64)}<b>&times; ${n}</b></div><span>Mteja anataka ${esc(f[0].toLowerCase())} ${n}</span>${picRow(f, n, 26)}</div>
-        <div class="card" style="margin:0 16px 12px;text-align:center;min-height:96px"><div class="muted" style="font-weight:900;margin-bottom:6px">Kikapu</div><div id="bk2" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center"></div></div>
+        <div class="g-q want-q"><div class="want-big">${fruitPic(f, 64)}<b>&times; ${n}</b></div><span>Order: ${n} × ${esc(T(f[0]))}</span>${picRow(f, n, 26)}</div>
+        <div class="card" style="margin:0 16px 12px;text-align:center;min-height:96px"><div class="muted" style="font-weight:900;margin-bottom:6px">Basket</div><div id="bk2" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center"></div></div>
         <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:6px 16px">${Array.from({ length: 8 }, () => `<button class="ing fr" style="width:72px">${fruitPic(f, 46)}</button>`).join('')}</div>
-        <div class="btn-row" style="padding:14px 16px"><button class="btn ghost" id="rs">${icon('repeat', 20)} Anza</button><button class="btn" id="give" style="flex:2">${icon('check', 20)} Mpe mteja</button></div>`;
-      speak('Mteja anataka ' + f[0].toLowerCase() + ' ' + ['', 'moja', 'mbili', 'tatu', 'nne', 'tano'][n]);
+        <div class="btn-row" style="padding:14px 16px"><button class="btn ghost" id="rs">${icon('repeat', 20)} Reset</button><button class="btn" id="give" style="flex:2">${icon('check', 20)} Give to customer</button></div>`;
+      speak('The customer wants ' + n + '. Choose the correct number of ' + T(f[0]).toLowerCase() + '.');
       $$('.fr', el).forEach(b => b.onclick = () => { if (got >= 9) return; got++; Sfx.tap(); speak(String(got)); $('#bk2', el).innerHTML += fruitPic(f, 30); b.style.visibility = 'hidden'; });
-      $('#rs', el).onclick = () => { round--; next(); };
+      $('#rs', el).onclick = () => { if (!settled) { round--; next(); } };
       $('#give', el).onclick = () => {
-        if (got === n) { good++; kit.addCoins(3); Sfx.good(); speak("Thank you! The customer is happy"); setTimeout(next, 700); }
-        else { Sfx.bad(); speak(got < n ? 'Ongeza zaidi' : 'Umeweka mengi mno'); toast(got < n ? 'Ongeza zaidi' : 'Umeweka mengi mno'); }
+        if (settled) return;
+        if (got === n) { settled = true; good++; kit.addCoins(3); Sfx.good(); speak("Thank you! The customer is happy"); setTimeout(next, 700); }
+        else { Sfx.bad(); speak(got < n ? 'Add more' : 'You added too many'); toast(got < n ? 'Add more' : 'You added too many'); }
       };
       return;
     }
@@ -317,16 +331,17 @@ HK.screens.g_market = (el, p) => {
     const change = paid - price;
     let sum = 0;
     kit.body.innerHTML = `<div class="g-progress">${Array.from({ length: total }, (_, k) => `<i class="${k < round - 1 ? 'done' : ''}"></i>`).join('')}</div>
-      <div class="g-q" style="font-size:18px;line-height:1.4">Bei ni ${price}/=. Mteja amelipa ${paid}/=.<br>Mpe chenji yake.</div>
-      <div class="card" style="margin:0 16px 12px;text-align:center"><div class="muted" style="font-weight:900">Chenji unayotoa</div><div style="font-size:40px;font-weight:900" id="sum">0/=</div></div>
+      <div class="g-q" style="font-size:18px;line-height:1.4">Price: TSh ${price}. Paid: TSh ${paid}.<br>Give them their change.</div>
+      <div class="card" style="margin:0 16px 12px;text-align:center"><div class="muted" style="font-weight:900">Change you give</div><div style="font-size:40px;font-weight:900" id="sum">0/=</div></div>
       <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:6px 16px">${NOTES.map(([v, c, coin]) => `<button class="money ${coin ? 'coin' : ''}" data-v="${v}" style="background:${c};color:#fff">${v}</button>`).join('')}</div>
-      <div class="btn-row" style="padding:16px"><button class="btn ghost" id="rs">${icon('repeat', 20)} Anza</button><button class="btn" id="give" style="flex:2">${icon('check', 20)} Mpe chenji</button></div>`;
-    speak(`Bei ni ${price}. Mteja amelipa ${paid}. Mpe chenji.`);
+      <div class="btn-row" style="padding:16px"><button class="btn ghost" id="rs">${icon('repeat', 20)} Reset</button><button class="btn" id="give" style="flex:2">${icon('check', 20)} Give change</button></div>`;
+    speak(`The price is TSh ${price}. The customer paid TSh ${paid}. Give the correct change.`);
     $$('.money', el).forEach(b => b.onclick = () => { sum += +b.dataset.v; Sfx.coin(); $('#sum', el).textContent = sum + '/='; });
-    $('#rs', el).onclick = () => { sum = 0; $('#sum', el).textContent = '0/='; };
+    $('#rs', el).onclick = () => { if (settled) return; sum = 0; $('#sum', el).textContent = '0/='; };
     $('#give', el).onclick = () => {
-      if (sum === change) { good++; kit.addCoins(4); Sfx.good(); speak('Sahihi! Chenji ni ' + change); setTimeout(next, 800); }
-      else { Sfx.bad(); toast(sum < change ? 'Chenji haitoshi' : 'Umetoa chenji nyingi mno'); }
+      if (settled) return;
+      if (sum === change) { settled = true; good++; kit.addCoins(4); Sfx.good(); speak('Correct! The change is ' + change); setTimeout(next, 800); }
+      else { Sfx.bad(); toast(sum < change ? 'Not enough change' : 'Too much change'); }
     };
   };
   next();
@@ -335,15 +350,15 @@ HK.screens.g_market = (el, p) => {
 
 /* ===== 6. Shape Puzzle ===== */
 const SHAPES = [
-  ['Duara', '<circle cx="30" cy="30" r="24"/>', 0],
-  ['Mraba', '<rect x="8" y="8" width="44" height="44" rx="3"/>', 4],
-  ['Pembetatu', '<path d="M30 6l25 46H5z"/>', 3],
-  ['Mstatili', '<rect x="4" y="16" width="52" height="28" rx="3"/>', 4],
-  ['Nyota', '<path d="M30 5l7 16 17 1.5-13 11 4 17-15-9-15 9 4-17-13-11 17-1.5z"/>', 10],
-  ['Moyo', '<path d="M30 52S6 37 6 21a12 12 0 0 1 24-4 12 12 0 0 1 24 4c0 16-24 31-24 31z"/>', 0],
-  ['Pembesita', '<path d="M30 5l22 12.5v25L30 55 8 42.5v-25z"/>', 6],
-  ['Pembetano', '<path d="M30 5l24 18-9 29H15L6 23z"/>', 5],
-  ['Almasi', '<path d="M30 4l22 26-22 26L8 30z"/>', 4],
+  ['Circle', '<circle cx="30" cy="30" r="24"/>', 0],
+  ['Square', '<rect x="8" y="8" width="44" height="44" rx="3"/>', 4],
+  ['Triangle', '<path d="M30 6l25 46H5z"/>', 3],
+  ['Rectangle', '<rect x="4" y="16" width="52" height="28" rx="3"/>', 4],
+  ['Star', '<path d="M30 5l7 16 17 1.5-13 11 4 17-15-9-15 9 4-17-13-11 17-1.5z"/>', 10],
+  ['Heart', '<path d="M30 52S6 37 6 21a12 12 0 0 1 24-4 12 12 0 0 1 24 4c0 16-24 31-24 31z"/>', 0],
+  ['Hexagon', '<path d="M30 5l22 12.5v25L30 55 8 42.5v-25z"/>', 6],
+  ['Pentagon', '<path d="M30 5l24 18-9 29H15L6 23z"/>', 5],
+  ['Diamond', '<path d="M30 4l22 26-22 26L8 30z"/>', 4],
 ];
 const SHAPE_COLS = ['#F65B4F', '#1EA7F0', '#FFC20E', '#0FB394', '#7B61FF', '#FF8A3D', '#E0476B', '#14B8C9', '#0D2461'];
 const shapeSvg = (sh, fill, s = 54, stroke) => `<svg width="${s}" height="${s}" viewBox="0 0 60 60"><g fill="${fill}" ${stroke ? `stroke="${stroke}" stroke-width="3" stroke-dasharray="5 4"` : ''}>${sh[1]}</g></svg>`;
@@ -351,15 +366,15 @@ HK.screens.g_shapes = (el, p) => {
   const kit = GK.frame(el, 'shapes', { level: p.level });
   if (kit.g === 2) {
     const qs = [
-      () => { const s = pick(SHAPES.filter(x => [3, 4, 5, 6].includes(x[2]) && x[0] !== 'Mstatili' && x[0] !== 'Almasi')); return { t: `Umbo lenye pande ${s[2]} ni lipi?`, a: s }; },
-      () => { const s = pick(SHAPES); return { t: `Lipi ni ${s[0].toLowerCase()}?`, a: s }; },
-      () => ({ t: 'Umbo lipi halina pembe yoyote?', a: SHAPES[0] }),
+      () => { const s = pick(SHAPES.filter(x => [3, 4, 5, 6].includes(x[2]) && x[0] !== 'Rectangle' && x[0] !== 'Diamond')); return { t: `Which shape has ${s[2]} sides?`, a: s }; },
+      () => { const s = pick(SHAPES); return { t: `Which one is the ${s[0].toLowerCase()}?`, a: s }; },
+      () => ({ t: 'Which shape has no corners?', a: SHAPES[0] }),
     ];
     GK.quiz(kit, {
       total: 8,
       make: () => {
         const q = pick(qs)();
-        const others = shuffle(SHAPES.filter(s => s !== q.a && (q.t.includes('pande') ? s[2] !== q.a[2] : true) && (q.t.includes('pembe yoyote') ? s[2] > 0 : true))).slice(0, 3);
+        const others = shuffle(SHAPES.filter(s => s !== q.a && (q.t.includes(' sides?') ? s[2] !== q.a[2] : true) && (q.t.includes('no corners') ? s[2] > 0 : true))).slice(0, 3);
         return { text: q.t, say: q.t, opts: shuffle([q.a, ...others]).map((s, k) => ({ html: shapeSvg(s, SHAPE_COLS[k + 1], 64), ok: s === q.a })) };
       },
     });
@@ -385,7 +400,7 @@ HK.screens.g_shapes = (el, p) => {
       s.classList.add('filled'); s.innerHTML = shapeSvg(set[k], cols[k], 60);
       $(`.shape-pc[data-k="${k}"]`, el).remove(); sel = null; placed++;
       kit.addCoins(2); Sfx.good();
-      if (placed === n) kit.finish({ stars: misses === 0 ? 3 : misses <= 2 ? 2 : 1, text: `Makosa ${misses}` });
+      if (placed === n) kit.finish({ stars: misses === 0 ? 3 : misses <= 2 ? 2 : 1, text: `Mistakes: ${misses}` });
     } else { misses++; Sfx.bad(); vibrate(50); speak("No, try another"); }
   });
   return () => kit.cleanup();
@@ -441,7 +456,7 @@ HK.screens.g_speak = (el, p) => {
 
   const draw = () => {
     advancing = false; quiet = 0;
-    if (i >= words.length) return kit.finish({ stars: firstTry >= 5 ? 3 : firstTry >= 3 ? 2 : 1, text: `Maneno ${firstTry}/${words.length} mara ya kwanza` });
+    if (i >= words.length) return kit.finish({ stars: firstTry >= 5 ? 3 : firstTry >= 3 ? 2 : 1, text: `Words on the first try: ${firstTry}/${words.length}` });
     const row = words[i], w = vocabWord(row, lang);
     const opts = shuffle([row, ...shuffle(VOCAB[cat].filter(r => r !== row)).slice(0, 2)]);
     kit.body.innerHTML = `
@@ -451,10 +466,10 @@ HK.screens.g_speak = (el, p) => {
         <span style="position:absolute;left:50%;top:22px;transform:translateX(-50%);color:#FFE07A">${icon('lock', 30)}</span></div></div>
       ${canListen ? `
         <div class="lesson-card notr" style="margin-top:0">${pic(row[1], 80)}<div class="big ${lang === 'ar' ? 'arabic' : ''}" style="${lang === 'ar' ? 'font-size:40px' : ''}">${esc(w.word)}</div>${w.sub ? `<div class="tr">${esc(w.sub)}</div>` : ''}</div>
-        <div class="btn-row" style="padding:6px 16px"><button class="btn ghost" id="hear">${icon('volume', 22)} Sikiliza</button><button class="btn coral" id="mic" style="flex:2">${icon('mic', 22)} Sema neno</button></div>
+        <div class="btn-row" style="padding:6px 16px"><button class="btn ghost" id="hear">${icon('volume', 22)} Listen</button><button class="btn coral" id="mic" style="flex:2">${icon('mic', 22)} Say the word</button></div>
         <p class="muted" style="text-align:center;font-weight:800;margin:6px 16px" id="heard" aria-live="polite"></p>
         <div style="padding:0 16px"><button class="btn block ghost small" id="skip">Skip word</button></div>`
-      : `<div class="g-q" style="font-size:18px">Sikiliza, kisha chagua neno sahihi <button class="icon-btn say" id="hear">${icon('volume', 22)}</button></div>
+      : `<div class="g-q" style="font-size:18px">Listen, then choose the correct word <button class="icon-btn say" id="hear">${icon('volume', 22)}</button></div>
         <div class="g-opts" style="grid-template-columns:1fr">${opts.map((r, k) => { const v = vocabWord(r, lang); return `<button class="g-opt notr word-opt ${lang === 'ar' ? 'arabic' : ''}" data-k="${k}" style="font-size:24px;min-height:64px">${pic(r[1], 44)}${esc(v.word)}${v.sub ? `<div style="font-size:14px;color:var(--muted)">${esc(v.sub)}</div>` : ''}</button>`; }).join('')}</div>`}`;
     const hear = () => { if (!listening && !advancing) speak(w.say); };
     $('#hear', el).onclick = hear;

@@ -48,7 +48,6 @@ const PICS = {
   mti: `<rect x="28" y="36" width="8" height="20" rx="2" fill="#8A5A2B"/><circle cx="32" cy="26" r="16" fill="#3FA34D"/><circle cx="22" cy="32" r="10" fill="#4FB55A"/><circle cx="42" cy="32" r="10" fill="#4FB55A"/>`,
 };
 
-/* familia: watu wa umri tofauti */
 const _person = (skin, hair, shirt, opts = {}) => `<circle cx="32" cy="22" r="12" fill="${skin}"/>${opts.grey ? '<path d="M20 20c0-12 24-12 24 0-4-4-20-4-24 0z" fill="#D6D6D6"/>' : opts.long ? `<path d="M19 22c0-16 26-16 26 0v12h-5V22H24v12h-5z" fill="${hair}"/>` : `<path d="M20 19c1-11 23-11 24 0-5-4-19-4-24 0z" fill="${hair}"/>`}<circle cx="28" cy="23" r="1.6" fill="#1A1410"/><circle cx="36" cy="23" r="1.6" fill="#1A1410"/><path d="M28 28q4 3 8 0" stroke="#5A2E1A" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M14 58c0-14 8-22 18-22s18 8 18 22z" fill="${shirt}"/>${opts.glasses ? '<g fill="none" stroke="#3A2A1A" stroke-width="1.6"><circle cx="28" cy="23" r="3.5"/><circle cx="36" cy="23" r="3.5"/><path d="M31.5 23h1"/></g>' : ''}`;
 Object.assign(PICS, {
   mama: _person('#9B6B47', '#2A1A12', '#E0476B', { long: true }),

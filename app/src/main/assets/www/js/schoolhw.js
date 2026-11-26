@@ -63,7 +63,7 @@ const SchoolSync = {
   },
   async submit(hw, extra = {}) {
     const c = Store.child(hw.childId);
-    if (!c || !c.serverId) throw new Error('Mtoto hajaunganishwa na shule');
+    if (!c || !c.serverId) throw new Error("Child not linked to a school");
     const r = await Net.post(`/api/children/${c.serverId}/submit`, { homework_id: hw.remoteId, pages: extra.pages || [], answers: extra.answers, attachments: hw.attach || [] });
     hw.status = r.status === 'marked' ? 'approved' : 'submitted';
     hw.score = r.score; hw.stars = r.stars; hw.detail = r.detail;
@@ -151,7 +151,7 @@ HK.screens.hwQuiz = (el, p) => {
       if (qn.type === 'mcq') body = `<div class="g-opts" style="padding:8px 0 0;grid-template-columns:1fr">${(qn.options || []).map((o, k) => `<button class="g-opt ${+a === k ? 'sel' : ''}" data-q="${i}" data-v="${k}" style="font-size:17px;min-height:54px" ${done ? 'disabled' : ''}>${esc(o)}</button>`).join('')}</div>`;
       else if (qn.type === 'match') {
         const rights = (qn.pairs || []).map(x => x[1]);
-        body = (qn.pairs || []).map((pr, k) => `<div class="row" style="margin-top:8px"><b class="grow">${esc(pr[0])}</b><select class="field" data-m="${i}" data-k="${k}" style="width:55%" ${done ? 'disabled' : ''}><option value="">Chagua</option>${rights.map((r, j) => `<option value="${j}" ${a && +a[k] === j ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></div>`).join('');
+        body = (qn.pairs || []).map((pr, k) => `<div class="row" style="margin-top:8px"><b class="grow">${esc(pr[0])}</b><select class="field" data-m="${i}" data-k="${k}" style="width:55%" ${done ? 'disabled' : ''}><option value="">Choose</option>${rights.map((r, j) => `<option value="${j}" ${a && +a[k] === j ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></div>`).join('');
       } else body = `<input class="field" data-t="${i}" style="margin-top:8px" ${qn.type === 'math' ? 'inputmode="decimal"' : ''} value="${esc(a ?? '')}" placeholder="Jibu lako" ${done ? 'disabled' : ''}>`;
       return `<div class="card"><div class="row" style="align-items:flex-start"><b class="grow" style="font-size:17px">${i + 1}. ${esc(qn.q)}</b><button class="icon-btn" data-say="${i}" style="width:38px;height:38px">${icon('volume', 18)}</button></div>${body}<div style="margin-top:8px">${mark}</div></div>`;
     };

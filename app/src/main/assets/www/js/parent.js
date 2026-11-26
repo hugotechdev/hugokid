@@ -9,9 +9,9 @@ HK.screens.pin = (el, p) => {
   let tries = 0;
 
   const titles = {
-    verify: ['Eneo la Mzazi', 'Weka PIN yako ya tarakimu 4'],
-    new: [mode === 'change' ? 'PIN mpya' : 'Tengeneza PIN ya mzazi', 'Tarakimu 4. Mtoto asiijue.'],
-    confirm: ['Rudia PIN', 'Weka PIN ile ile tena'],
+    verify: ['Eneo la Mzazi', "Enter your 4-digit PIN"],
+    new: [mode === 'change' ? 'PIN mpya' : "Create a parent PIN", "4 digits. The child shouldn't know it."],
+    confirm: ['Rudia PIN', "Enter the same PIN again"],
   };
 
   el.innerHTML = `
@@ -31,7 +31,7 @@ HK.screens.pin = (el, p) => {
   const fg = $('#forgot', el);
   if (fg) fg.onclick = () => {
     const u = Net.user();
-    if (!(u && u.role === 'parent')) return modal(el, { iconName: 'lock', title: 'Kurejesha PIN', text: 'PIN inarejeshwa kwa nenosiri la akaunti ya mzazi. Kama hukufungua akaunti, njia pekee ni kufuta data ya HUGO KID kwenye mipangilio ya simu (maendeleo ya simu hii yatapotea, lakini yaliyo kwenye akaunti yanarudi).', buttons: [{ label: 'Sawa' }] });
+    if (!(u && u.role === 'parent')) return modal(el, { iconName: 'lock', title: 'Kurejesha PIN', text: "The PIN is recovered with the parent account password. If you didn't open an account, the only way is to clear HUGO KID data in the phone settings (progress on this phone will be lost, but what is in the account comes back).", buttons: [{ label: 'Sawa' }] });
     modal(el, { iconName: 'key', title: "Confirm it's you", html: `<p>Weka nenosiri la akaunti ya ${esc(u.phone || u.email)}</p><input class="field" id="apw" type="password"><div style="height:14px"></div>`, buttons: [
       { label: 'Endelea', keepOpen: true, onClick: async o => {
         try { await Net.post('/api/login', { login: u.phone || u.email, password: $('#apw', o).value }); o.remove(); HK.go('pin', { mode: 'change' }, { replace: true }); }
@@ -65,7 +65,7 @@ HK.screens.pin = (el, p) => {
         HK.go(p.next || 'parentHome', p.nextParams || {}, { replace: true });
       } else {
         tries++;
-        fail(tries >= 3 ? 'Si sahihi. Jaribu tena baadaye kidogo.' : 'PIN si sahihi');
+        fail(tries >= 3 ? "Incorrect. Try again in a little while." : 'PIN si sahihi');
       }
       return;
     }
@@ -211,7 +211,7 @@ HK.screens.parentHome = (el, p) => {
     <div class="seg">
       <button data-t="kids">Watoto</button>
       <button data-t="hw">Homework</button>
-      <button data-t="school">Shule</button>
+      <button data-t="school">School</button>
       <button data-t="set">Mipangilio</button>
     </div>
     <div class="scroll" id="body"></div>`;
@@ -245,7 +245,7 @@ HK.screens.parentHome = (el, p) => {
           <b>Your children's progress today</b></div>
         <div class="ph-stats">
           <div><b>${kids.length}</b><span>Watoto</span></div>
-          <div><b>${learnMin}</b><span>Dk za kujifunza</span></div>
+          <div><b>${learnMin}</b><span>Learning min</span></div>
           <div><b>${starsAll}</b><span>Stars</span></div>
         </div>
         <div class="ph-kids">${kids.slice(0, 4).map(k => kidAvatar(k, 34)).join('')}</div>
@@ -344,13 +344,13 @@ HK.screens.parentHome = (el, p) => {
     const row = (id, acc, ic, title, sub) => `<button class="set-row" id="${id}" style="--acc:${acc}"><span class="set-ic">${icon(ic, 20)}</span><span class="grow"><b>${title}</b>${sub ? `<small id="${id}-sub">${sub}</small>` : ''}</span>${icon('chevR', 20)}</button>`;
     body.innerHTML = `
       <div class="set-group">Time and games</div>
-      ${setCard('#1EA7F0', 'game', 'Muda wa michezo kwa siku', 'Ukiisha, michezo inajifunga. Mtoto anaweza kupata dakika za ziada akifanya homework vizuri.', 'lim', opt([10, 15, 20, 30, 45, 60], s.gameLimitMin, v => v + ' dk'))}
-      ${setCard('#E0A100', 'gift', 'Zawadi ya homework', 'Dakika za ziada za michezo ukikubali homework yake.', 'bon', opt([0, 5, 10, 15], s.bonusMin, v => v ? '+' + v + ' dk' : 'Hapana'))}
-      ${setCard('#7B61FF', 'moon', 'Muda wa kulala', 'Baada ya saa hii programu inamwambia mtoto akalale (hadi saa 11:30 alfajiri).', 'bed', opt(['off', '19:30', '20:00', '20:30', '21:00', '21:30'], s.bedtime, v => v === 'off' ? 'Zima' : v))}
+      ${setCard('#1EA7F0', 'game', "Daily game time", "When it runs out, games close. The child can earn extra minutes by doing homework well.", 'lim', opt([10, 15, 20, 30, 45, 60], s.gameLimitMin, v => v + ' dk'))}
+      ${setCard('#E0A100', 'gift', 'Zawadi ya homework', "Extra game minutes when you approve their homework.", 'bon', opt([0, 5, 10, 15], s.bonusMin, v => v ? '+' + v + ' dk' : 'Hapana'))}
+      ${setCard('#7B61FF', 'moon', 'Muda wa kulala', "After this time the app tells the child to go to sleep (until 5:30 am).", 'bed', opt(['off', '19:30', '20:00', '20:30', '21:00', '21:30'], s.bedtime, v => v === 'off' ? 'Zima' : v))}
       <div class="set-group">Safety and AI</div>
       <div class="card set-list">
         ${row('aiset', '#0D2461', 'robot', 'HUGOKID AI', ' ')}
-        ${row('lmset', '#0FB394', 'lock', 'Learning Mode', LM.state().on ? 'Imewashwa' : 'Ficha programu nyingine na dhibiti muda wake')}
+        ${row('lmset', '#0FB394', 'lock', 'Learning Mode', LM.state().on ? 'Imewashwa' : "Hide other apps and control their time")}
       </div>
       <div class="set-group">Account</div>
       <div class="card set-list">
@@ -373,7 +373,7 @@ HK.screens.parentHome = (el, p) => {
     $('#chpin', body).onclick = () => HK.go('pin', { mode: 'change' });
     $('#terms', body).onclick = () => HK.go('terms', { mode: 'view' });
     const ac = AI.cfg();
-    $('#aiset-sub', body).textContent = ac.key ? AI_PROVIDERS[ac.provider].name + (ac.enabled ? ' · imewashwa' : ' · imezimwa') : 'Chagua Gemini, Claude au ChatGPT';
+    $('#aiset-sub', body).textContent = ac.key ? AI_PROVIDERS[ac.provider].name + (ac.enabled ? ' · imewashwa' : ' · imezimwa') : "Choose Gemini, Claude or ChatGPT";
     $('#aiset', body).onclick = () => HK.go('aiSettings');
     $('#lmset', body).onclick = () => HK.go('learningMode');
   }

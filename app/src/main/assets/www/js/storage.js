@@ -135,7 +135,7 @@ function fileToImageData(file, max = 1600) {
         x.drawImage(img, 0, 0, w, h);
         res({ data: c.toDataURL('image/jpeg', 0.85), w, h });
       };
-      img.onerror = () => rej(new Error('Picha haikufunguka'));
+      img.onerror = () => rej(new Error("The photo didn't open"));
       img.src = fr.result;
     };
     fr.onerror = () => rej(fr.error);

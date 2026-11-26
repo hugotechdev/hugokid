@@ -28,7 +28,7 @@ function kidMode(c) {
   if (s < 0) i = Math.max(a <= 5 ? 0 : 1, i - 1);
   return MODE_ORDER[i];
 }
-/* Ufuatiliaji wa ujuzi: +1 akiwa anafanya vizuri sana, -1 akikwama */
+
 function skillTrend(c) {
   const log = c.skillLog || {};
   const all = [...(log.read || []), ...(log.math || [])].slice(-8);
@@ -68,7 +68,7 @@ setInterval(() => {
   if (n < limit || $('.overlay')) return;
   sessionStorage.setItem(k, 0);
   const b = pick(BREAKS);
-  speak('Pumzika kidogo. ' + b.say);
+  speak('Take a short break. ' + b.say);
   modal(null, { iconName: 'run', iconColor: 'var(--teal)', title: 'Pumzika kidogo', text: b.t, buttons: [{ label: 'Nimemaliza', icon: 'check', onClick: () => { const cc = Store.active(); cc.stars = (cc.stars || 0) + 1; Store.saveChild(cc); toast("1 star for practice"); } }] });
 }, 60000);
 
@@ -83,7 +83,6 @@ const ANIMALS = {
   Kuku: c => `<svg viewBox="0 0 120 120"><ellipse cx="62" cy="70" rx="34" ry="30" fill="#fff" stroke="#E3E9F5" stroke-width="3"/><circle cx="44" cy="44" r="18" fill="#fff" stroke="#E3E9F5" stroke-width="3"/><path d="M38 26q4-8 8 0 4-8 8 2" fill="#F65B4F"/><path d="M26 44l-10 4 10 4z" fill="#FFC20E"/><circle cx="40" cy="42" r="3.5" fill="#0D2461"/><path d="M54 98v12M70 98v12" stroke="#FFC20E" stroke-width="4" stroke-linecap="round"/></svg>`,
 };
 const COLORS_SW = [['Nyekundu', '#F65B4F'], ['Bluu', '#1EA7F0'], ['Njano', '#FFC20E'], ['Kijani', '#0FB394'], ['Zambarau', '#7B61FF'], ['Chungwa', '#FF8A3D'], ['Nyeusi', '#20232B'], ['Nyeupe', '#FFFFFF']];
-const NUM_SW = ['sifuri', 'moja', 'mbili', 'tatu', 'nne', 'tano', 'sita', 'saba', 'nane', 'tisa', 'kumi'];
 
 function learned(kind, item) {
   const c = Store.active(); if (!c) return;
@@ -103,18 +102,18 @@ HK.screens.tapGame = (el, p) => {
   const make = () => {
     if (kind === 'colors') {
       const opts = shuffle(COLORS_SW.slice(0, 6)).slice(0, 3); const a = pick(opts);
-      return { say: 'Gusa rangi ' + a[0].toLowerCase(), item: a[0], opts: opts.map(o => ({ html: `<span style="display:block;width:100%;height:100%;border-radius:28px;background:${o[1]};border:4px solid rgba(13,36,97,.1)"></span>`, ok: o === a })) };
+      return { say: 'Tap the ' + T(a[0]).toLowerCase() + ' colour', item: a[0], opts: opts.map(o => ({ html: `<span style="display:block;width:100%;height:100%;border-radius:28px;background:${o[1]};border:4px solid rgba(13,36,97,.1)"></span>`, ok: o === a })) };
     }
     if (kind === 'numbers') {
       const nums = shuffle([1, 2, 3, 4, 5]).slice(0, 3); const a = pick(nums);
-      return { say: 'Gusa nyota ' + NUM_SW[a], item: String(a), opts: nums.map(n => ({ html: `<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;align-items:center;height:100%;padding:8px">${Array.from({ length: n }, () => `<svg width="34" height="34" viewBox="0 0 24 24" fill="#FFC20E" stroke="#D29E00" stroke-width="1.4"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6L3.4 9.5l6-.8z"/></svg>`).join('')}</span>`, ok: n === a })) };
+      return { say: 'Tap ' + a + ' stars', item: String(a), opts: nums.map(n => ({ html: `<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;align-items:center;height:100%;padding:8px">${Array.from({ length: n }, () => `<svg width="34" height="34" viewBox="0 0 24 24" fill="#FFC20E" stroke="#D29E00" stroke-width="1.4"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6L3.4 9.5l6-.8z"/></svg>`).join('')}</span>`, ok: n === a })) };
     }
     if (kind === 'shapes') {
       const opts = shuffle(SHAPES.slice(0, 6)).slice(0, 3); const a = pick(opts);
-      return { say: 'Gusa ' + a[0].toLowerCase(), item: a[0], opts: opts.map((s, k) => ({ html: shapeSvg(s, SHAPE_COLS[k], 96), ok: s === a })) };
+      return { say: 'Tap the ' + T(a[0]).toLowerCase(), item: a[0], opts: opts.map((s, k) => ({ html: shapeSvg(s, SHAPE_COLS[k], 96), ok: s === a })) };
     }
     const names = shuffle(Object.keys(ANIMALS)).slice(0, 3); const a = pick(names);
-    return { say: 'Gusa ' + a.toLowerCase(), item: a, opts: names.map(n => ({ html: ANIMALS[n](), ok: n === a, name: n })) };
+    return { say: 'Tap the ' + T(a).toLowerCase(), item: a, opts: names.map(n => ({ html: ANIMALS[n](), ok: n === a, name: n })) };
   };
   const draw = () => {
     if (i >= total) {
@@ -139,9 +138,9 @@ HK.screens.tapGame = (el, p) => {
       if (o.ok) {
         if (!missed) first++;
         b.classList.add('ok'); Sfx.good(); learned(kind, q.item);
-        speak(pick(['Hongera!', 'Safi sana!', 'Umeweza!']) + (o.name ? ' Huyu ni ' + o.name.toLowerCase() : ''));
+        speak(pick(['Well done!', 'Very good!', 'You did it!']) + (o.name ? ' This is the ' + T(o.name).toLowerCase() + '.' : ''));
         i++; setTimeout(draw, 1300);
-      } else { missed = true; b.classList.add('no'); Sfx.bad(); vibrate(80); speak('Jaribu tena. ' + q.say); }
+      } else { missed = true; b.classList.add('no'); Sfx.bad(); vibrate(80); speak('Try again. ' + q.say); }
     });
   };
   draw();
@@ -205,13 +204,13 @@ HK.screens.placement = (el, p) => {
   const c = Store.active();
   const age = ageYears(c.birth);
   const steps = [
-    { k: 'math', lvl: 0, say: 'Gusa nyota tatu', build: () => { const n = shuffle([1, 2, 3, 4]).slice(0, 3); if (!n.includes(3)) n[0] = 3; return shuffle(n).map(x => ({ html: `<span style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center">${Array.from({ length: x }, () => '<svg width="30" height="30" viewBox="0 0 24 24" fill="#FFC20E" stroke="#D29E00" stroke-width="1.4"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6L3.4 9.5l6-.8z"/></svg>').join('')}</span>`, ok: x === 3 })); } },
-    { k: 'read', lvl: 1, say: 'Gusa herufi B', build: () => shuffle(['B', 'D', 'P']).map(x => ({ html: `<span style="font-size:52px;font-weight:700">${x}</span>`, ok: x === 'B' })) },
-    { k: 'read', lvl: 2, say: 'Soma neno hili, kisha gusa picha yake', text: 'PAKA', build: () => shuffle(['Paka', 'Samaki', 'Tembo']).map(x => ({ html: ANIMALS[x](), ok: x === 'Paka' })) },
-    { k: 'math', lvl: 1, say: 'Tatu jumlisha mbili ni ngapi?', text: '3 + 2 = ?', build: () => shuffle([4, 5, 6]).map(x => ({ html: `<span style="font-size:44px;font-weight:700">${x}</span>`, ok: x === 5 })) },
-    { k: 'read', lvl: 3, say: 'Soma sentensi, kisha chagua jibu', text: 'Twiga ana shingo ndefu sana. Nani ana shingo ndefu?', build: () => shuffle(['Twiga', 'Paka', 'Samaki']).map(x => ({ html: `<span style="font-size:24px;font-weight:700">${x}</span>`, ok: x === 'Twiga' })), noSay: true },
+    { k: 'math', lvl: 0, say: "Tap three stars", build: () => { const n = shuffle([1, 2, 3, 4]).slice(0, 3); if (!n.includes(3)) n[0] = 3; return shuffle(n).map(x => ({ html: `<span style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center">${Array.from({ length: x }, () => '<svg width="30" height="30" viewBox="0 0 24 24" fill="#FFC20E" stroke="#D29E00" stroke-width="1.4"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6L3.4 9.5l6-.8z"/></svg>').join('')}</span>`, ok: x === 3 })); } },
+    { k: 'read', lvl: 1, say: "Tap the letter B", build: () => shuffle(['B', 'D', 'P']).map(x => ({ html: `<span style="font-size:52px;font-weight:700">${x}</span>`, ok: x === 'B' })) },
+    { k: 'read', lvl: 2, say: "Read this word, then tap its picture", text: 'CAT', build: () => shuffle(['Paka', 'Samaki', 'Tembo']).map(x => ({ html: ANIMALS[x](), ok: x === 'Paka' })) },
+    { k: 'math', lvl: 1, say: 'What is three plus two?', text: '3 + 2 = ?', build: () => shuffle([4, 5, 6]).map(x => ({ html: `<span style="font-size:44px;font-weight:700">${x}</span>`, ok: x === 5 })) },
+    { k: 'read', lvl: 3, say: "Read the sentence, then choose the answer", text: 'A giraffe has a long neck. Which animal has a long neck?', build: () => shuffle(['Twiga', 'Paka', 'Samaki']).map(x => ({ html: `<span style="font-size:24px;font-weight:700">${T(x)}</span>`, ok: x === 'Twiga' })), noSay: true },
     { k: 'math', lvl: 2, say: '', text: '7 × 6 = ?', build: () => shuffle([42, 36, 48]).map(x => ({ html: `<span style="font-size:40px;font-weight:700">${x}</span>`, ok: x === 42 })), noSay: true },
-    { k: 'math', lvl: 3, say: '', text: '3/4 ya 20 ni?', build: () => shuffle([15, 12, 5]).map(x => ({ html: `<span style="font-size:40px;font-weight:700">${x}</span>`, ok: x === 15 })), noSay: true },
+    { k: 'math', lvl: 3, say: '', text: 'What is 3/4 of 20?', build: () => shuffle([15, 12, 5]).map(x => ({ html: `<span style="font-size:40px;font-weight:700">${x}</span>`, ok: x === 15 })), noSay: true },
   ].filter(s => age >= 5 || s.lvl <= 1);
   const res = { read: 0, math: 0 };
   let i = 0;
@@ -223,7 +222,7 @@ HK.screens.placement = (el, p) => {
       <div style="height:20px"></div>
       <button class="btn blue" id="go" style="min-width:220px">${icon('play', 22)} Anza</button>
       <div style="height:12px"></div><button class="btn ghost small" id="skip">Skip for now</button></div>`;
-    speak('Tucheze kidogo ' + c.name + '! Nitakuuliza maswali machache.');
+    speak('Let’s play, ' + c.name + '! I’ll ask you a few questions.');
     $('#go', el).onclick = step; $('#skip', el).onclick = () => HK.go('home', {}, { reset: true });
   };
   const step = () => {

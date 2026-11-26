@@ -16,7 +16,7 @@ HK.screens.friends = (el, p) => {
       b.innerHTML = `
         <div class="card"><h3>Ruhusa</h3>
           <div class="row" style="justify-content:space-between;margin-top:8px"><span>Voice calls</span><div class="chips"><button class="chip ${me.allow_audio ? 'on' : ''}" data-perm="allow_audio" data-v="1">Ruhusu</button><button class="chip ${me.allow_audio ? '' : 'on'}" data-perm="allow_audio" data-v="0">Zuia</button></div></div>
-          <div class="row" style="justify-content:space-between;margin-top:8px"><span>Simu za video</span><div class="chips"><button class="chip ${me.allow_video ? 'on' : ''}" data-perm="allow_video" data-v="1">Ruhusu</button><button class="chip ${me.allow_video ? '' : 'on'}" data-perm="allow_video" data-v="0">Zuia</button></div></div>
+          <div class="row" style="justify-content:space-between;margin-top:8px"><span>Video calls</span><div class="chips"><button class="chip ${me.allow_video ? 'on' : ''}" data-perm="allow_video" data-v="1">Ruhusu</button><button class="chip ${me.allow_video ? '' : 'on'}" data-perm="allow_video" data-v="0">Zuia</button></div></div>
           <p class="muted" style="font-size:12px;margin-top:8px">Simu inafanya kazi tu kama wazazi wa pande zote mbili wameruhusu. Kila simu ina kikomo cha dakika ${CALL_LIMIT_MIN}.</p></div>
         <div class="card"><h3>Ongeza rafiki</h3><p>A friend is added by code between two parents. Give the other parent this code, or enter the code they gave you.</p>
           <div class="btn-row" style="margin-top:10px"><button class="btn small blue" id="inv">${icon('key', 16)} Tengeneza msimbo</button></div>
@@ -25,7 +25,7 @@ HK.screens.friends = (el, p) => {
         ${friends.map(f => `<div class="item" style="cursor:default">${avatarSVG(f.color || '#1EA7F0', 44)}<div class="grow"><div class="i-title">${esc(f.name)}</div><div class="i-sub">${f.online ? 'Yuko mtandaoni' : 'Hayupo'}</div></div><button class="icon-btn" data-rm="${f.id}">${icon('trash', 18)}</button></div>`).join('') || '<p class="muted">Bado hakuna marafiki.</p>'}
         ${calls.length ? `<div class="section-title">Call history</div><div class="card">${calls.slice(0, 15).map(k => `<p>${esc(k.with)} · ${k.media === 'video' ? 'Video' : 'Sauti'} · ${new Date(k.started).toLocaleString('sw-TZ')}${k.ended ? ' · dk ' + Math.max(1, Math.round((k.ended - k.started) / 60000)) : ''}</p>`).join('')}</div>` : ''}`;
       $$('[data-perm]', b).forEach(x => x.onclick = async () => { await Net.put(`/api/children/${c.serverId}`, { [x.dataset.perm]: x.dataset.v === '1' }); draw(); });
-      $('#inv', b).onclick = async () => { const r = await Net.post(`/api/children/${c.serverId}/invite`); modal(el, { iconName: 'key', title: r.code, text: 'Mpe mzazi wa rafiki msimbo huu. Unafanya kazi kwa saa 48.', buttons: [{ label: 'Sawa' }] }); };
+      $('#inv', b).onclick = async () => { const r = await Net.post(`/api/children/${c.serverId}/invite`); modal(el, { iconName: 'key', title: r.code, text: "Give your friend's parent this code. It works for 48 hours.", buttons: [{ label: 'Sawa' }] }); };
       $('#add', b).onclick = async () => { try { const r = await Net.post(`/api/children/${c.serverId}/friends`, { code: $('#code', b).value }); toast(r.friend.name + ' ameongezwa'); draw(); } catch (e) { toast(e.message); } };
       $$('[data-rm]', b).forEach(x => x.onclick = () => confirmBox(el, "Remove friend?", '', "Remove", async () => { await Net.del('/api/friends/' + x.dataset.rm); draw(); }));
     } catch (e) { b.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
@@ -92,7 +92,7 @@ HK.screens.call = (el, p) => {
   };
   const start = async () => {
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: p.media === 'video' ? { facingMode: 'user', width: 640, height: 480 } : false }); }
-    catch (e) { finish('Ruhusa ya kipaza sauti/kamera imekataliwa'); Net.send({ t: 'hangup', to: p.to }); return false; }
+    catch (e) { finish("Microphone/camera permission was denied"); Net.send({ t: 'hangup', to: p.to }); return false; }
     $('#lv', el).srcObject = stream;
     pc = new RTCPeerConnection(RTC_CFG);
     stream.getTracks().forEach(t => pc.addTrack(t, stream));
@@ -105,7 +105,7 @@ HK.screens.call = (el, p) => {
         timer = setInterval(() => {
           const s = Math.floor((Date.now() - t0) / 1000);
           status(Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'));
-          if (s >= CALL_LIMIT_MIN * 60) { Net.send({ t: 'hangup', to: p.to }); finish('Muda wa simu umekwisha'); }
+          if (s >= CALL_LIMIT_MIN * 60) { Net.send({ t: 'hangup', to: p.to }); finish("Call time is over"); }
         }, 1000);
       }
       if (['failed', 'disconnected'].includes(pc.connectionState)) finish('Simu imekatika');

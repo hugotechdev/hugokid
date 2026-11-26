@@ -40,7 +40,6 @@ function drawKid(ctx, x, y, r, color, t, portrait) {
   ctx.restore();
 }
 
-/* ===== Mkimbiaji wa Mbugani ===== */
 HK.screens.g_runner = (el, p) => {
   const kit = GK.frame(el, 'runner', { level: p.level });
   const C = gameCanvas(kit), ctx = C.ctx;
@@ -88,11 +87,11 @@ HK.screens.g_runner = (el, p) => {
       if (hitX && hitY && S.inv <= 0) {
         o.gone = true; Sfx.crash(); vibrate(120);
         if (hearts0 > 9) S.slow = 0.8;
-        else { S.hearts--; S.inv = 1.4; if (S.hearts <= 0) return kit.finish({ won: false, text: 'Umeishiwa na mioyo' }); }
+        else { S.hearts--; S.inv = 1.4; if (S.hearts <= 0) return kit.finish({ won: false, text: "You ran out of hearts" }); }
       }
     }
     S.obs = S.obs.filter(o => !o.gone && o.x > -80);
-    if (S.dist >= LEN) kit.finish({ stars: hearts0 > 9 ? 3 : Math.max(1, S.hearts), text: 'Umefika mwisho' });
+    if (S.dist >= LEN) kit.finish({ stars: hearts0 > 9 ? 3 : Math.max(1, S.hearts), text: 'You reached the finish!' });
     draw();
   });
 
@@ -162,11 +161,11 @@ HK.screens.g_pilot = (el, p) => {
         r.x -= dx;
         if (!r.done && r.x < px) { r.done = true; if (Math.abs(S.y - r.y) < r.r * 0.8) { S.got++; r.ok = true; kit.addCoins(2); Sfx.good(); } else { r.ok = false; Sfx.bad(); } }
       });
-      S.birds.forEach(b => { b.x -= dx * 1.15; if (!b.hit && S.inv <= 0 && Math.abs(b.x - px) < 30 && Math.abs(b.y - S.y) < 24) { b.hit = true; S.hearts--; S.inv = 1.3; Sfx.crash(); vibrate(100); if (S.hearts <= 0) kit.finish({ won: false, text: 'Ndege imegongwa' }); } });
+      S.birds.forEach(b => { b.x -= dx * 1.15; if (!b.hit && S.inv <= 0 && Math.abs(b.x - px) < 30 && Math.abs(b.y - S.y) < 24) { b.hit = true; S.hearts--; S.inv = 1.3; Sfx.crash(); vibrate(100); if (S.hearts <= 0) kit.finish({ won: false, text: 'The plane hit a bird' }); } });
       S.rings = S.rings.filter(r => r.x > -60); S.birds = S.birds.filter(b => b.x > -60);
       if (S.made >= TOTAL && !S.rings.length && !kit.ended) {
         const ratio = S.got / TOTAL;
-        kit.finish({ won: ratio >= 0.4, stars: ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : 1, text: `Pete ${S.got}/${TOTAL}` });
+        kit.finish({ won: ratio >= 0.4, stars: ratio >= 0.85 ? 3 : ratio >= 0.6 ? 2 : 1, text: `Rings ${S.got}/${TOTAL}` });
       }
     }
     draw();
@@ -194,7 +193,7 @@ HK.screens.g_pilot = (el, p) => {
       ctx.restore();
     }
     ctx.fillStyle = '#0D2461'; ctx.font = '900 18px Outfit, Roboto, sans-serif';
-    ctx.fillText(`Pete ${S.got}/${TOTAL}` + (S.hearts < 9 ? '   ' + '♥'.repeat(Math.max(0, S.hearts)) : ''), 16, 30);
+    ctx.fillText(`Rings ${S.got}/${TOTAL}` + (S.hearts < 9 ? '   ' + '♥'.repeat(Math.max(0, S.hearts)) : ''), 16, 30);
   }
   return () => { stop(); C.off(); window.removeEventListener('pointerup', up); kit.cleanup(); };
 };
@@ -208,14 +207,16 @@ HK.screens.g_penalty = (el, p) => {
   const keeperSkill = Math.min(0.68, [0.18, 0.3, 0.42][kit.g] + kit.level * 0.02);
   const S = { turn: 'shoot', n: 0, me: 0, cpu: 0, anim: null, keeper: 4, msg: '', t: 0, log: [] };
 
+  let turnTimer;
+  let changingTurn = false;
   const goal = () => ({ x: C.W * 0.08, y: C.H * 0.3, w: C.W * 0.84, h: C.H * 0.32 });
   const zoneRect = z => { const g = goal(); const c = z % 3, r = Math.floor(z / 3); return { x: g.x + g.w / 3 * c, y: g.y + g.h / 2 * r, w: g.w / 3, h: g.h / 2 }; };
-  const zoneAt = (x, y) => { const g = goal(); if (x < g.x || x > g.x + g.w || y < g.y || y > g.y + g.h) return -1; return Math.floor((x - g.x) / (g.w / 3)) + 3 * Math.floor((y - g.y) / (g.h / 2)); };
+  const zoneAt = (x, y) => { const g = goal(); if (x < g.x || x >= g.x + g.w || y < g.y || y >= g.y + g.h) return -1; return Math.floor((x - g.x) / (g.w / 3)) + 3 * Math.floor((y - g.y) / (g.h / 2)); };
   const say = t => { S.msg = t; speak(t); };
   say("Tap the goal to take a penalty");
 
   C.cv.addEventListener('pointerdown', e => {
-    if (S.anim || kit.paused || kit.ended) return;
+    if (kit.paused || kit.ended || changingTurn || (S.anim && S.turn !== 'save')) return;
     const r = C.cv.getBoundingClientRect();
     const z = zoneAt(e.clientX - r.left, e.clientY - r.top);
     if (z < 0) return;
@@ -231,15 +232,16 @@ HK.screens.g_penalty = (el, p) => {
   const startSave = () => {
     S.turn = 'save'; S.myDive = null; S.pending = rnd(6);
     say("Now you are the goalkeeper! Tap the side to save");
-    setTimeout(() => { if (!kit.ended) S.anim = { kind: 'save', target: S.pending, t: 0 }; }, 1300);
+    turnTimer = setTimeout(() => { if (!kit.ended) S.anim = { kind: 'save', target: S.pending, t: 0 }; }, 1300);
   };
   const nextTurn = () => {
+    changingTurn = false;
     if (S.turn === 'shoot' && keepTurns) return startSave();
     S.n++;
     if (S.n >= rounds) {
       const won = keepTurns ? S.me > S.cpu : S.me >= 3;
       const stars = S.me >= 5 ? 3 : S.me >= 4 ? 2 : 1;
-      return kit.finish({ won: won || (keepTurns && S.me === S.cpu && S.me >= 3), stars, text: keepTurns ? `Wewe ${S.me} - ${S.cpu} Kompyuta` : `Magoli ${S.me}/5` });
+      return kit.finish({ won: won || (keepTurns && S.me === S.cpu && S.me >= 3), stars, text: keepTurns ? `You ${S.me} – ${S.cpu} Computer` : `Goals ${S.me}/5` });
     }
     S.turn = 'shoot'; say("Kick again!");
   };
@@ -259,7 +261,8 @@ HK.screens.g_penalty = (el, p) => {
           else { S.cpu++; say("Computer's goal"); Sfx.bad(); }
         }
         S.anim = null; S.keeper = 4;
-        setTimeout(nextTurn, 1100);
+        changingTurn = true;
+        turnTimer = setTimeout(nextTurn, 1100);
       }
     }
     draw();
@@ -313,14 +316,14 @@ HK.screens.g_penalty = (el, p) => {
       }
       ctx.closePath(); ctx.fill();
     }
-    // ubao wa matokeo
+
     ctx.fillStyle = 'rgba(13,36,97,.85)'; rr(ctx, W / 2 - 110, H - 96, 220, 70, 18); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '900 22px Outfit, Roboto, sans-serif';
-    ctx.fillText(keepTurns ? `Wewe ${S.me}  -  ${S.cpu} Komp.` : `Magoli ${S.me} / ${rounds}`, W / 2, H - 66);
+    ctx.fillText(keepTurns ? `You ${S.me} – ${S.cpu} Computer` : `Goals ${S.me} / ${rounds}`, W / 2, H - 66);
     ctx.font = '800 15px Outfit, Roboto, sans-serif'; ctx.fillText(S.msg, W / 2, H - 40);
     ctx.textAlign = 'left';
   }
-  return () => { stop(); C.off(); kit.cleanup(); };
+  return () => { clearTimeout(turnTimer); stop(); C.off(); kit.cleanup(); };
 };
 
 HK.screens.g_bubbles = (el, p) => {
@@ -345,7 +348,7 @@ HK.screens.g_bubbles = (el, p) => {
   };
   const anyMove = () => { for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) if (grid[c][r] != null && group(c, r).length > 1) return true; return false; };
   const draw = () => {
-    $('#sc', el).innerHTML = `Alama ${score} / ${target}`;
+    $('#sc', el).innerHTML = `Score ${score} / ${target}`;
     const cells = [];
     for (let r = ROWS - 1; r >= 0; r--) for (let c = 0; c < COLS; c++) {
       const v = grid[c][r];
@@ -368,7 +371,7 @@ HK.screens.g_bubbles = (el, p) => {
     if (!anyMove()) {
       const left = grid.flat().filter(x => x != null).length;
       if (left === 0) score += 50;
-      setTimeout(() => kit.finish({ won: score >= target, stars: score >= target * 1.6 || left === 0 ? 3 : score >= target * 1.25 ? 2 : 1, text: `Alama ${score}` }), 400);
+      setTimeout(() => kit.finish({ won: score >= target, stars: score >= target * 1.6 || left === 0 ? 3 : score >= target * 1.25 ? 2 : 1, text: `Score ${score}` }), 400);
     }
   };
   draw();
@@ -402,10 +405,10 @@ HK.screens.g_village = (el, p) => {
   kit.body.innerHTML = `
     <div class="card" style="margin:0 12px 8px;padding:12px 14px"><div class="row" style="justify-content:space-between"><b>Tasks</b><span class="chip-tag sun">${icon('coin', 14)} <span id="money"></span></span></div>
       <div id="need" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
-      ${nearRule ? '<p style="font-size:13px;margin-top:6px">Kila nyumba iwe karibu na kisima au mti.</p>' : ''}</div>
+      ${nearRule ? '<p style="font-size:13px;margin-top:6px">Build each house next to a well or a tree.</p>' : ''}</div>
     <div class="build-grid" id="map" style="grid-template-columns:repeat(${COLS},1fr)"></div>
     <div class="palette" id="pal"></div>
-    <div class="btn-row" style="padding:0 12px 14px"><button class="btn ghost" id="erase">${icon('eraser', 20)} Ondoa</button><button class="btn" id="done" style="flex:2">${icon('check', 20)} Nimemaliza</button></div>`;
+    <div class="btn-row" style="padding:0 12px 14px"><button class="btn ghost" id="erase">${icon('eraser', 20)} Remove</button><button class="btn" id="done" style="flex:2">${icon('check', 20)} Finish</button></div>`;
   speak("Build your village. Don't spend more than the budget");
   const count = id => map.filter(x => x === id).length;
   const draw = () => {
@@ -430,7 +433,7 @@ HK.screens.g_village = (el, p) => {
   $('#erase', el).onclick = () => { sel = sel === 'erase' ? 'house' : 'erase'; draw(); };
   $('#done', el).onclick = () => {
     const miss = Object.entries(need).filter(([id, n]) => count(id) < n);
-    if (miss.length) { Sfx.bad(); const b = BUILDS.find(x => x.id === miss[0][0]); speak('Bado unahitaji ' + b.name.toLowerCase()); toast('Bado: ' + miss.map(([id, n]) => BUILDS.find(x => x.id === id).name).join(', ')); return; }
+    if (miss.length) { Sfx.bad(); const b = BUILDS.find(x => x.id === miss[0][0]); speak('You still need a ' + T(b.name).toLowerCase()); toast('Still needed: ' + miss.map(([id, n]) => BUILDS.find(x => x.id === id).name).join(', ')); return; }
     if (nearRule) {
       const bad = map.some((v, i) => {
         if (v !== 'house') return false;
@@ -448,20 +451,20 @@ HK.screens.g_village = (el, p) => {
 };
 
 const INGR = {
-  maji: ['Maji', '#7CC8F5'], chai: ['Majani ya chai', '#5B3A1E'], maziwa: ['Maziwa', '#F4F1EA'], sukari: ['Sukari', '#FFFFFF'],
-  unga: ['Unga', '#F3E3C3'], ndimu: ['Ndimu', '#B6D94C'], embe: ['Embe', '#FFB020'], ndizi: ['Ndizi', '#FFD93D'], nanasi: ['Nanasi', '#E3B341'],
-  tikiti: ['Tikiti', '#E85D5D'], mafuta: ['Mafuta', '#F2C14E'], chumvi: ['Chumvi', '#DCE3EE'], mchele: ['Mchele', '#FAFAF5'],
-  chungwa: ['Chungwa', '#FF8A3D'], karoti: ['Karoti', '#F28C28'], kitunguu: ['Kitunguu', '#C9A0DC'], nyanya: ['Nyanya', '#E23B3B'],
-  sabuni: ['Sabuni', '#9BE7FF'], mchanga: ['Mchanga', '#D9B26F'], pipi: ['Pipi', '#FF6FB5'],
+  maji: ["Water", '#7CC8F5'], chai: ["Tea leaves", '#5B3A1E'], maziwa: ["Milk", '#F4F1EA'], sukari: ["Sugar", '#FFFFFF'],
+  unga: ["Flour", '#F3E3C3'], ndimu: ["Lime", '#B6D94C'], embe: ["Mango", '#FFB020'], ndizi: ["Banana", '#FFD93D'], nanasi: ["Pineapple", '#E3B341'],
+  tikiti: ["Watermelon", '#E85D5D'], mafuta: ["Oil", '#F2C14E'], chumvi: ["Salt", '#DCE3EE'], mchele: ["Rice", '#FAFAF5'],
+  chungwa: ["Orange", '#FF8A3D'], karoti: ["Carrot", '#F28C28'], kitunguu: ["Onion", '#C9A0DC'], nyanya: ["Tomato", '#E23B3B'],
+  sabuni: ["Soap", '#9BE7FF'], mchanga: ["Sand", '#D9B26F'], pipi: ["Candy", '#FF6FB5'],
 };
 const RECIPES = [
-  { name: 'Chai ya maziwa', items: { maji: 2, chai: 1, maziwa: 1, sukari: 1 } },
-  { name: 'Uji', items: { unga: 2, maji: 3, sukari: 1, ndimu: 1 } },
-  { name: 'Saladi ya matunda', items: { embe: 1, ndizi: 2, nanasi: 1, tikiti: 1 } },
+  { name: "Milk tea", items: { maji: 2, chai: 1, maziwa: 1, sukari: 1 } },
+  { name: "Porridge", items: { unga: 2, maji: 3, sukari: 1, ndimu: 1 } },
+  { name: "Fruit salad", items: { embe: 1, ndizi: 2, nanasi: 1, tikiti: 1 } },
   { name: 'Chapati', items: { unga: 3, maji: 1, mafuta: 1, chumvi: 1 } },
-  { name: 'Wali', items: { mchele: 2, maji: 4, chumvi: 1, mafuta: 1 } },
-  { name: 'Juisi ya machungwa', items: { chungwa: 3, maji: 1, sukari: 1 } },
-  { name: 'Supu ya mboga', items: { karoti: 2, kitunguu: 1, nyanya: 2, maji: 3, chumvi: 1 } },
+  { name: "Cooked rice", items: { mchele: 2, maji: 4, chumvi: 1, mafuta: 1 } },
+  { name: "Orange juice", items: { chungwa: 3, maji: 1, sukari: 1 } },
+  { name: "Vegetable soup", items: { karoti: 2, kitunguu: 1, nyanya: 2, maji: 3, chumvi: 1 } },
 ];
 HK.screens.g_kitchen = (el, p) => {
   const kit = GK.frame(el, 'kitchen', { level: p.level });
@@ -469,8 +472,10 @@ HK.screens.g_kitchen = (el, p) => {
   const rotations = [...RECIPES.slice(offset), ...RECIPES.slice(0, offset)];
   const list = rotations.slice(0, 3 + Math.floor((kit.level - 1) / 6));
   let ri = 0, perfect = 0, pot = {}, tries = 0;
+  let recipeTimer;
   const draw = () => {
     if (ri >= list.length) return kit.finish({ stars: perfect === list.length ? 3 : perfect >= Math.ceil(list.length * 2 / 3) ? 2 : 1, text: `${perfect} of ${list.length} recipes on the first try` });
+    let cooked = false;
     const rc = list[ri];
     const want = kit.g === 0 ? Object.fromEntries(Object.keys(rc.items).map(k => [k, 1])) : rc.items;
     const shelf = shuffle([...Object.keys(want), ...shuffle(['sabuni', 'mchanga', 'pipi', ...Object.keys(INGR).filter(k => !want[k] && !['sabuni', 'mchanga', 'pipi'].includes(k))]).slice(0, kit.g === 0 ? 2 : 5)]);
@@ -481,24 +486,25 @@ HK.screens.g_kitchen = (el, p) => {
       <div style="display:flex;justify-content:center;margin:2px 0 10px"><svg width="150" height="84" viewBox="0 0 150 84"><ellipse cx="75" cy="18" rx="64" ry="12" fill="#3A4D80"/><path d="M11 18h128l-10 52a14 14 0 0 1-14 12H35a14 14 0 0 1-14-12z" fill="#5C6B8A"/><path d="M0 26h12M138 26h12" stroke="#3A4D80" stroke-width="7" stroke-linecap="round"/>
         <text x="75" y="58" text-anchor="middle" font-weight="900" font-size="18" fill="#fff" font-family="Outfit,Roboto">${Object.values(pot).reduce((a, b) => a + b, 0)}</text></svg></div>
       <div class="ingredients">${shelf.map(k => `<button class="ing" data-k="${k}">${pot[k] ? `<span class="cnt">${pot[k]}</span>` : ''}<span class="dot2" style="--ingredient:${INGR[k][1]}" aria-hidden="true">${pic(k, 40)}</span>${INGR[k][0]}</button>`).join('')}</div>
-      <div class="btn-row" style="padding:0 16px 16px"><button class="btn ghost" id="empty">${icon('repeat', 20)} Mwaga</button><button class="btn coral" id="cook" style="flex:2">${icon('pot', 20)} Pika</button></div>`;
-    const sayIt = () => speak('Tupike ' + rc.name + '. Tunahitaji ' + Object.entries(want).map(([k, n]) => (kit.g ? n + ' ' : '') + INGR[k][0]).join(', '));
+      <div class="btn-row" style="padding:0 16px 16px"><button class="btn ghost" id="empty">${icon('repeat', 20)} Empty pot</button><button class="btn coral" id="cook" style="flex:2">${icon('pot', 20)} Cook</button></div>`;
+    const sayIt = () => speak('Let’s make ' + T(rc.name) + '. We need ' + Object.entries(want).map(([k, n]) => (kit.g ? n + ' ' : '') + T(INGR[k][0])).join(', '));
     $('#say', el).onclick = sayIt;
     if (!Object.keys(pot).length && !tries) sayIt();
-    $$('.ing', el).forEach(b => b.onclick = () => { const k = b.dataset.k; pot[k] = (pot[k] || 0) + 1; Sfx.tap(); if (['sabuni', 'mchanga', 'pipi'].includes(k)) speak(INGR[k][0] + '? Hiyo si ya chakula hiki!'); draw(); });
-    $('#empty', el).onclick = () => { pot = {}; draw(); };
+    $$('.ing', el).forEach(b => b.onclick = () => { if (cooked) return; const k = b.dataset.k; pot[k] = (pot[k] || 0) + 1; Sfx.tap(); if (['sabuni', 'mchanga', 'pipi'].includes(k)) speak(T(INGR[k][0]) + "? That's not for this meal!"); draw(); });
+    $('#empty', el).onclick = () => { if (!cooked) { pot = {}; draw(); } };
     $('#cook', el).onclick = () => {
+      if (cooked || kit.ended) return;
       const keys = new Set([...Object.keys(pot), ...Object.keys(want)]);
       const ok = [...keys].every(k => (pot[k] || 0) === (want[k] || 0));
-      if (ok) { if (!tries) perfect++; kit.addCoins(tries ? 2 : 4); Sfx.win(); speak('Tamu sana! Umepika ' + rc.name); ri++; pot = {}; tries = 0; setTimeout(draw, 900); }
+      if (ok) { cooked = true; if (!tries) perfect++; kit.addCoins(tries ? 2 : 4); Sfx.win(); speak('Well done! You made ' + T(rc.name)); ri++; pot = {}; tries = 0; recipeTimer = setTimeout(draw, 900); }
       else {
         tries++; Sfx.bad();
         const extra = Object.keys(pot).find(k => !want[k]);
-        const msg = extra ? INGR[extra][0] + ' haihitajiki' : 'Angalia idadi ya kila kitu';
+        const msg = extra ? INGR[extra][0] + ' is not needed' : "Count how many of each thing";
         speak(msg); toast(msg);
       }
     };
   };
   draw();
-  return () => kit.cleanup();
+  return () => { clearTimeout(recipeTimer); kit.cleanup(); };
 };

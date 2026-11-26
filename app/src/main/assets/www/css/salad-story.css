@@ -63,3 +63,18 @@
 .episode-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 0 16px; }
 .episode-grid .lv-stars { min-height: 15px; }
 .token-challenge .token-feedback { min-height: 20px; }
+
+/* Let longer English labels wrap within their original columns. */
+.topbar > h1, .topbar > .grow, .tile > div, .game-card, .safari-episode-card > span:nth-child(2) {
+  min-width: 0;
+}
+.topbar h1, .t-name, .t-sub, .g-name, .salad-choice, .safari-episode-card strong {
+  overflow-wrap: anywhere;
+}
+.salad-options > button { min-width: min(100%, 7rem); }
+[data-screen="swahiliLesson"] .btn-row { margin: 16px 0; }
+@media (max-width: 380px) {
+  .game-topbar { gap: 5px; }
+  .game-topbar h1 { font-size: 16px !important; }
+  .salad-options > button { flex: 1 1 7rem; }
+}

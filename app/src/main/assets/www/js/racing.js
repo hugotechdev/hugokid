@@ -69,7 +69,7 @@ HK.screens.raceMenu = (el) => {
   const c = Store.active();
   const rd = raceData(c); Store.saveChild(c);
   el.innerHTML = `
-    <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Mbio za Magari</h1>
+    <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Car Racing</h1>
       <span class="hud-pill" style="background:#fff">${icon('coin', 18)} <span id="coins">${c.coins || 0}</span></span></div>
     <div class="scroll">
       ${RACE_THEMES.map((t, ti) => `
@@ -81,14 +81,14 @@ HK.screens.raceMenu = (el) => {
             <span class="lv-stars">${[1, 2, 3].map(s => `<svg width="14" height="14" viewBox="0 0 24 24" class="${s <= b ? 'on' : ''}"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6L3.4 9.5l6-.8z"/></svg>`).join('')}</span>
           </button>`;
         }).join('')}</div></section>`).join('')}
-      <div class="section-title">Gereji</div>
+      <div class="section-title">Garage</div>
       <div class="garage" id="garage"></div>
     </div>`;
   $('#bk', el).onclick = () => HK.back();
 
   $$('.level', el).forEach(b => b.onclick = () => {
     const lv = +b.dataset.lv;
-    if (lv > raceData(Store.active()).unlocked) { Sfx.bad(); toast('Maliza ngazi ' + (lv - 1) + ' kwanza'); return; }
+    if (lv > raceData(Store.active()).unlocked) { Sfx.bad(); toast("Finish the level " + (lv - 1) + ' first'); return; }
     if (HK.gameLeft(Store.active()) <= 0) return HK.go('timeUp');
     Sfx.tap();
     HK.go('racePlay', { level: lv });
@@ -101,7 +101,7 @@ HK.screens.raceMenu = (el) => {
       const own = r.cars.includes(i);
       return `<button class="car-card ${r.car === i ? 'on' : ''}" data-i="${i}"><canvas width="240" height="172"></canvas>
         <div class="c-name">${car.name}</div>
-        <div class="c-price">${r.car === i ? 'Unalitumia' : own ? 'Chagua' : icon('coin', 14) + ' ' + car.cost}</div></button>`;
+        <div class="c-price">${r.car === i ? 'Selected' : own ? "Choose" : icon('coin', 14) + ' ' + car.cost}</div></button>`;
     }).join('');
     $$('.car-card canvas', g).forEach((cv, i) => {
       const x = cv.getContext('2d'); const car = RACE_CARS[i];
@@ -132,8 +132,8 @@ HK.screens.raceMenu = (el) => {
 };
 
 const RACE_COLORS = [
-  { n: 'NYEKUNDU', c: '#F65B4F' }, { n: 'BLUU', c: '#1EA7F0' }, { n: 'NJANO', c: '#FFC20E' },
-  { n: 'KIJANI', c: '#0FB394' }, { n: 'ZAMBARAU', c: '#7B61FF' },
+  { n: 'RED', c: '#F65B4F' }, { n: 'BLUE', c: '#1EA7F0' }, { n: 'YELLOW', c: '#FFC20E' },
+  { n: 'GREEN', c: '#0FB394' }, { n: 'PURPLE', c: '#7B61FF' },
 ];
 function raceQuestion(group, level) {
   const R = n => Math.floor(Math.random() * n);
@@ -141,7 +141,7 @@ function raceQuestion(group, level) {
   if (group === 'explorer') {
     const opts = shuffle(RACE_COLORS.slice()).slice(0, 3);
     const ans = opts[R(3)];
-    return { q: 'Pita kwenye rangi ya ' + ans.n, say: 'Pita kwenye rangi ya ' + ans.n.toLowerCase(), opts: opts.map(o => ({ label: '', color: o.c, ok: o === ans })) };
+    return { q: "Drive through the color " + ans.n, say: "Drive through the color " + ans.n.toLowerCase(), opts: opts.map(o => ({ label: '', color: o.c, ok: o === ans })) };
   }
   let a, b, op, res;
   if (group === 'adventurer') {
@@ -154,7 +154,7 @@ function raceQuestion(group, level) {
   const set = new Set([res]);
   while (set.size < 3) { const w = res + (R(2) ? 1 : -1) * (1 + R(op === 'x' ? 6 : 3)); if (w >= 0) set.add(w); }
   const opts = shuffle([...set]).map(v => ({ label: String(v), color: '#fff', ok: v === res }));
-  const say = `${a} ${{ '+': 'jumlisha', '-': 'toa', 'x': 'mara', '÷': 'gawanya kwa' }[op]} ${b} ni ngapi?`;
+  const say = `${a} ${{ '+': 'plus', '-': 'minus', 'x': 'times', '÷': 'divided by' }[op]} ${b}?`;
   return { q: `${a} ${op} ${b} = ?`, say, opts };
 }
 
@@ -307,7 +307,7 @@ HK.screens.racePlay = (el, p) => {
     ctx.fillStyle = 'rgba(255,255,255,.75)';
     const dash = S.dist % 70;
     for (let i = 1; i < 3; i++) for (let y = -70 + dash; y < H; y += 70) ctx.fillRect(r.l + r.lw * i - 3, y, 6, 36);
-    // mstari wa kumaliza
+
     const fy = playerY() - (LENGTH - S.dist);
     if (fy > -60 && fy < H + 40) {
       const sq = r.w / 12;
@@ -408,7 +408,6 @@ HK.screens.racePlay = (el, p) => {
     }
     S.objs = S.objs.filter(o => !o.gone && o.y < H + 120);
 
-    // mlango wa swali
     if (S.gate) {
       S.gate.y += dy;
       if (!S.gate.done && S.gate.y >= playerY() - 10) {
@@ -416,7 +415,7 @@ HK.screens.racePlay = (el, p) => {
         const ok = S.gate.q.opts[S.lane].ok;
         if (ok) {
           S.correct++; S.coins += 5; S.boost = 1.6; Sfx.good(); celebrateMascot(el); msg("Congratulations! +5", '#FFE07A');
-          speak(['Hongera!', 'Safi sana!', 'Umeweza!'][Math.floor(Math.random() * 3)]);
+          speak(["Congratulations!", 'Well done!', 'You did it!'][Math.floor(Math.random() * 3)]);
         } else { Sfx.bad(); msg("Almost! Try again"); }
         $('#q', el).classList.add('hidden-q');
       }
@@ -471,18 +470,19 @@ HK.screens.racePlay = (el, p) => {
   function pause() {
     if (S.over || S.paused) return;
     S.paused = true;
-    modal(el, {
-      iconName: 'pause', iconColor: 'var(--blue)', title: 'Umesimama',
+    const dialog = modal(el, {
+      iconName: 'pause', iconColor: 'var(--blue)', title: 'Paused',
       buttons: [
-        { label: 'Endelea', icon: 'play', onClick: () => { S.paused = false; last = performance.now(); } },
+        { label: 'Continue', icon: 'play', onClick: () => { S.paused = false; last = performance.now(); } },
         { label: "How to play", cls: 'blue', icon: 'help', onClick: () => GT.show(el, 'racing', 0, () => { S.paused = false; last = performance.now(); }) },
         { label: "Start over", cls: 'sun', icon: 'repeat', onClick: () => HK.go('racePlay', { level }, { replace: true }) },
-        { label: 'Toka', cls: 'ghost', onClick: () => { S.over = true; HK.leave(); } },
+        { label: 'Exit', cls: 'ghost', onClick: () => { S.over = true; HK.leave(); } },
       ],
     });
+    dialog.onGameBack = () => { dialog.remove(); S.paused = false; last = performance.now(); };
   }
   $('#pause', el).onclick = pause;
-  HK.setBack(() => { pause(); return true; });
+  HK.setBack(() => { if (S.over || S.paused) return false; pause(); return true; });
   HK._pauseHook = pause;
 
   function finish(won) {
@@ -499,34 +499,35 @@ HK.screens.racePlay = (el, p) => {
       if (stars > prev) { cc.stars = (cc.stars || 0) + (stars - prev); r.best[level] = stars; }
       if (level >= r.unlocked && level < RACE_EPISODES) r.unlocked = level + 1;
       Sfx.win(); confetti(el);
-      speak(level === RACE_EPISODES ? 'Hongera bingwa! Umemaliza mbio zote!' : 'Hongera! Umemaliza ngazi ya ' + level);
+      speak(level === RACE_EPISODES ? "Congratulations champion! You finished all the races!" : "Congratulations! You finished level " + level);
     } else { Sfx.bad(); speak("Oops, try again. You can do it!"); }
     Store.saveChild(cc);
     const leftNow = HK.gameLeft(cc);
     modal(el, {
       iconName: won ? 'trophy' : 'repeat', iconColor: won ? 'var(--sun)' : 'var(--coral)',
-      title: won ? (level === RACE_EPISODES ? 'Bingwa wa Mbio!' : 'Umemaliza!') : 'Jaribu tena',
+      title: won ? (level === RACE_EPISODES ? "Racing Champion!" : 'You finished!') : 'Try again',
       html: `${won ? `<div class="earned">${starsHTML(stars, 3, 44)}</div>` : ''}
-        <p>Sarafu ${S.coins}${S.correct ? ' · Maswali sahihi ' + S.correct : ''}</p>`,
+        <p>Coins ${S.coins}${S.correct ? ' · Correct answers ' + S.correct : ''}</p>`,
       buttons: [
         ...(won && level < RACE_EPISODES && leftNow > 0 ? [{ label: "Next level", icon: 'chevR', onClick: () => HK.go('racePlay', { level: level + 1 }, { replace: true }) }] : []),
-        ...(leftNow > 0 ? [{ label: 'Cheza tena', cls: won ? 'sun' : '', icon: 'repeat', onClick: () => HK.go('racePlay', { level }, { replace: true }) }] : []),
-        { label: leftNow > 0 ? 'Ngazi zote' : 'Muda umekwisha', cls: 'ghost', onClick: () => leftNow > 0 ? HK.leave() : HK.go('timeUp', {}, { replace: true }) },
+        ...(leftNow > 0 ? [{ label: "Play again", cls: won ? 'sun' : '', icon: 'repeat', onClick: () => HK.go('racePlay', { level }, { replace: true }) }] : []),
+        { label: leftNow > 0 ? "All levels" : 'Time is up', cls: 'ghost', onClick: () => leftNow > 0 ? HK.leave() : HK.go('timeUp', {}, { replace: true }) },
       ],
     });
   }
 
   S.paused = true;
-  let n = 3;
+  let n = 3, startTimer;
   const countdown = () => {
     if (n === 0) { msg("Let's go!", '#FFE07A'); speak("Let's go!"); S.paused = false; last = performance.now(); return; }
-    msg(String(n)); Sfx.tone(520, 0.12, 'square', 0.1); n--; setTimeout(countdown, 750);
+    msg(String(n)); Sfx.tone(520, 0.12, 'square', 0.1); n--; startTimer = setTimeout(countdown, 750);
   };
-  if (GT.seen(child, 'racing')) setTimeout(countdown, 300);
-  else setTimeout(() => GT.show(el, 'racing', 0, countdown), 200);
+  if (GT.seen(child, 'racing')) startTimer = setTimeout(countdown, 300);
+  else startTimer = setTimeout(() => GT.show(el, 'racing', 0, countdown), 200);
   raf = requestAnimationFrame(loop);
 
   return () => {
+    clearTimeout(startTimer);
     cancelAnimationFrame(raf);
     window.removeEventListener('resize', resize);
     window.removeEventListener('keydown', key);

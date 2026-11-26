@@ -38,7 +38,7 @@ async function renderParentSchool(body) {
         ${s.upcoming.length ? `<p style="margin-top:12px"><b>Deadline zinazokuja:</b><br>${s.upcoming.map(u => `${esc(u.title)} (${esc(u.subject || '')}) · ${esc(u.due)}`).join('<br>')}</p>` : ''}
         ${s.overdue ? `<p style="color:var(--coral);font-weight:600;margin-top:6px">Homework ${s.overdue} zimepita muda</p>` : ''}
         <div class="ai-card card" style="margin:12px 0 0"><div class="row"><span>${mascot('nuru', 36)}</span><b class="grow">Nuru's report</b><button class="btn small ghost" data-ai="${c.id}">${icon('repeat', 14)} Andaa</button></div>
-          <p id="air-${c.id}" style="margin-top:6px">${r.ai ? esc(r.ai.text) : 'Bonyeza "Andaa" kupata muhtasari wa maendeleo na pendekezo la mazoezi.'}</p></div>
+          <p id="air-${c.id}" style="margin-top:6px">${r.ai ? esc(r.ai.text) : "Tap \"Prepare\" to get a progress summary and a practice suggestion."}</p></div>
         <button class="btn small ghost" data-res="${c.id}" style="margin-top:10px">${icon('file', 16)} Homework na alama</button>
       </div>`);
     }
@@ -67,7 +67,7 @@ async function renderParentSchool(body) {
       const local = { mode: MODES[kidMode(c)].name, reading: avg((c.skillLog || {}).read), math: avg((c.skillLog || {}).math), learned: Object.fromEntries(Object.entries(c.learned || {}).map(([k, v]) => [k, v.length])) };
       try { const r = await Net.post(`/api/children/${c.serverId}/report/ai`, { local }); out.textContent = r.text; }
       catch (e) {
-        if (AI.ready()) { try { out.textContent = await AI.ask({ system: 'Wewe ni mshauri wa elimu anayeandikia mzazi kwa Kiswahili rahisi.', text: `Andika ripoti fupi (sentensi 3) ya ${c.name}: anapofanya vizuri, anapokwama, na pendekezo moja. Takwimu: ${JSON.stringify(local)}`, maxTokens: 300 }); } catch (x) { out.textContent = x.message; } }
+        if (AI.ready()) { try { out.textContent = await AI.ask({ system: 'Write to the parent in clear, simple English.', text: `Andika ripoti fupi (sentensi 3) ya ${c.name}: anapofanya vizuri, anapokwama, na pendekezo moja. Takwimu: ${JSON.stringify(local)}`, maxTokens: 300 }); } catch (x) { out.textContent = x.message; } }
         else out.textContent = e.message;
       }
     });
@@ -99,7 +99,6 @@ HK.screens.parentSub = (el, p) => {
   }).catch(e => { $('#b', el).innerHTML = `<div class="empty">${esc(e.message)}</div>`; });
 };
 
-/* ---------- HUGO TECH: msimamizi mkuu ---------- */
 HK.screens.superHome = (el) => {
   const body = dash(el, 'HUGO KID · Msimamizi mkuu', 'HUGO TECH', loading, false, `<button class="icon-btn" id="out">${icon('logout', 20)}</button>`);
   $('#out', el).onclick = () => { Net.logout(); HK.go('welcome', {}, { reset: true }); };
@@ -112,8 +111,8 @@ HK.screens.superHome = (el) => {
       body.innerHTML = `<div class="stat-grid">
           ${statCard('Shule', s.schools, 'build', 'var(--blue)')}${statCard('Walimu', s.teachers, 'user', 'var(--teal)')}${statCard('Wazazi', s.parents, 'users', 'var(--coral)')}
           ${statCard('Wanafunzi', s.children, 'star', 'var(--sun-d)')}${statCard('Homework', s.homework, 'file', '#7B61FF')}${statCard('Mapato (TSh)', paid.toLocaleString(), 'coin', 'var(--navy)')}</div>
-        <div class="section-title">Shule</div>
-        <div class="card table-card"><table><tr><th>Shule</th><th>Eneo</th><th>Wanafunzi</th><th>Hali</th><th></th></tr>
+        <div class="section-title">School</div>
+        <div class="card table-card"><table><tr><th>School</th><th>Eneo</th><th>Wanafunzi</th><th>Hali</th><th></th></tr>
           ${s.list.map(x => `<tr><td>${esc(x.name)}<br><span class="muted">${x.type === 'tutor' ? 'Mwalimu binafsi' : 'Shule'} · ${esc(x.phone || '')}</span></td><td>${esc(x.region || '')} ${esc(x.district || '')}</td><td>${x.students}</td>
             <td><span class="chip-tag ${x.status === 'active' ? 'teal' : 'coral'}">${x.status === 'active' ? 'Hai' : 'Imesimamishwa'}</span></td>
             <td><button class="btn small ghost" data-inv="${x.id}" data-n="${esc(x.name)}">Ankara</button> <button class="btn small ${x.status === 'active' ? 'coral' : ''}" data-st="${x.id}" data-v="${x.status === 'active' ? 'blocked' : 'active'}">${x.status === 'active' ? 'Simamisha' : 'Rudisha'}</button></td></tr>`).join('')}</table></div>
@@ -126,7 +125,7 @@ HK.screens.superHome = (el) => {
         <div class="stat-grid three" style="margin-top:14px">
           <div class="card"><h3>Bei</h3><label class="label">Per student per term (school)</label><input class="field" id="p1" type="number" value="${b.plans.school_student_term}">
             <label class="label">Parent per month</label><input class="field" id="p2" type="number" value="${b.plans.parent_month}">
-            <label class="label">Maelekezo ya kulipa</label><textarea class="field" id="p3" placeholder="Mfano: M-Pesa Lipa Namba ...">${esc(b.plans.pay_info || '')}</textarea>
+            <label class="label">Payment instructions</label><textarea class="field" id="p3" placeholder="Mfano: M-Pesa Lipa Namba ...">${esc(b.plans.pay_info || '')}</textarea>
             <button class="btn" id="saveplans" style="margin-top:10px">${icon('check', 18)} Hifadhi</button></div>
           <div class="card"><h3>Server AI</h3><p style="font-size:13px">Inatumika kusahihisha, msaidizi wa mwalimu na ripoti za wazazi. ${aiCfg.has_key ? 'Imewekwa.' : 'Bado haijawekwa.'}</p>
             <select class="field" id="ap">${['gemini', 'claude', 'openai'].map(x => `<option ${aiCfg.provider === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
@@ -165,8 +164,8 @@ HK.screens.superHome = (el) => {
           }
           const list = await Net.get(`/api/admin/users?role=${ur}&q=${qq}`);
           box.innerHTML = `<div class="table-card" style="padding:0"><table><tr><th>Jina</th><th>Mawasiliano</th><th>${ur === 'parent' ? 'Watoto' : 'Shule'}</th><th></th></tr>${list.map(x => `<tr><td>${esc(x.name)}</td><td>${esc(x.phone || '')} ${esc(x.email || '')}</td><td>${esc(ur === 'parent' ? (x.children || []).join(', ') : (x.school || ''))}</td>
-            <td><button class="btn small ghost" data-rst="${x.id}">Nenosiri</button>${ur === 'parent' ? ` <button class="btn small ghost" data-pinv="${x.id}" data-n="${esc(x.name)}">Ankara</button>` : ''}</td></tr>`).join('')}</table></div>`;
-          $$('[data-rst]', box).forEach(btn => btn.onclick = async () => { const r = await Net.post(`/api/admin/users/${btn.dataset.rst}/reset`); modal(el, { iconName: 'key', title: 'Nenosiri la muda', html: `<p>${esc(r.login)}</p><p style="font-size:22px;font-weight:700">${esc(r.password)}</p><div style="height:10px"></div>`, buttons: [{ label: 'Sawa' }] }); });
+            <td><button class="btn small ghost" data-rst="${x.id}">Password</button>${ur === 'parent' ? ` <button class="btn small ghost" data-pinv="${x.id}" data-n="${esc(x.name)}">Ankara</button>` : ''}</td></tr>`).join('')}</table></div>`;
+          $$('[data-rst]', box).forEach(btn => btn.onclick = async () => { const r = await Net.post(`/api/admin/users/${btn.dataset.rst}/reset`); modal(el, { iconName: 'key', title: "Temporary password", html: `<p>${esc(r.login)}</p><p style="font-size:22px;font-weight:700">${esc(r.password)}</p><div style="height:10px"></div>`, buttons: [{ label: 'Sawa' }] }); });
           $$('[data-pinv]', box).forEach(btn => btn.onclick = () => modal(el, { title: 'Ankara: ' + btn.dataset.n, html: '<input class="field" id="ia" type="number" placeholder="Kiasi (TSh)"><input class="field" id="ip" placeholder="Kipindi (mf. Desemba 2026)" style="margin-top:8px"><div style="height:14px"></div>', buttons: [
             { label: 'Tuma ankara', onClick: async o => { try { await Net.post('/api/admin/invoices', { parent_id: +btn.dataset.pinv, amount: +$('#ia', o).value, period: $('#ip', o).value, plan: 'HUGO KID Mzazi' }); toast("Invoice sent"); } catch (e) { toast(e.message); } } },
             { label: 'Ghairi', cls: 'ghost' }] }));

@@ -25,7 +25,7 @@ const AI = {
   /* opts: { system, text, images: [dataURL], maxTokens, history: [{role:'user'|'assistant', text}] } */
   async ask(opts) {
     const c = this.cfg();
-    if (!c.key) throw new Error('Mzazi hajaweka API key ya AI');
+    if (!c.key) throw new Error("The parent has not set an AI API key");
     const p = c.provider;
     const model = (c.model || AI_PROVIDERS[p].model).trim();
     const max = opts.maxTokens || 700;
@@ -103,7 +103,7 @@ const AI = {
     if (!res.ok) throw new Error((j.error && j.error.message) || ('Gemini error ' + res.status));
     const cand = j.candidates && j.candidates[0];
     const txt = cand && cand.content && cand.content.parts ? cand.content.parts.map(x => x.text || '').join('') : '';
-    if (!txt) throw new Error('AI haikutoa jibu (huenda limezuiwa kwa usalama)');
+    if (!txt) throw new Error("The AI gave no answer (it may have been blocked for safety)");
     return txt.trim();
   },
 
@@ -114,9 +114,9 @@ const AI = {
 Andika kila swali kama lilivyo kwenye karatasi (pamoja na namba na hesabu). Usitoe majibu.`;
     const raw = await this.ask({ system: sys, text: prompt, images, maxTokens: 1500 });
     const m = raw.match(/\{[\s\S]*\}/);
-    if (!m) throw new Error('AI haikusoma homework vizuri, jaribu picha iliyo wazi zaidi');
+    if (!m) throw new Error("The AI couldn't read the homework well, try a clearer photo");
     const j = JSON.parse(m[0]);
-    if (!Array.isArray(j.questions) || !j.questions.length) throw new Error('Hakuna maswali yaliyosomeka');
+    if (!Array.isArray(j.questions) || !j.questions.length) throw new Error("No readable questions");
     return j;
   },
 
@@ -139,7 +139,7 @@ HK.screens.aiSettings = (el) => {
       <label class="label">API key</label>
       <input class="field" id="key" type="password" autocomplete="off" placeholder="" value="${esc(c.key)}">
       <p class="muted" style="font-size:13px;font-weight:700;margin:8px 2px 0" id="where"></p>
-      <label class="label">Model (si lazima)</label>
+      <label class="label">Model (optional)</label>
       <input class="field" id="model" placeholder="" value="${esc(c.model)}">
       <label class="label">Nuru assistant for the child</label>
       <div class="chips" id="en"><button class="chip ${c.enabled ? 'on' : ''}" data-v="1">Washa</button><button class="chip ${!c.enabled ? 'on' : ''}" data-v="0">Zima</button></div>
@@ -163,7 +163,7 @@ HK.screens.aiSettings = (el) => {
     AI.save(collect());
     const b = $('#test', el); b.disabled = true; b.textContent = 'Inajaribu...';
     try {
-      const a = await AI.ask({ text: 'Sema "Habari! Mimi ni Nuru" kwa sentensi moja.', maxTokens: 60 });
+      const a = await AI.ask({ text: "Say \"Hello! I am Nuru\" in one sentence.", maxTokens: 60 });
       modal(el, { iconName: 'check', title: "AI is working", text: a, buttons: [{ label: 'Sawa' }] });
     } catch (e) {
       modal(el, { iconName: 'x', iconColor: 'var(--coral)', title: 'Imeshindikana', text: e.message, buttons: [{ label: 'Sawa' }] });
@@ -214,7 +214,7 @@ HK.screens.tutor = (el) => {
     return d;
   };
   if (!AI.ready()) {
-    bubble('hugo', 'Habari! Mzazi wako akiweka AI kwenye Mipangilio, tutaongea na kujifunza pamoja.');
+    bubble('hugo', "Hello! When your parent sets up AI in Settings, we will talk and learn together.");
     $('#send', el).disabled = true;
     return;
   }

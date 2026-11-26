@@ -1,6 +1,5 @@
 
 
-/* Misheni za leo */
 function missions(c) {
   const d = Store.today();
   const m = (c.daily && c.daily.date === d) ? c.daily : { date: d, lesson: false, game: false, hw: false, done: false };
@@ -36,7 +35,7 @@ function homeworkBadge(el, c) {
 function greetOnce(c, text) {
   if (sessionStorage.getItem('hk_greeted_' + c.id)) return;
   sessionStorage.setItem('hk_greeted_' + c.id, '1');
-  setTimeout(() => speak(text), 500);
+  setTimeout(() => speak(T(text)), 500);
 }
 
 HK.screens.home = (el) => {
@@ -105,24 +104,24 @@ function homeStandard(el, c, mode) {
     tiles = T('abc', '{}', 'blue', ART.reading, 'Herufi', 'A B C kwa sauti')
       + T('hwList', '{}', 'sun', ART.homework, 'Homework', 'Kazi za shule', '', '<span class="badge hidden" id="hwbadge"></span>')
       + T('games', '{}', 'coral', ART.games, 'Michezo', left > 0 ? 'Dakika ' + Math.ceil(left / 60) : 'Ya kujifunza')
-      + T('lessons', '{}', 'teal', ART.lessons, 'Masomo', 'Namba, lugha, sayansi')
+      + T('lessons', '{}', 'teal', ART.lessons, 'Masomo', "Numbers, languages, science")
       + wide('tutor', '{}', 'white', mascot('nuru', 58), 'Uliza Nuru', 'Ongea na rafiki yako')
       + (faithOn(c) ? wide('faith', '{}', 'teal', `<div class="t-ic">${icon('sunrise', 30)}</div>`, rel.tile, rel.name) : '');
   } else if (mode === 'explorer') {
     tiles = T('hwList', '{}', 'sun', ART.homework, 'Homework', 'Kazi za shule', '', '<span class="badge hidden" id="hwbadge"></span>')
       + T('games', '{}', 'coral', ART.games, 'Michezo', left > 0 ? 'Dakika ' + Math.ceil(left / 60) + ' zimebaki' : 'Cheza ya kujifunza')
-      + T('lessons', '{}', 'blue' + (faithOn(c) ? '' : ' wide'), ART.lessons, 'Masomo', 'Lugha, hesabu, sayansi')
+      + T('lessons', '{}', 'blue' + (faithOn(c) ? '' : ' wide'), ART.lessons, 'Masomo', "Languages, math, science")
       + (faithOn(c) ? T('faith', '{}', 'teal', ART.faith, rel.tile, rel.name) : '')
-      + wide('safari', '{}', 'navy', `<div class="t-ic">${icon('flag', 30)}</div>`, 'Ramani ya Safari', 'Fungua visiwa vipya kwa nyota zako')
-      + wide('tutor', '{}', 'white', mascot('nuru', 58), 'Uliza Nuru', 'Rafiki yako wa kujifunza');
+      + wide('safari', '{}', 'navy', `<div class="t-ic">${icon('flag', 30)}</div>`, 'Ramani ya Safari', "Unlock new islands with your stars")
+      + wide('tutor', '{}', 'white', mascot('nuru', 58), 'Uliza Nuru', "Your learning friend");
   } else {
-    tiles = T('lessons', '{}', 'blue', ART.lessons, 'Masomo', 'Lugha, hesabu, sayansi')
+    tiles = T('lessons', '{}', 'blue', ART.lessons, 'Masomo', "Languages, math, science")
       + T('hwList', '{}', 'sun', ART.homework, 'Homework', 'Kazi za shule', '', '<span class="badge hidden" id="hwbadge"></span>')
-      + wide('aiStudio', '{}', 'navy', mascot('nuru', 58), 'Studio ya AI', 'Miradi: hadithi, michezo, picha, video', 'background:linear-gradient(135deg,#7B61FF,#1EA7F0)')
+      + wide('aiStudio', '{}', 'navy', mascot('nuru', 58), 'Studio ya AI', "Projects: stories, games, pictures, video", 'background:linear-gradient(135deg,#7B61FF,#1EA7F0)')
       + T('games', '{}', 'coral', ART.games, 'Changamoto', left > 0 ? 'Michezo na coding' : 'Ya kujifunza')
       + T('myReport', '{}', 'teal', `<svg class="art" viewBox="0 0 110 110"><rect x="20" y="58" width="14" height="30" rx="4" fill="#fff"/><rect x="44" y="40" width="14" height="48" rx="4" fill="#fff"/><rect x="68" y="24" width="14" height="64" rx="4" fill="#FFE27A"/></svg>`, 'Maendeleo', 'Ripoti yangu')
       + (faithOn(c) ? wide('faith', '{}', 'teal', `<div class="t-ic">${icon('sunrise', 30)}</div>`, rel.tile, rel.name) : '')
-      + wide('tutor', '{}', 'white', mascot('nuru', 58), 'Uliza Nuru', 'Utafiti na maswali magumu');
+      + wide('tutor', '{}', 'white', mascot('nuru', 58), 'Uliza Nuru', "Research and harder questions");
   }
 
   el.innerHTML = `
@@ -152,15 +151,15 @@ function homeStandard(el, c, mode) {
         <div class="grow"><b>${gp >= 1 ? 'Umefikia lengo!' : 'Lengo la leo'}</b><p>Jifunza dakika ${goal} · ${learnMin} tayari</p></div>
       </div>` : `
       <div class="goal" style="align-items:stretch;flex-direction:column;gap:10px">
-        <div class="row" style="justify-content:space-between"><b>Misheni za leo</b><span class="chip-tag ${ms.done ? 'teal' : 'sun'}">${[ms.lesson, ms.game, ms.hw].filter(Boolean).length}/3 · nyota 2</span></div>
-        ${[['lesson', 'Maliza somo moja', 'lessons'], ['game', 'Cheza mchezo wa kujifunza', 'games'], ['hw', 'Fanya homework au mazoezi', 'hwList']].map(([k, t, go]) => `
+        <div class="row" style="justify-content:space-between"><b>Today's missions</b><span class="chip-tag ${ms.done ? 'teal' : 'sun'}">${[ms.lesson, ms.game, ms.hw].filter(Boolean).length}/3 · nyota 2</span></div>
+        ${[['lesson', 'Maliza somo moja', 'lessons'], ['game', "Play a learning game", 'games'], ['hw', 'Fanya homework au mazoezi', 'hwList']].map(([k, t, go]) => `
           <button class="row mission ${ms[k] ? 'done' : ''}" data-go="${go}"><span class="mcheck">${ms[k] ? icon('check', 16) : ''}</span><span class="grow" style="text-align:left">${t}</span>${icon('chevR', 18)}</button>`).join('')}
       </div>`}
 
       <div id="ann"></div>
       <div style="padding:16px 16px 0">
         <div class="tiles">${tiles}
-          ${Net.online() && c.serverId && mode !== 'beginner' ? wide('together', '{}', 'white', `<div class="t-ic" style="background:var(--coral);color:#fff">${icon('users', 28)}</div>`, 'Pamoja', 'Jifunze na cheza na marafiki') : ''}
+          ${Net.online() && c.serverId && mode !== 'beginner' ? wide('together', '{}', 'white', `<div class="t-ic" style="background:var(--coral);color:#fff">${icon('users', 28)}</div>`, 'Pamoja', "Learn and play with friends") : ''}
           ${wide('raceMenu', '{}', 'navy', `<div class="t-ic">${icon('car', 30)}</div>`, 'Mbio za Magari', 'Episode ' + Math.min(RACE_EPISODES, raceData(c).unlocked) + ' of ' + RACE_EPISODES)}
         </div>
         ${childAppsStrip()}
@@ -205,7 +204,7 @@ HK.screens.safari = (el) => {
   $('#bk', el).onclick = () => HK.back();
   $$('.island', el).forEach(b => b.onclick = () => {
     const [n, go] = ISLANDS[+b.dataset.i];
-    if (b.classList.contains('locked')) { Sfx.bad(); speak('Kusanya nyota zaidi kufungua ' + n); return toast('Kusanya nyota zaidi kufungua ' + n); }
+    if (b.classList.contains('locked')) { Sfx.bad(); speak('Collect more stars to unlock ' + T(n)); return toast('Collect more stars to unlock ' + T(n)); }
     Sfx.tap(); speak(n); HK.go(go);
   });
 };
@@ -222,11 +221,11 @@ HK.screens.myReport = (el) => {
         <div class="hero-stats"><div>${icon('star', 20)}<span><b>${c.stars || 0}</b>Stars</span></div><div>${icon('coin', 20)}<span><b>${c.coins || 0}</b>Sarafu</span></div><div>${icon('book', 20)}<span><b>${Object.keys(Store.get('lessons_' + c.id, {})).length}</b>Lessons</span></div></div></div>
       <div class="card" style="margin-top:14px"><h3>Ujuzi</h3>${bar('Kusoma na lugha', read, 'var(--teal)')}${bar('Hesabu na mantiki', math, 'var(--blue)')}</div>
       <div class="card"><h3>Nimejifunza</h3><p>Herufi ${(L.letters || []).length} · Maneno ${(L.words || []).length} · Rangi ${(L.colors || []).length} · Wanyama ${(L.animals || []).length}</p></div>
-      <div class="card" id="school"><h3>Homework za shule</h3><p class="muted">Inapakia...</p></div>
+      <div class="card" id="school"><h3>School homework</h3><p class="muted">Inapakia...</p></div>
     </div>`;
   $('#bk', el).onclick = () => HK.back();
   HWDB.byChild(c.id).then(list => {
     const done = list.filter(h => h.origin === 'school' && h.score != null);
-    $('#school', el).innerHTML = `<h3>Homework za shule</h3>` + (done.length ? done.slice(0, 10).map(h => `<div class="row" style="justify-content:space-between;margin:8px 0"><span>${esc(h.title)}</span><b>${h.score}/${h.max_score}</b></div>`).join('') : '<p>Hakuna alama bado.</p>');
+    $('#school', el).innerHTML = `<h3>School homework</h3>` + (done.length ? done.slice(0, 10).map(h => `<div class="row" style="justify-content:space-between;margin:8px 0"><span>${esc(h.title)}</span><b>${h.score}/${h.max_score}</b></div>`).join('') : '<p>Hakuna alama bado.</p>');
   });
 };
