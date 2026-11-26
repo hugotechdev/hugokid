@@ -45,15 +45,16 @@ async function ask({ system, text, images = [], max = 900 }) {
   return ((j.candidates || [])[0]?.content?.parts || []).map(x => x.text || '').join('').trim();
 }
 async function askJSON(opts) {
-  const raw = await ask({ ...opts, system: (opts.system || '') + '\nJibu kwa JSON halali TU.' });
+  const raw = await ask({ ...opts, system: (opts.system || '') + '\nReturn valid JSON only.' });
   const m = raw.match(/[\[{][\s\S]*[\]}]/);
-  if (!m) throw new Error('AI haikurudisha JSON');
+  if (!m) throw new Error('The AI did not return JSON.');
   return JSON.parse(m[0]);
 }
 
-const TEACHER_SYS = 'Wewe ni msaidizi wa walimu wa shule za msingi Tanzania (Awali hadi Darasa la 7). Andika maudhui sahihi, yanayofaa umri, kwa lugha rahisi. Fuata mtaala wa Tanzania inapowezekana.';
+const TEACHER_SYS = 'You help primary-school teachers in Tanzania. Use simple, age-appropriate language and follow the Tanzanian curriculum where possible. Write in English unless generating material for a Kiswahili lesson.';
 
 async function generate({ task, level, subject, topic, count = 5, lang = 'English' }) {
+  lang = /^(kiswahili|swahili)$/i.test(String(subject || '').trim()) && /^(kiswahili|swahili)$/i.test(lang) ? 'Kiswahili' : 'English';
   const n = Math.max(3, Math.min(20, +count || 5));
   if (task === 'quiz') {
     return askJSON({

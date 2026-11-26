@@ -6,14 +6,14 @@ const { route, fail, need, J, now, role, classFor, childFor, className } = requi
 
 const DEFAULT_SUBJECTS = ['Kiswahili', 'English', 'Hisabati', 'Sayansi', 'Maarifa ya Jamii', 'Uraia na Maadili', 'Dini', 'Michezo na Sanaa'];
 route('GET', '/api/subjects', u => {
-  if (!u || !u.school_id) fail(403, 'Huna shule');
+  if (!u || !u.school_id) fail(403, "You don't have a school");
   const rows = q.all('SELECT id, name FROM subjects WHERE school_id = ? ORDER BY name', u.school_id);
   return rows.length ? rows : DEFAULT_SUBJECTS.map((name, i) => ({ id: -(i + 1), name }));
 });
 route('POST', '/api/subjects', (u, b) => {
   role(u, 'school_admin');
   if (!q.get('SELECT id FROM subjects WHERE school_id = ?', u.school_id)) DEFAULT_SUBJECTS.forEach(n => q.run('INSERT INTO subjects(school_id, name) VALUES (?,?)', u.school_id, n));
-  const name = need(b.name, 'Andika jina la somo');
+  const name = need(b.name, "Enter the subject name");
   if (!q.get('SELECT id FROM subjects WHERE school_id = ? AND lower(name) = lower(?)', u.school_id, name)) q.run('INSERT INTO subjects(school_id, name) VALUES (?,?)', u.school_id, name);
   return { ok: true };
 });
@@ -42,14 +42,14 @@ route('POST', '/api/classes/:id/attendance', (u, b, req, p) => {
 route('POST', '/api/announcements', (u, b) => {
   role(u, 'school_admin');
   const audience = ['all', 'parents', 'teachers', 'students'].includes(b.audience) ? b.audience : 'all';
-  const id = Number(q.run('INSERT INTO announcements(school_id, author_id, audience, title, body, created) VALUES (?,?,?,?,?,?)', u.school_id, u.id, audience, need(b.title, 'Andika kichwa'), (b.body || '').slice(0, 3000), now()).lastInsertRowid);
+  const id = Number(q.run('INSERT INTO announcements(school_id, author_id, audience, title, body, created) VALUES (?,?,?,?,?,?)', u.school_id, u.id, audience, need(b.title, "Enter a title"), (b.body || '').slice(0, 3000), now()).lastInsertRowid);
   const msg = { t: 'announcement', title: b.title };
   if (audience === 'all' || audience === 'teachers') q.all(`SELECT id FROM users WHERE school_id = ? AND role = 'teacher'`, u.school_id).forEach(t => hub.toUser(t.id, msg));
   if (audience !== 'teachers') q.all('SELECT DISTINCT parent_id FROM children WHERE school_id = ? AND parent_id IS NOT NULL', u.school_id).forEach(r => hub.toUser(r.parent_id, msg));
   return { id };
 });
 route('GET', '/api/announcements', u => {
-  if (!u) fail(401, 'Ingia kwanza');
+  if (!u) fail(401, "Sign in first");
   if (u.role === 'school_admin') return q.all('SELECT * FROM announcements WHERE school_id = ? ORDER BY created DESC LIMIT 50', u.school_id);
   if (u.role === 'teacher') return q.all(`SELECT * FROM announcements WHERE school_id = ? AND audience IN ('all','teachers') ORDER BY created DESC LIMIT 50`, u.school_id);
   if (u.role === 'parent') {
@@ -64,29 +64,29 @@ route('DELETE', '/api/announcements/:id', (u, b, req, p) => { role(u, 'school_ad
 function otherParty(u, ch) {
   if (u.role === 'parent') {
     const c = ch.class_id ? q.get('SELECT teacher_id FROM classes WHERE id = ?', ch.class_id) : null;
-    if (!c || !c.teacher_id) fail(400, 'Mtoto hana mwalimu wa darasa bado');
+    if (!c || !c.teacher_id) fail(400, "The child has no class teacher yet");
     return c.teacher_id;
   }
   if (!ch.parent_id) fail(400, 'Mzazi bado hajaunganishwa');
   return ch.parent_id;
 }
 route('GET', '/api/children/:id/messages', (u, b, req, p) => {
-  if (!u) fail(401, 'Ingia kwanza');
+  if (!u) fail(401, "Sign in first");
   const ch = childFor(u, p.id);
   q.run('UPDATE messages SET seen = 1 WHERE child_id = ? AND to_id = ?', ch.id, u.id);
   return q.all('SELECT m.*, us.name from_name, us.role from_role FROM messages m JOIN users us ON us.id = m.from_id WHERE m.child_id = ? ORDER BY m.created', ch.id);
 });
 route('POST', '/api/children/:id/messages', (u, b, req, p) => {
-  if (!u) fail(401, 'Ingia kwanza');
+  if (!u) fail(401, "Sign in first");
   const ch = childFor(u, p.id);
   const to = otherParty(u, ch);
-  const body = need(b.body, 'Andika ujumbe').slice(0, 2000);
+  const body = need(b.body, "Type a message").slice(0, 2000);
   q.run('INSERT INTO messages(child_id, from_id, to_id, body, created) VALUES (?,?,?,?,?)', ch.id, u.id, to, body, now());
   hub.toUser(to, { t: 'message', child_id: ch.id, from: u.name });
   return { ok: true };
 });
 route('GET', '/api/inbox', u => {
-  if (!u) fail(401, 'Ingia kwanza');
+  if (!u) fail(401, "Sign in first");
   return q.all(`SELECT m.child_id, c.name child, max(m.created) last, sum(CASE WHEN m.to_id = ? AND m.seen = 0 THEN 1 ELSE 0 END) unread
     FROM messages m JOIN children c ON c.id = m.child_id WHERE m.from_id = ? OR m.to_id = ? GROUP BY m.child_id ORDER BY last DESC`, u.id, u.id, u.id);
 });
@@ -117,7 +117,7 @@ function childStats(ch) {
   };
 }
 route('GET', '/api/children/:id/report', (u, b, req, p) => {
-  if (!u) fail(401, 'Ingia kwanza');
+  if (!u) fail(401, "Sign in first");
   const ch = childFor(u, p.id);
   const cls = ch.class_id ? q.get('SELECT * FROM classes WHERE id = ?', ch.class_id) : null;
   const teacher = cls && cls.teacher_id ? q.get('SELECT name FROM users WHERE id = ?', cls.teacher_id) : null;
@@ -125,7 +125,7 @@ route('GET', '/api/children/:id/report', (u, b, req, p) => {
   return { child: { id: ch.id, name: ch.name, class_name: className(cls), teacher: teacher ? teacher.name : null }, stats: childStats(ch), ai: cached ? J(cached.value) : null };
 });
 route('POST', '/api/children/:id/report/ai', async (u, b, req, p) => {
-  if (!u) fail(401, 'Ingia kwanza');
+  if (!u) fail(401, "Sign in first");
   const ch = childFor(u, p.id);
   if (!ai.ready()) fail(400, 'AI ya ripoti haijawekwa kwenye server');
   const stats = { ...childStats(ch), local: b.local || null };
@@ -135,7 +135,6 @@ route('POST', '/api/children/:id/report/ai', async (u, b, req, p) => {
   return v;
 });
 
-/* ---------- Takwimu za shule (mkuu wa shule) ---------- */
 route('GET', '/api/school/analytics', u => {
   role(u, 'school_admin');
   const sid = u.school_id;
@@ -163,7 +162,7 @@ route('GET', '/api/school/analytics', u => {
 const getSetting = (k, d) => { const r = q.get('SELECT value FROM settings WHERE key = ?', k); return r ? J(r.value) : d; };
 const setSetting = (k, v) => q.run('INSERT INTO settings(key, value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', k, JSON.stringify(v));
 route('GET', '/api/billing', u => {
-  if (!u) fail(401, 'Ingia kwanza');
+  if (!u) fail(401, "Sign in first");
   const plans = getSetting('plans', { school_student_term: 0, parent_month: 0, pay_info: '' });
   let rows = [];
   if (u.role === 'school_admin') rows = q.all('SELECT * FROM invoices WHERE school_id = ? ORDER BY created DESC', u.school_id);
@@ -172,10 +171,10 @@ route('GET', '/api/billing', u => {
   return { plans, invoices: rows };
 });
 route('POST', '/api/billing/:id/pay', (u, b, req, p) => {
-  if (!u) fail(401, 'Ingia kwanza');
-  const inv = q.get('SELECT * FROM invoices WHERE id = ?', +p.id); if (!inv) fail(404, 'Ankara haipo');
+  if (!u) fail(401, "Sign in first");
+  const inv = q.get('SELECT * FROM invoices WHERE id = ?', +p.id); if (!inv) fail(404, "Invoice not found");
   if (!((u.role === 'school_admin' && inv.school_id === u.school_id) || (u.role === 'parent' && inv.parent_id === u.id))) fail(403, 'Huna ruhusa');
-  q.run(`UPDATE invoices SET status = 'pending', method = ?, reference = ? WHERE id = ?`, (b.method || 'M-Pesa').slice(0, 40), need(b.reference, 'Weka namba ya muamala').slice(0, 60), inv.id);
+  q.run(`UPDATE invoices SET status = 'pending', method = ?, reference = ? WHERE id = ?`, (b.method || 'M-Pesa').slice(0, 40), need(b.reference, "Enter the transaction number").slice(0, 60), inv.id);
   return { ok: true };
 });
 route('PUT', '/api/admin/plans', (u, b) => {
@@ -185,8 +184,8 @@ route('PUT', '/api/admin/plans', (u, b) => {
 });
 route('POST', '/api/admin/invoices', (u, b) => {
   role(u, 'superadmin');
-  const amount = Math.round(+b.amount || 0); if (amount <= 0) fail(400, 'Weka kiasi');
-  q.run('INSERT INTO invoices(school_id, parent_id, plan, amount, period, created) VALUES (?,?,?,?,?,?)', b.school_id ? +b.school_id : null, b.parent_id ? +b.parent_id : null, (b.plan || 'HUGO KID').slice(0, 60), amount, need(b.period, 'Weka kipindi').slice(0, 40), now());
+  const amount = Math.round(+b.amount || 0); if (amount <= 0) fail(400, "Enter an amount");
+  q.run('INSERT INTO invoices(school_id, parent_id, plan, amount, period, created) VALUES (?,?,?,?,?,?)', b.school_id ? +b.school_id : null, b.parent_id ? +b.parent_id : null, (b.plan || 'HUGO KID').slice(0, 60), amount, need(b.period, "Enter a period").slice(0, 40), now());
   return { ok: true };
 });
 route('POST', '/api/admin/invoices/:id/status', (u, b, req, p) => {

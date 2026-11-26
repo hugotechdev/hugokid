@@ -11,16 +11,16 @@ route('POST', '/api/children', (u, b) => {
     const ex = q.get('SELECT * FROM children WHERE parent_id = ? AND local_id = ?', u.id, b.local_id);
     if (ex) { q.run('UPDATE children SET name = ?, birth = ?, color = ? WHERE id = ?', b.name || ex.name, b.birth || ex.birth, b.color || ex.color, ex.id); return childOut(q.get('SELECT * FROM children WHERE id = ?', ex.id)); }
   }
-  const id = q.run('INSERT INTO children(name, birth, color, parent_id, local_id, created) VALUES (?,?,?,?,?,?)', need(b.name, 'Andika jina'), b.birth || null, b.color || null, u.id, b.local_id || null, now()).lastInsertRowid;
+  const id = q.run('INSERT INTO children(name, birth, color, parent_id, local_id, created) VALUES (?,?,?,?,?,?)', need(b.name, "Enter a name"), b.birth || null, b.color || null, u.id, b.local_id || null, now()).lastInsertRowid;
   return childOut(q.get('SELECT * FROM children WHERE id = ?', Number(id)));
 });
 
 route('POST', '/api/children/link', (u, b) => {
   role(u, 'parent');
-  const code = need(b.code, 'Weka msimbo').toUpperCase().replace(/\s+/g, '');
+  const code = need(b.code, "Enter a code").toUpperCase().replace(/\s+/g, '');
   const st = q.get('SELECT * FROM children WHERE link_code = ?', code);
-  if (!st) fail(404, 'Msimbo haupo. Hakikisha na shule');
-  if (st.parent_id && st.parent_id !== u.id) fail(409, 'Msimbo huu umeshatumika na mzazi mwingine');
+  if (!st) fail(404, "Code not found. Check with the school");
+  if (st.parent_id && st.parent_id !== u.id) fail(409, "This code has already been used by another parent");
   const mine = b.child_id ? q.get('SELECT * FROM children WHERE id = ? AND parent_id = ?', +b.child_id, u.id) : null;
   if (mine && mine.id !== st.id) {
 
@@ -46,7 +46,7 @@ route('PUT', '/api/children/:id/progress', (u, b, req, p) => {
   role(u, 'parent');
   const ch = childFor(u, p.id);
   const txt = JSON.stringify(b.progress || {});
-  if (txt.length > 300000) fail(413, 'Taarifa ni nyingi mno');
+  if (txt.length > 300000) fail(413, "Too much data");
   q.run('UPDATE children SET progress = ?, name = COALESCE(?, name), birth = COALESCE(?, birth), color = COALESCE(?, color) WHERE id = ?', txt, b.name || null, b.birth || null, b.color || null, ch.id);
   return { ok: true };
 });
@@ -72,9 +72,9 @@ route('POST', '/api/children/:id/invite', (u, b, req, p) => {
 route('POST', '/api/children/:id/friends', (u, b, req, p) => {
   role(u, 'parent');
   const ch = childFor(u, p.id);
-  const inv = q.get('SELECT * FROM invites WHERE code = ? AND expires > ?', need(b.code, 'Weka msimbo').toUpperCase().replace(/\s+/g, ''), now());
-  if (!inv) fail(404, 'Msimbo si sahihi au umekwisha muda');
-  if (inv.child_id === ch.id) fail(400, 'Huu ni msimbo wa mtoto wako mwenyewe');
+  const inv = q.get('SELECT * FROM invites WHERE code = ? AND expires > ?', need(b.code, "Enter a code").toUpperCase().replace(/\s+/g, ''), now());
+  if (!inv) fail(404, "The code is wrong or has expired");
+  if (inv.child_id === ch.id) fail(400, "This is your own child's code");
   const [a, bb] = [Math.min(inv.child_id, ch.id), Math.max(inv.child_id, ch.id)];
   q.run('INSERT OR IGNORE INTO friends(a, b, created) VALUES (?,?,?)', a, bb, now());
   q.run('DELETE FROM invites WHERE code = ?', inv.code);
@@ -83,7 +83,7 @@ route('POST', '/api/children/:id/friends', (u, b, req, p) => {
   return { ok: true, friend: { id: other.id, name: other.name } };
 });
 route('GET', '/api/children/:id/friends', (u, b, req, p) => {
-  if (!u) fail(401, 'Ingia kwanza');
+  if (!u) fail(401, "Sign in first");
   const ch = childFor(u, p.id);
   return q.all('SELECT * FROM friends WHERE a = ? OR b = ?', ch.id, ch.id).map(f => {
     const o = q.get('SELECT * FROM children WHERE id = ?', f.a === ch.id ? f.b : f.a);

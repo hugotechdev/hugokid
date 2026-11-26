@@ -15,24 +15,23 @@ const need = (v, msg) => { if (v === undefined || v === null || String(v).trim()
 const J = s => { try { return JSON.parse(s || 'null'); } catch (e) { return null; } };
 const now = () => Date.now();
 
-/* ---------- ruhusa ---------- */
-function role(u, ...roles) { if (!u) fail(401, 'Ingia kwanza'); if (!roles.includes(u.role)) fail(403, 'Huna ruhusa'); }
+function role(u, ...roles) { if (!u) fail(401, "Sign in first"); if (!roles.includes(u.role)) fail(403, 'Huna ruhusa'); }
 function classFor(u, classId) {
   const c = q.get('SELECT * FROM classes WHERE id = ?', +classId);
   if (!c) fail(404, 'Darasa halipo');
   if (u.role === 'superadmin') return c;
-  if (c.school_id !== u.school_id) fail(403, 'Huna ruhusa kwa darasa hili');
-  if (u.role === 'teacher' && c.teacher_id !== u.id) fail(403, 'Si darasa lako');
+  if (c.school_id !== u.school_id) fail(403, "You don't have access to this class");
+  if (u.role === 'teacher' && c.teacher_id !== u.id) fail(403, "Not your class");
   return c;
 }
 function childFor(u, childId) {
   const ch = q.get('SELECT * FROM children WHERE id = ?', +childId);
-  if (!ch) fail(404, 'Mtoto hayupo');
+  if (!ch) fail(404, "Child not found");
   if (u.role === 'parent' && ch.parent_id === u.id) return ch;
   if (u.role === 'school_admin' && ch.school_id === u.school_id) return ch;
   if (u.role === 'teacher' && ch.class_id && q.get('SELECT id FROM classes WHERE id = ? AND teacher_id = ?', ch.class_id, u.id)) return ch;
   if (u.role === 'superadmin') return ch;
-  fail(403, 'Huna ruhusa kwa mtoto huyu');
+  fail(403, "You don't have access to this child");
 }
 const className = c => c ? (c.level + (c.stream ? ' ' + c.stream : '')) : '';
 const childOut = ch => {
@@ -57,13 +56,13 @@ async function handle(req, res, body, method) {
   const url = new URL(req.url, 'http://x');
   const M = method || req.method;
   const r = R.find(x => x.method === M && x.re.test(url.pathname));
-  if (!r) throw new HttpError(404, 'Njia haipo');
+  if (!r) throw new HttpError(404, "Route not found");
   const m = url.pathname.match(r.re);
   const params = {}; r.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); });
   const u = userFromReq(req);
   if (u && u.school_id) {
     const s = q.get('SELECT status FROM schools WHERE id = ?', u.school_id);
-    if (s && s.status === 'blocked' && !url.pathname.startsWith('/api/me')) throw new HttpError(403, 'Akaunti ya shule imesimamishwa. Wasiliana na HUGO TECH');
+    if (s && s.status === 'blocked' && !url.pathname.startsWith('/api/me')) throw new HttpError(403, "The school account is suspended. Contact HUGO TECH");
   }
   return r.fn(u, body === undefined ? {} : body, req, params);
 }

@@ -5,20 +5,20 @@ const hub = require('./hub');
 const { route, fail, need, J, now, role, classFor, childFor, className, childOut, hwOut, uniqueLinkCode, LEVELS, TERMS_VERSION } = require('./router');
 
 route('POST', '/api/register', (u, b) => {
-  const kind = need(b.kind, 'Chagua aina ya akaunti');
-  if (!['parent', 'school', 'tutor'].includes(kind)) fail(400, 'Aina si sahihi');
-  if (b.terms !== TERMS_VERSION) fail(400, 'Kubali masharti kwanza');
-  const name = need(b.name, 'Andika jina');
+  const kind = need(b.kind, "Choose an account type");
+  if (!['parent', 'school', 'tutor'].includes(kind)) fail(400, "Invalid type");
+  if (b.terms !== TERMS_VERSION) fail(400, "Accept the terms first");
+  const name = need(b.name, "Enter a name");
   const phone = (b.phone || '').replace(/\s+/g, '');
   const email = (b.email || '').trim().toLowerCase();
-  if (!phone && !email) fail(400, 'Weka namba ya simu au barua pepe');
-  if (String(b.password || '').length < 6) fail(400, 'Nenosiri liwe na herufi 6 au zaidi');
+  if (!phone && !email) fail(400, "Enter a phone number or email");
+  if (String(b.password || '').length < 6) fail(400, "The password must have 6 or more characters");
   if (phone && q.get('SELECT id FROM users WHERE phone = ?', phone)) fail(409, 'Namba hii imeshasajiliwa');
-  if (email && q.get('SELECT id FROM users WHERE email = ?', email)) fail(409, 'Barua pepe hii imeshasajiliwa');
+  if (email && q.get('SELECT id FROM users WHERE email = ?', email)) fail(409, "This email is already registered");
   let schoolId = null;
   if (kind !== 'parent') {
     const s = b.school || {};
-    const sname = kind === 'tutor' ? (s.name || name) : need(s.name, 'Andika jina la shule');
+    const sname = kind === 'tutor' ? (s.name || name) : need(s.name, "Enter the school name");
     const levels = Array.isArray(s.levels) && s.levels.length ? s.levels.filter(l => typeof l === 'string').slice(0, 30) : LEVELS;
     schoolId = Number(q.run('INSERT INTO schools(name, type, region, district, phone, levels, created) VALUES (?,?,?,?,?,?,?)',
       sname, kind, s.region || '', s.district || '', phone, JSON.stringify(levels), now()).lastInsertRowid);
@@ -31,21 +31,21 @@ route('POST', '/api/register', (u, b) => {
 
 const tries = new Map();
 route('POST', '/api/login', (u, b) => {
-  const login = need(b.login, 'Weka simu au barua pepe').replace(/\s+/g, '').toLowerCase();
+  const login = need(b.login, "Enter a phone or email").replace(/\s+/g, '').toLowerCase();
   const t = tries.get(login) || { n: 0, at: Date.now() };
   if (Date.now() - t.at > 15 * 60e3) { t.n = 0; t.at = Date.now(); }
   if (t.n >= 8) fail(429, 'Umejaribu mara nyingi. Subiri dakika 15');
   const user = q.get('SELECT * FROM users WHERE phone = ? OR lower(email) = ?', login, login);
-  if (!user || !A.checkPass(b.password || '', user.pass)) { t.n++; tries.set(login, t); fail(401, 'Taarifa za kuingia si sahihi'); }
+  if (!user || !A.checkPass(b.password || '', user.pass)) { t.n++; tries.set(login, t); fail(401, "Wrong sign-in details"); }
   tries.delete(login);
   return { token: A.newToken(user.id), user: A.publicUser(user) };
 });
 route('POST', '/api/logout', (u, b, req) => { q.run('DELETE FROM sessions WHERE token = ?', A.tokenOf(req)); return { ok: true }; });
-route('GET', '/api/me', u => { if (!u) fail(401, 'Ingia kwanza'); return { user: A.publicUser(u), levels: LEVELS }; });
+route('GET', '/api/me', u => { if (!u) fail(401, "Sign in first"); return { user: A.publicUser(u), levels: LEVELS }; });
 route('POST', '/api/password', (u, b) => {
-  if (!u) fail(401, 'Ingia kwanza');
-  if (!A.checkPass(b.old || '', u.pass)) fail(400, 'Nenosiri la zamani si sahihi');
-  if (String(b.new || '').length < 6) fail(400, 'Nenosiri jipya liwe na herufi 6 au zaidi');
+  if (!u) fail(401, "Sign in first");
+  if (!A.checkPass(b.old || '', u.pass)) fail(400, "The old password is wrong");
+  if (String(b.new || '').length < 6) fail(400, "The new password must have 6 or more characters");
   q.run('UPDATE users SET pass = ?, must_change = 0 WHERE id = ?', A.hashPass(b.new), u.id);
   return { ok: true };
 });
@@ -87,7 +87,7 @@ route('GET', '/api/classes', u => {
 });
 route('POST', '/api/classes', (u, b) => {
   role(u, 'school_admin');
-  const level = need(b.level, 'Chagua darasa');
+  const level = need(b.level, "Choose a class");
   const teacher = b.teacher_id ? q.get(`SELECT id FROM users WHERE id = ? AND school_id = ? AND role IN ('teacher','school_admin')`, +b.teacher_id, u.school_id) : null;
   const sch = q.get('SELECT type FROM schools WHERE id = ?', u.school_id);
   const id = q.run('INSERT INTO classes(school_id, level, stream, teacher_id, created) VALUES (?,?,?,?,?)', u.school_id, level, (b.stream || '').trim(), teacher ? teacher.id : (sch.type === 'tutor' ? u.id : null), now()).lastInsertRowid;
@@ -110,11 +110,11 @@ route('GET', '/api/teachers', u => {
 });
 route('POST', '/api/teachers', (u, b) => {
   role(u, 'school_admin');
-  const name = need(b.name, 'Andika jina la mwalimu');
+  const name = need(b.name, "Enter the teacher's name");
   const phone = (b.phone || '').replace(/\s+/g, ''); const email = (b.email || '').trim().toLowerCase();
-  if (!phone && !email) fail(400, 'Weka namba ya simu au barua pepe ya mwalimu');
+  if (!phone && !email) fail(400, "Enter the teacher's phone number or email");
   if (phone && q.get('SELECT id FROM users WHERE phone = ?', phone)) fail(409, 'Namba hii imeshasajiliwa');
-  if (email && q.get('SELECT id FROM users WHERE email = ?', email)) fail(409, 'Barua pepe hii imeshasajiliwa');
+  if (email && q.get('SELECT id FROM users WHERE email = ?', email)) fail(409, "This email is already registered");
   const pass = A.tempPassword();
   const id = q.run(`INSERT INTO users(role, name, phone, email, pass, school_id, must_change, created) VALUES ('teacher',?,?,?,?,?,1,?)`, name, phone || null, email || null, A.hashPass(pass), u.school_id, now()).lastInsertRowid;
   return { id: Number(id), login: phone || email, password: pass };
@@ -122,7 +122,7 @@ route('POST', '/api/teachers', (u, b) => {
 route('POST', '/api/teachers/:id/reset', (u, b, req, p) => {
   role(u, 'school_admin');
   const t = q.get(`SELECT * FROM users WHERE id = ? AND school_id = ? AND role = 'teacher'`, +p.id, u.school_id);
-  if (!t) fail(404, 'Mwalimu hayupo');
+  if (!t) fail(404, "Teacher not found");
   const pass = A.tempPassword();
   q.run('UPDATE users SET pass = ?, must_change = 1 WHERE id = ?', A.hashPass(pass), t.id);
   q.run('DELETE FROM sessions WHERE user_id = ?', t.id);
@@ -153,7 +153,7 @@ route('POST', '/api/classes/:id/students', (u, b, req, p) => {
     const id = q.run('INSERT INTO children(name, birth, school_id, class_id, link_code, created) VALUES (?,?,?,?,?,?)', n, b.birth || null, c.school_id, c.id, lc, now()).lastInsertRowid;
     out.push({ id: Number(id), name: n, link_code: lc });
   });
-  if (!out.length) fail(400, 'Andika jina la mwanafunzi');
+  if (!out.length) fail(400, "Enter the student's name");
   return out;
 });
 route('PUT', '/api/students/:id', (u, b, req, p) => {
@@ -171,7 +171,6 @@ route('DELETE', '/api/students/:id', (u, b, req, p) => {
   return { ok: true };
 });
 
-/* Wazazi wa shule */
 route('GET', '/api/parents', u => {
   role(u, 'school_admin');
   const rows = q.all(`SELECT u.id, u.name, u.phone, u.email FROM users u WHERE u.id IN (SELECT parent_id FROM children WHERE school_id = ? AND parent_id IS NOT NULL) ORDER BY u.name`, u.school_id);

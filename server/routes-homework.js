@@ -11,12 +11,12 @@ const MAX_FILE = 60 * 1024 * 1024;
 const OK_MIME = /^(image\/(png|jpe?g|webp|gif)|application\/pdf|audio\/[\w.+-]+|video\/[\w.+-]+)$/i;
 
 route('UPLOAD', '/api/upload', (u, buf, req) => {
-  if (!u) fail(401, 'Ingia kwanza');
+  if (!u) fail(401, "Sign in first");
   const url = new URL(req.url, 'http://x');
   const mime = (req.headers['content-type'] || '').split(';')[0].trim();
-  if (!OK_MIME.test(mime)) fail(415, 'Aina ya faili hairuhusiwi');
-  if (!buf || !buf.length) fail(400, 'Faili ni tupu');
-  if (buf.length > MAX_FILE) fail(413, 'Faili ni kubwa mno (mwisho MB 60)');
+  if (!OK_MIME.test(mime)) fail(415, "This file type is not allowed");
+  if (!buf || !buf.length) fail(400, "The file is empty");
+  if (buf.length > MAX_FILE) fail(413, "The file is too large (max 60 MB)");
   const childId = url.searchParams.get('child_id');
   if (childId) childFor(u, childId);
   const ext = { 'application/pdf': '.pdf' }[mime] || ('.' + mime.split('/')[1].replace(/[^a-z0-9]/gi, '').slice(0, 5));
@@ -75,8 +75,8 @@ const starsOf = (score, max) => { const p = max ? score / max : 0; return p >= 0
 
 route('POST', '/api/homework', (u, b) => {
   role(u, 'school_admin', 'teacher');
-  const c = classFor(u, need(b.class_id, 'Chagua darasa'));
-  const title = need(b.title, 'Andika jina la homework');
+  const c = classFor(u, need(b.class_id, "Choose a class"));
+  const title = need(b.title, "Enter the homework title");
   const kind = ['paper', 'quiz', 'open'].includes(b.kind) ? b.kind : 'paper';
   const pages = (Array.isArray(b.pages) ? b.pages : []).slice(0, 12).map(pg => ({ bg: pg.bg || null, w: pg.w || null, h: pg.h || null, questions: Array.isArray(pg.questions) ? pg.questions.slice(0, 20) : [] }));
   const questions = (Array.isArray(b.questions) ? b.questions : []).slice(0, 40).map(x => ({
@@ -88,7 +88,7 @@ route('POST', '/api/homework', (u, b) => {
     .filter(a => a && a.file && q.get('SELECT name FROM files WHERE name = ?', a.file))
     .map(a => ({ file: a.file, mime: a.mime, label: a.label || '' }));
   if (kind === 'quiz' && !questions.length) fail(400, 'Ongeza maswali');
-  if (kind === 'paper' && !pages.length && !b.instructions) fail(400, 'Ongeza ukurasa au maelekezo');
+  if (kind === 'paper' && !pages.length && !b.instructions) fail(400, "Add a page or instructions");
   const id = Number(q.run(`INSERT INTO homework(class_id, author_id, title, subject, kind, instructions, pages, questions, attachments, max_score, due, created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
     c.id, u.id, title, b.subject || '', kind, (b.instructions || '').slice(0, 4000), JSON.stringify(pages), JSON.stringify(questions), JSON.stringify(attachments),
     Math.max(1, Math.min(100, +b.max_score || 10)), b.due || null, now()).lastInsertRowid);
@@ -107,7 +107,7 @@ route('GET', '/api/homework', (u, b, req) => {
 });
 route('GET', '/api/homework/:id', (u, b, req, p) => {
   role(u, 'school_admin', 'teacher');
-  const h = q.get('SELECT * FROM homework WHERE id = ?', +p.id); if (!h) fail(404, 'Homework haipo');
+  const h = q.get('SELECT * FROM homework WHERE id = ?', +p.id); if (!h) fail(404, "Homework not found");
   const c = classFor(u, h.class_id);
   return {
     ...hwOut(h, true), class_name: className(c),
@@ -119,14 +119,14 @@ route('GET', '/api/homework/:id', (u, b, req, p) => {
 });
 route('DELETE', '/api/homework/:id', (u, b, req, p) => {
   role(u, 'school_admin', 'teacher');
-  const h = q.get('SELECT * FROM homework WHERE id = ?', +p.id); if (!h) fail(404, 'Homework haipo');
+  const h = q.get('SELECT * FROM homework WHERE id = ?', +p.id); if (!h) fail(404, "Homework not found");
   classFor(u, h.class_id);
   q.run('DELETE FROM homework WHERE id = ?', h.id);
   return { ok: true };
 });
 
 route('GET', '/api/children/:id/homework', (u, b, req, p) => {
-  if (!u) fail(401, 'Ingia kwanza');
+  if (!u) fail(401, "Sign in first");
   const ch = childFor(u, p.id);
   if (!ch.class_id) return [];
   return q.all('SELECT * FROM homework WHERE class_id = ? ORDER BY created DESC LIMIT 80', ch.class_id).map(h => {
@@ -141,13 +141,13 @@ route('POST', '/api/children/:id/submit', async (u, b, req, p) => {
   role(u, 'parent');
   const ch = childFor(u, p.id);
   const h = q.get('SELECT * FROM homework WHERE id = ? AND class_id = ?', +b.homework_id, ch.class_id);
-  if (!h) fail(404, 'Homework haipo');
+  if (!h) fail(404, "Homework not found");
   const ex = q.get('SELECT * FROM submissions WHERE homework_id = ? AND child_id = ?', h.id, ch.id);
   if (ex && ex.status === 'marked') fail(409, 'Homework hii imeshasahihishwa');
   const pages = Array.isArray(b.pages) ? b.pages.slice(0, 12) : [];
   const answers = Array.isArray(b.answers) ? b.answers.slice(0, 40) : null;
   const attachments = (Array.isArray(b.attachments) ? b.attachments : []).slice(0, 6).filter(a => a && a.file && q.get('SELECT name FROM files WHERE name = ?', a.file));
-  if (!pages.length && !answers && !attachments.length) fail(400, 'Hakuna jibu');
+  if (!pages.length && !answers && !attachments.length) fail(400, "No answer");
 
   const am = h.kind === 'quiz' ? autoMark(h, answers) : null;
   let status = 'submitted', score = null, stars = 0;
@@ -173,8 +173,8 @@ route('POST', '/api/children/:id/submit', async (u, b, req, p) => {
 });
 
 route('GET', '/api/submissions/:id', (u, b, req, p) => {
-  if (!u) fail(401, 'Ingia kwanza');
-  const s = q.get('SELECT * FROM submissions WHERE id = ?', +p.id); if (!s) fail(404, 'Kazi haipo');
+  if (!u) fail(401, "Sign in first");
+  const s = q.get('SELECT * FROM submissions WHERE id = ?', +p.id); if (!s) fail(404, "Task not found");
   const h = q.get('SELECT * FROM homework WHERE id = ?', s.homework_id);
   if (u.role === 'parent') childFor(u, s.child_id); else classFor(u, h.class_id);
   const ch = q.get('SELECT name FROM children WHERE id = ?', s.child_id);
@@ -188,7 +188,7 @@ route('GET', '/api/submissions/:id', (u, b, req, p) => {
 });
 route('POST', '/api/submissions/:id/review', (u, b, req, p) => {
   role(u, 'school_admin', 'teacher');
-  const s = q.get('SELECT * FROM submissions WHERE id = ?', +p.id); if (!s) fail(404, 'Kazi haipo');
+  const s = q.get('SELECT * FROM submissions WHERE id = ?', +p.id); if (!s) fail(404, "Task not found");
   const h = q.get('SELECT * FROM homework WHERE id = ?', s.homework_id);
   classFor(u, h.class_id);
   const status = b.status === 'returned' ? 'returned' : 'marked';
@@ -202,7 +202,7 @@ route('POST', '/api/submissions/:id/review', (u, b, req, p) => {
 });
 route('POST', '/api/submissions/:id/ai', async (u, b, req, p) => {
   role(u, 'school_admin', 'teacher');
-  const s = q.get('SELECT * FROM submissions WHERE id = ?', +p.id); if (!s) fail(404, 'Kazi haipo');
+  const s = q.get('SELECT * FROM submissions WHERE id = ?', +p.id); if (!s) fail(404, "Task not found");
   const h = q.get('SELECT * FROM homework WHERE id = ?', s.homework_id);
   classFor(u, h.class_id);
   if (!ai.ready()) fail(400, 'AI haijawekwa kwenye server. Mwambie msimamizi wa HUGO TECH');
@@ -248,7 +248,7 @@ route('GET', '/api/classes/:id/results', (u, b, req, p) => {
 route('POST', '/api/ai/generate', async (u, b) => {
   role(u, 'school_admin', 'teacher');
   if (!ai.ready()) fail(400, 'AI haijawekwa kwenye server. Mwambie msimamizi wa HUGO TECH');
-  return ai.generate({ task: b.task === 'worksheet' ? 'worksheet' : 'quiz', level: b.level, subject: b.subject, topic: need(b.topic, 'Andika mada'), count: b.count, lang: b.lang || 'Kiswahili' });
+  return ai.generate({ task: b.task === 'worksheet' ? 'worksheet' : 'quiz', level: b.level, subject: b.subject, topic: need(b.topic, "Enter a topic"), count: b.count, lang: b.lang || 'Kiswahili' });
 });
 
 module.exports = { classStats, starsOf };

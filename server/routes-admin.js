@@ -4,7 +4,6 @@ const A = require('./auth');
 const hub = require('./hub');
 const { route, fail, need, J, now, role, classFor, childFor, className, childOut, hwOut, uniqueLinkCode, LEVELS, TERMS_VERSION } = require('./router');
 
-/* HUGO TECH (msimamizi mkuu) */
 route('GET', '/api/admin/stats', u => {
   role(u, 'superadmin');
   return {
@@ -25,7 +24,6 @@ route('POST', '/api/admin/schools/:id/status', (u, b, req, p) => {
   return { ok: true };
 });
 
-/* Watumiaji wote: walimu, wazazi, wakuu wa shule */
 route('GET', '/api/admin/users', (u, b, req) => {
   role(u, 'superadmin');
   const sp = new URL(req.url, 'http://x').searchParams;
