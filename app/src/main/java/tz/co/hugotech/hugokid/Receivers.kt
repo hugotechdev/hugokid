@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 
-/** Simu ikiwashwa upya, Learning Mode inarudi yenyewe */
+/** Restore Learning Mode after reboot. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (LearningMode.isOn(context)) {
@@ -18,7 +18,7 @@ class BootReceiver : BroadcastReceiver() {
     }
 }
 
-/** Device Admin: mtoto hawezi kufuta HUGO KID bila mzazi */
+/** Device administrator integration for parental controls. */
 class AdminReceiver : DeviceAdminReceiver() {
     override fun onDisableRequested(context: Context, intent: Intent): CharSequence =
         "HUGO KID inalinda simu ya mtoto. Mzazi pekee anaweza kuzima ulinzi huu."

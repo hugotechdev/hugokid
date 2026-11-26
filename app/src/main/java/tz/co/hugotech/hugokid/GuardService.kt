@@ -19,11 +19,6 @@ import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 
-/**
- * Mlinzi wa Learning Mode: kila sekunde anaangalia programu iliyo mbele.
- * - Programu isiyoruhusiwa -> HUGO KID inarudi mbele.
- * - Programu iliyoruhusiwa ikimaliza muda wake wa leo -> HUGO KID inarudi mbele.
- */
 class GuardService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())

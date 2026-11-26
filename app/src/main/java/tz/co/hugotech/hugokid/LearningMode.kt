@@ -15,10 +15,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * Learning Mode: mipangilio inayohifadhiwa na sehemu ya Android.
- * allowed = { "package": dakikaKwaSiku (0 = bila kikomo) }
- */
 object LearningMode {
     private const val PREFS = "hk_learning_mode"
     const val HOME_ALIAS = "tz.co.hugotech.hugokid.HomeAlias"
@@ -57,7 +53,7 @@ object LearningMode {
         return try { JSONObject(p.getString("usage", "{}") ?: "{}") } catch (e: Exception) { JSONObject() }
     }
 
-    /** ongeza sekunde za matumizi ya programu leo; inarudisha jumla */
+    /** Add to today’s app usage and return the total. */
     fun addUsage(ctx: Context, pkg: String, secs: Int): Int {
         val u = usage(ctx)
         val total = u.optInt(pkg, 0) + secs
@@ -71,7 +67,7 @@ object LearningMode {
         prefs(ctx).edit().putLong("pause_until", System.currentTimeMillis() + minutes * 60_000L).apply()
     }
 
-    /* ----- ruhusa ----- */
+    /* ----- Permissions ----- */
     fun hasUsageAccess(ctx: Context): Boolean {
         val ops = ctx.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
         val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

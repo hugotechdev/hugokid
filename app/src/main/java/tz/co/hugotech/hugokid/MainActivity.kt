@@ -47,7 +47,7 @@ import java.util.Locale
 /**
  * HUGO KID - Learn, Play, Grow
  * Sehemu ya Android: WebView ya programu, picha za homework, sauti (TTS),
- * kusikiliza mtoto (Speech), na Learning Mode (kuficha na kudhibiti programu).
+ * Speech recognition (Speech), na Learning Mode (kuficha na kudhibiti programu).
  */
 class MainActivity : AppCompatActivity() {
 
@@ -97,7 +97,7 @@ class MainActivity : AppCompatActivity() {
 
     private val askNotif = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
-    /* Ruhusa za kamera/kipaza sauti kwa WebView (simu za video, kurekodi sauti) */
+    /* WebView camera and microphone permissions for calls and recordings. */
     private var pendingWebPerm: PermissionRequest? = null
     private val askMedia = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res ->
         val req = pendingWebPerm ?: return@registerForActivityResult
@@ -111,7 +111,7 @@ class MainActivity : AppCompatActivity() {
         if (ok.isNotEmpty()) req.grant(ok) else req.deny()
     }
 
-    /* Kamera kabla ya kufungua chaguo la picha/video */
+    /* Request camera access before opening the media picker. */
     private var pendingChooser: Pair<Boolean, Array<String>>? = null
     private val askCamera = registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ ->
         val p = pendingChooser
@@ -286,7 +286,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /* ---------- kusikiliza mtoto ---------- */
+    /* ---------- Speech recognition ---------- */
     private fun startListening(lang: String) {
         if (!SpeechRecognizer.isRecognitionAvailable(this)) { sendSpeech(emptyList()); return }
         recognizer?.destroy()
@@ -294,10 +294,17 @@ class MainActivity : AppCompatActivity() {
         recognizer = r
         r.setRecognitionListener(object : RecognitionListener {
             override fun onResults(results: Bundle) {
+                if (recognizer !== r) return
                 val list = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) ?: arrayListOf()
                 sendSpeech(list)
             }
-            override fun onError(error: Int) { sendSpeech(emptyList()) }
+            override fun onError(error: Int) {
+                if (recognizer !== r) return
+                if (lang == "en-TZ" && (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ||
+                        error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE)) {
+                    startListening("en-GB")
+                } else sendSpeech(emptyList())
+            }
             override fun onReadyForSpeech(params: Bundle?) {}
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
@@ -307,12 +314,12 @@ class MainActivity : AppCompatActivity() {
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
         val tag = when (lang) {
-            "en" -> "en-US"; "fr" -> "fr-FR"; "zh" -> "zh-CN"; "ar" -> "ar-SA"; else -> "sw-TZ"
+            "en-TZ" -> "en-TZ"; "en-GB" -> "en-GB"; "en" -> "en-US"; "fr" -> "fr-FR"; "zh" -> "zh-CN"; "ar" -> "ar-SA"; else -> "sw-TZ"
         }
         val i = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, tag)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 8)
         }
         r.startListening(i)
     }
@@ -372,7 +379,7 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun isNative(): Boolean = true
 
-        /* fungua PDF au kiungo nje ya programu */
+        /* Open PDFs and external links. */
         @JavascriptInterface
         fun openUrl(url: String) {
             if (!url.startsWith("https://") && !url.startsWith("http://")) return
@@ -380,20 +387,13 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread { tryStart(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
         }
 
-        /* ----- sauti ----- */
+        /* ----- Text to speech ----- */
         @JavascriptInterface
         fun speak(text: String, lang: String) {
             val engine = tts ?: return
             if (!ttsReady) return
-            val locale = when (lang) {
-                "en" -> Locale.UK
-                "fr" -> Locale.FRENCH
-                "ar" -> Locale("ar")
-                "zh" -> Locale.CHINESE
-                else -> Locale("sw", "TZ")
-            }
-            val r = engine.setLanguage(locale)
-            if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) engine.setLanguage(Locale("sw"))
+            val r = engine.setLanguage(Locale.UK)
+            if (r < TextToSpeech.LANG_AVAILABLE && engine.setLanguage(Locale.US) < TextToSpeech.LANG_AVAILABLE) return
             engine.setSpeechRate(0.92f)
             engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "hk")
         }
@@ -410,7 +410,7 @@ class MainActivity : AppCompatActivity() {
             } catch (e: Exception) { }
         }
 
-        /* ----- kusikiliza ----- */
+        /* ----- Speech recognition ----- */
         @JavascriptInterface
         fun canListen(): Boolean = SpeechRecognizer.isRecognitionAvailable(ctx)
 
@@ -476,7 +476,7 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun pauseGuard(minutes: Int) { LearningMode.pause(ctx, minutes) }
 
-        /** inarudisha: ok | limit | no */
+        /** Returns one of: ok, limit, no. */
         @JavascriptInterface
         fun launchApp(pkg: String): String {
             val allowed = LearningMode.allowed(ctx)
