@@ -33,12 +33,46 @@ HK.screens.pickChild = (el) => {
   el.innerHTML = `
     <div class="topbar"><img src="img/mark.png" style="width:40px;height:40px;object-fit:contain"><h1>Nani anatumia?</h1>
       <button class="icon-btn" id="par">${icon('lock')}</button></div>
-    <div class="scroll"><div class="tiles" style="margin-top:10px">
+    <div class="scroll"><p class="muted pick-hint">Gusa picha yako kuingia</p><div class="tiles pick-kids">
       ${kids.map(c => `<button class="tile" data-id="${c.id}" style="--c:#fff;--cd:var(--line);color:var(--navy);align-items:center;text-align:center;min-height:180px">
-        ${avatarSVG(c.color, 96)}<div class="t-name">${esc(c.name)}</div></button>`).join('')}
+        ${kidAvatar(c, 96)}<div class="t-name">${esc(c.name)}</div></button>`).join('')}
     </div></div>`;
-  $$('.tile', el).forEach(b => b.onclick = () => { Sfx.tap(); Store.setActive(b.dataset.id); HK.go('home', {}, { reset: true }); });
+  $$('.tile', el).forEach(b => b.onclick = () => {
+    Sfx.tap(); Store.setActive(b.dataset.id);
+    const k = Store.active();
+    /* mara ya kwanza mtoto anaingia: maswali mafupi ya kupima kiwango chake */
+    if (!k.place && !k.placeAsked) { k.placeAsked = true; Store.saveChild(k); return HK.go('placement', {}, { reset: true }); }
+    HK.go('home', {}, { reset: true });
+  });
   $('#par', el).onclick = () => HK.askParent();
+};
+
+HK.screens.kidProfile = (el) => {
+  const c = Store.active();
+  const caption = I18N.lang === 'en' ? 'Avatar' : 'Picha';
+  el.innerHTML = `
+    <div class="topbar"><button class="icon-btn" id="bk" aria-label="Nyuma">${icon('back')}</button><h1>Wasifu wangu</h1></div>
+    <div class="scroll">
+      <div class="card profile-preview"><div id="avatar-now">${kidAvatar(c, 106)}</div>
+        <h2>${esc(c.name)}</h2></div>
+      <div class="section-title">Chagua avatar</div>
+      <div class="profile-avatars">
+        ${KID_AVATARS.map(id => `<button data-avatar="${id}" aria-label="${caption} ${id}" aria-pressed="${c.avatar === id}">${kidAvatar({ ...c, avatar: id }, 84)}</button>`).join('')}
+        <button class="avatar-reset" data-avatar="" aria-pressed="${!kidAvatarSrc(c)}">${kidAvatar({ ...c, avatar: '' }, 52)}<span>Picha ya awali</span></button>
+      </div>
+      ${Store.children().length > 1 ? `<button class="btn ghost block" id="switch-kid">${icon('users', 22)} Badilisha mtoto</button>` : ''}
+    </div>`;
+  $('#bk', el).onclick = () => HK.back();
+  const pickChild = $('#switch-kid', el);
+  if (pickChild) pickChild.onclick = () => HK.go('pickChild', {}, { reset: true });
+  $$('[data-avatar]', el).forEach(button => button.onclick = () => {
+    c.avatar = button.dataset.avatar;
+    Store.saveChild(c);
+    SchoolSync.maybePush();
+    Sfx.tap();
+    $('#avatar-now', el).innerHTML = kidAvatar(c, 106);
+    $$('[data-avatar]', el).forEach(option => option.setAttribute('aria-pressed', option === button));
+  });
 };
 
 /* ---------- Menyu ya chini ---------- */
@@ -69,7 +103,7 @@ HK.screens.games = (el) => {
   const left = HK.gameLeft(c);
   const best = id => { const pr = id === 'racing' ? raceData(c).best : ((c.gp || {})[id] || {}).best || {}; return Object.keys(pr).length; };
   const card = gm => `<button class="game-card" data-id="${gm.id}">
-      <div class="g-ic" style="--gc:${gm.color}">${icon(gm.icon, 38)}</div>
+      <div class="g-ic scene-${GAME_SCENES[gm.id]}" style="--gc:${gm.color}"><span>${icon(gm.icon, 28)}</span></div>
       <div class="g-name">${esc(gm.name)}</div>
       <span class="chip-tag ${gm.kind === 'fun' ? 'blue' : 'teal'}">${best(gm.id) ? 'Ngazi ' + best(gm.id) : 'Mpya'}</span>
     </button>`;
@@ -77,6 +111,7 @@ HK.screens.games = (el) => {
     <div class="topbar"><h1 style="font-size:24px">Michezo</h1>
       <span class="hud-pill" style="background:#fff">${icon('clock', 18)} ${Math.ceil(left / 60)} dk</span></div>
     <div class="scroll">
+      ${sceneBanner('serengeti', 'simba')}
       <div class="section-title">Burudani <span class="chip-tag blue" style="margin-left:6px">${Math.ceil(left / 60)} dk leo</span></div>
       <div class="games">${gamesFor(c).filter(g => g.kind === 'fun').map(card).join('')}</div>
       <div class="section-title">Cheza na ujifunze <span class="chip-tag teal" style="margin-left:6px">bila kikomo</span></div>
@@ -96,7 +131,8 @@ HK.screens.games = (el) => {
 HK.screens.rewards = (el) => {
   const c = Store.active();
   const lv = kidLevel(c);
-  el.innerHTML = `<div class="topbar"><h1 style="font-size:24px">Zawadi</h1></div><div class="scroll" id="rw"></div>`;
+  el.innerHTML = `<div class="topbar"><h1 style="font-size:24px">Zawadi</h1></div><div class="scroll"><button class="item" id="open-passport">${icon('book', 30)}<b class="grow">${storyText('Pasipoti yangu ya Safari', 'My Safari Passport')}</b>${icon('chevR', 20)}</button><div id="rw"></div></div>`;
+  $('#open-passport', el).onclick = () => HK.go('safariPassport');
   kidNav(el, 'rewards');
   HK.setBack(() => { HK.go('home', {}, { reset: true }); return true; });
   HWDB.byChild(c.id).catch(() => []).then(hw => {
@@ -121,6 +157,7 @@ HK.screens.rewards = (el) => {
     const got = B.filter(b => b[4]).length;
     $('#rw', el).innerHTML = `
       <div class="trophy-hero">
+        ${mascot('nuru', 78, 'mascot-peek')}
         <div style="display:flex;justify-content:center;margin-bottom:6px">${icon('trophy', 56, 2)}</div>
         <div class="big">${c.stars || 0}</div><div style="font-weight:600">Nyota · Ngazi ${lv.level}</div>
         <div class="lvl-bar" style="margin:14px 10px 4px;background:rgba(255,255,255,.3)"><i style="width:${Math.max(4, lv.pct)}%;background:#fff"></i></div>
@@ -129,7 +166,7 @@ HK.screens.rewards = (el) => {
       ${kidMode(c) !== 'toddler' ? `<button class="item" id="rep" style="margin-top:14px"><div class="i-ic" style="background:var(--teal)">${icon('trophy', 24)}</div><div class="grow"><div class="i-title">Ripoti yangu</div><div class="i-sub">Ujuzi, masomo na alama za shule</div></div>${icon('chevR', 20)}</button>` : ''}
       <div class="section-title">Mhusika wangu</div>
       <div class="card"><div class="row" style="gap:16px">${kidAvatar(c, 84)}<div class="grow"><p style="font-size:13px">Nunua vitu kwa sarafu zako na umvalishe mhusika wako.</p><p><b>${c.coins || 0}</b> sarafu</p></div></div>
-        <div class="acc-grid">${['', ...Object.keys(ACCESSORIES)].map(k => { const a = ACCESSORIES[k]; const own = !k || (c.accOwned || []).includes(k); return `<button class="acc ${c.acc === k || (!k && !c.acc) ? 'on' : ''}" data-acc="${k}">${avatarSVG(c.color, 54, 'happy', k)}<span>${a ? a.name : 'Bila kitu'}</span><span class="muted">${own ? (c.acc === k || (!k && !c.acc) ? 'Amevaa' : 'Vaa') : icon('coin', 12) + ' ' + a.cost}</span></button>`; }).join('')}</div></div>
+        <div class="acc-grid">${['', ...Object.keys(ACCESSORIES)].map(k => { const a = ACCESSORIES[k]; const own = !k || (c.accOwned || []).includes(k); return `<button class="acc ${c.acc === k || (!k && !c.acc) ? 'on' : ''}" data-acc="${k}">${kidAvatar(c, 54, 'happy', k)}<span>${a ? a.name : 'Bila kitu'}</span><span class="muted">${own ? (c.acc === k || (!k && !c.acc) ? 'Amevaa' : 'Vaa') : icon('coin', 12) + ' ' + a.cost}</span></button>`; }).join('')}</div></div>
       <div class="section-title">Medali · ${got} kati ya ${B.length}</div>
       <div class="badges">${B.map(([n, d, ic, col, ok]) => `<div class="badge-c ${ok ? '' : 'locked'}" style="--mc:${col}">
         <div class="medal">${icon(ok ? ic : 'lock', 28)}</div><b>${esc(n)}</b><span>${esc(d)}</span></div>`).join('')}</div>`;
@@ -159,7 +196,7 @@ HK.screens.timeUp = (el) => {
   el.classList.add('timeup');
   el.innerHTML = `
     <div class="center-col">
-      <div style="margin-bottom:8px">${avatarSVG(c.color, 110)}</div>
+      <div style="margin-bottom:8px">${kidAvatar(c, 110)}</div>
       <h2 style="font-size:26px;margin:6px 0">Muda wa michezo umekwisha!</h2>
       <p class="muted" style="font-weight:700;margin:0;max-width:310px">Umecheza vizuri leo. Sasa tupumzishe macho na tusogeze mwili.</p>
       <div class="activity">

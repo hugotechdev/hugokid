@@ -254,7 +254,7 @@ HK.screens.hwList = (el) => {
   SchoolSync.pull(c).catch(() => {}).then(() => HWDB.byChild(c.id)).then(list => {
     const box = $('#list', el); if (!box) return;
     if (!list.length) {
-      box.innerHTML = `<div class="empty"><div class="e-ic">${icon('pencil', 40)}</div>Huna homework sasa hivi.<br>Mwombe mzazi apige picha ya homework yako.</div>`;
+      box.innerHTML = `<div class="empty scene-empty">${mascot('tembo', 148, 'mascot-peek')}<br>Huna homework sasa hivi.<br>Mwombe mzazi apige picha ya homework yako.</div>`;
       speak('Huna homework sasa hivi');
       return;
     }

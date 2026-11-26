@@ -1,5 +1,7 @@
 /* HUGO KID - app.js : njia za skrini (router), muda wa michezo, kuanza */
 
+const ADULT_SCREENS = ['parentHome', 'childForm', 'aiSettings', 'aiLog', 'learningMode', 'hwNew', 'hwReview', 'parentResults', 'parentSub', 'friends', 'changePass'];
+
 const HK = {
   screens: {},
   stack: [],
@@ -24,11 +26,16 @@ const HK = {
     root.innerHTML = '';
     const el = document.createElement('div');
     el.className = 'screen';
+    el.dataset.screen = cur.name;
     root.appendChild(el);
     const fn = this.screens[cur.name];
     if (!fn) { el.innerHTML = '<div class="center-col">Skrini haipo: ' + esc(cur.name) + '</div>'; return; }
     const out = fn(el, cur.params || {});
     if (typeof out === 'function') this._cleanup = out;
+    const dash = el.classList.contains('dash-screen');
+    document.body.classList.toggle('is-dash', dash);
+    /* skrini za watu wazima (mzazi, mwalimu, shule): muonekano tulivu wa kazi */
+    document.body.classList.toggle('is-adult', dash || ADULT_SCREENS.includes(cur.name));
   },
 
   /* skrini inaweza kuzuia kitufe cha nyuma */
@@ -90,7 +97,8 @@ const HK = {
     if (!par.pinHash) return this.go('pin', { mode: 'create' }, { reset: true });
     const kids = Store.children();
     if (!kids.length) return this.go('childForm', { first: true }, { reset: true });
-    if (!Store.active() || kids.length > 1 && !Store.activeId()) return this.go('pickChild', {}, { reset: true });
+    /* watoto wengi: kila mmoja anaingia kwa kugusa jina au avatar yake (bila nenosiri) */
+    if (kids.length > 1 || !Store.active()) return this.go('pickChild', {}, { reset: true });
     this.go('home', {}, { reset: true });
   },
 
@@ -98,6 +106,7 @@ const HK = {
   toChild() {
     const kids = Store.children();
     if (!kids.length) return this.go('childForm', { first: true }, { reset: true });
+    if (kids.length > 1) return this.go('pickChild', {}, { reset: true });
     if (!Store.active()) Store.setActive(kids[0].id);
     this.go('home', {}, { reset: true });
   },

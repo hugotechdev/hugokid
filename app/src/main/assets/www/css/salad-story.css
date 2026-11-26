@@ -1,0 +1,52 @@
+.salad-home {
+  display: flex; align-items: center; gap: 16px; width: calc(100% - 32px);
+  margin: 18px 16px 6px; padding: 8px 15px; text-align: left;
+  color: #273f32; background: linear-gradient(90deg,#fff4ddfa 40%,#fff4ddd4 76%,#fff4dd70),
+    url('../img/safari/bg-soko.webp') center 62% / cover, #fff4dd;
+  border: 2px solid #fffdfa; border-radius: 22px; box-shadow: 0 4px 0 #ddc394; cursor: pointer;
+}
+.salad-home small, .salad-home strong, .salad-home > span:last-child > span { display: block; }
+.salad-home small { color: #665539; font-weight: 600; }
+.salad-home strong { margin: 2px 0 4px; font: 700 21px var(--font-head); }
+.salad-home > span:last-child > span { font-size: 14px; font-weight: 700; color: #285740; }
+.screen:is([data-screen="saladStory"],[data-screen="safariPassport"]) {
+  color: #243a2d; background: linear-gradient(#f8f4e7,#fff9f0 65%,#e9efdc);
+}
+.salad-page { padding: 4px 14px 24px; }
+.salad-stage { position: relative; min-height: clamp(175px,30vh,300px); border: 3px solid #fff;
+  border-radius: 26px; overflow: hidden; background: var(--scene) center 62% / cover #e4e9d3;
+  box-shadow: 0 4px 0 #c6ceb8; }
+.salad-hero-pair { display: flex; align-items: end; gap: 1px; position: absolute; left: 8px; bottom: 9px; }
+.salad-hero-pair > :first-child { align-self: end; border-radius: 50%; outline: 3px solid #fffae5; }
+.salad-props { position: absolute; bottom: 10px; right: 8px; }
+.salad-dialog { background: #fffdf5; border: 1px solid #e4ddc4; border-radius: 21px; padding: 14px 16px; margin: 13px 0; }
+.salad-dialog h2,.salad-pass h2 { margin: 0 0 6px; font: 700 23px var(--font-head); }
+.salad-dialog p,.salad-pass p { margin: 0; font-size: 17px; line-height: 1.48; }
+.salad-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.salad-choice,.salad-seal {
+  background: #fffdf6; color: #234235; border: 2px solid #d0dbc4; border-radius: 20px;
+  box-shadow: 0 4px 0 #b6c5ad; padding: 9px 5px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; flex: 1; gap: 6px; min-height: 54px;
+  flex-direction: column; font-weight: 700; font-size: 16px;
+}
+.salad-choice:only-child { flex-direction: row; background: #246c55; color: white; border-color: #246c55; }
+.salad-choice:focus-visible,.salad-home:focus-visible,.salad-seal:focus-visible { outline: 3px solid #235899; outline-offset: 3px; }
+.salad-choice[data-action^="mix-"] { touch-action: none; user-select: none; }
+.salad-choice.moving { position: relative; z-index: 4; opacity: .85; }
+.salad-hint { margin: 12px 2px 0; color: #405e4e; font-weight: 600; min-height: 24px; }
+.salad-vessel { width: 108px; height: 83px; position: relative; filter: drop-shadow(0 6px 4px #14271a48); }
+.salad-contents { display: flex; align-items: end; justify-content: center; position: absolute; inset: auto 6px 20px; }
+.salad-contents .pic + .pic { margin-left: -7px; transform: rotate(8deg); }
+.salad-rim { position: absolute; inset: 57% 3% 0; border-radius: 10% 10% 44% 44% / 10% 10% 95% 95%; border-top: 5px solid #fff5c1; }
+.basket .salad-rim { background: repeating-linear-gradient(84deg,#8a5422aa 0 2px,transparent 3px 9px),repeating-linear-gradient(#dca95a 0 4px,#b47a3a 5px 8px); }
+.bowl .salad-rim { background: linear-gradient(100deg,#287f76,#a8dbb5 33%,#75ab8a 70%,#286859); }
+.salad-sticker { display: inline-grid; place-items: center; width: 105px; height: 105px; border: 5px solid white; border-radius: 50%; background: #ffe49b; box-shadow: 0 3px 0 #cfab65; }
+.salad-sticker .salad-vessel { transform: scale(.77); }
+.salad-pass { padding: 26px 16px; text-align: center; display: grid; justify-items: center; gap: 15px; background: #fffaf0; border: 2px dashed #bdac79; border-radius: 24px; }
+.salad-seal { padding: 10px 24px; border-style: dotted; }
+@media (max-width:350px) { .salad-hero-pair { gap: 0; transform: scale(.84); transform-origin: left bottom; } }
+.salad-receipt { position: absolute; top: 9px; right: 9px; background: #fffaf1; color: #254a37; padding: 6px 10px; border-radius: 10px; font-size: 14px; box-shadow: 0 2px 0 #273a3050; }
+@media (prefers-reduced-motion: no-preference) {
+  .salad-contents .pic:last-child { animation: salad-arrive .32s ease-out; }
+  @keyframes salad-arrive { from { opacity: .2; translate: 0 -10px; } to { opacity: 1; translate: 0 0; } }
+}

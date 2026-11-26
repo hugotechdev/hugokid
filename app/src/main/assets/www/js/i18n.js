@@ -52,6 +52,8 @@ function _translate(s, depth) {
   if (!core) return s;
   const hit = I18N_EXACT.get(core);
   if (hit != null) return lead + hit + trail;
+  /* neno moja kwa herufi ndogo (mf. "chungwa" ndani ya sentensi) */
+  if (/^[a-z]+$/.test(core)) { const cap = I18N_EXACT.get(core[0].toUpperCase() + core.slice(1)); if (cap != null && !/\s/.test(cap)) return lead + cap.toLowerCase() + trail; }
   if (depth < 3) {
     for (const p of I18N_PATTERNS) {
       const m = core.match(p.re);
@@ -132,6 +134,7 @@ new MutationObserver(list => {
     else m.addedNodes.forEach(i18nNode);
   });
   i18nSwitch();
+  enhancePasswords(document.getElementById('app'));
 }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: I18N_ATTRS });
 
 /* sauti, michoro ya canvas na tarehe zifuate lugha */

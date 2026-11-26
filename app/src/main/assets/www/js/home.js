@@ -55,34 +55,35 @@ HK.screens.home = (el) => {
 function homeToddler(el, c) {
   const art = {
     colors: `<svg viewBox="0 0 100 100" width="96" height="96"><circle cx="34" cy="38" r="20" fill="#F65B4F"/><circle cx="66" cy="38" r="20" fill="#FFC20E"/><circle cx="34" cy="68" r="20" fill="#1EA7F0"/><circle cx="66" cy="68" r="20" fill="#0FB394"/></svg>`,
-    animals: `<div style="width:104px;height:104px">${ANIMALS.Tembo()}</div>`,
-    numbers: `<svg viewBox="0 0 100 100" width="96" height="96"><text x="50" y="72" text-anchor="middle" font-family="Outfit,Roboto" font-weight="700" font-size="64" fill="#fff">123</text></svg>`,
+    animals: `<div style="width:104px;height:104px">${mascot('tembo', 104)}</div>`,
+    numbers: `${mascot('pundamilia', 98)}`,
     shapes: `<svg viewBox="0 0 100 100" width="96" height="96"><circle cx="30" cy="34" r="18" fill="#fff"/><path d="M70 14l20 36H50z" fill="#FFE27A"/><rect x="18" y="58" width="30" height="30" rx="4" fill="#FFE27A"/><path d="M72 56l6 13 14 1-11 9 4 14-13-8-13 8 4-14-11-9 14-1z" fill="#fff"/></svg>`,
   };
   const tile = (go, p, say, label, cls, pic) => `<button class="tile big-t ${cls}" data-go="${go}" data-p='${p}' data-say="${esc(say)}">${pic}<div class="t-name">${label}</div></button>`;
   el.innerHTML = `
     <div class="scroll" style="padding:0">
-      <div class="hero" style="padding:14px 16px">
+      <div class="hero home-hero home-hero-small" style="padding:14px 16px">
         <div class="row">
-          <button id="me" class="av" style="border:0;padding:3px">${kidAvatar(c, 64)}</button>
+          <button id="me" class="av" aria-label="Wasifu wangu" style="border:0;padding:3px">${kidAvatar(c, 64)}</button>
           <div class="hero-stats" style="margin:0;flex:1"><div style="justify-content:center">${icon('star', 26)}<b style="font-size:24px">${c.stars || 0}</b></div></div>
           <button class="lock" id="par" aria-label="Mzazi">${icon('lock', 18)}</button>
         </div>
       </div>
+      ${saladHomeCard(c)}
       <div style="padding:16px"><div class="tiles">
         ${tile('tapGame', '{"kind":"colors"}', 'Rangi', 'Rangi', 'coral', art.colors)}
         ${tile('tapGame', '{"kind":"animals"}', 'Wanyama', 'Wanyama', 'sun', art.animals)}
         ${tile('tapGame', '{"kind":"numbers"}', 'Namba', 'Namba', 'blue', art.numbers)}
         ${tile('tapGame', '{"kind":"shapes"}', 'Maumbo', 'Maumbo', 'teal', art.shapes)}
-        ${tile('games', '{}', 'Michezo', 'Michezo', 'navy wide', `<div class="t-ic">${icon('game', 40)}</div>`)}
-        <button class="tile white wide hidden" id="hwtile" data-go="hwList" data-say="Kazi ya mwalimu"><span class="badge hidden" id="hwbadge"></span><div class="t-ic" style="background:var(--sun);color:#fff">${icon('pencil', 36)}</div><div class="t-name">Kazi</div></button>
+        ${tile('games', '{}', 'Michezo', 'Michezo', 'navy wide', mascot('simba', 92))}
+        <button class="tile white wide hidden" id="hwtile" data-go="hwList" data-say="Kazi ya mwalimu"><span class="badge hidden" id="hwbadge"></span>${mascot('tembo', 90)}<div class="t-name">Kazi</div></button>
       </div></div>
     </div>`;
   kidNav(el, 'home');
   bindTiles(el, c);
   HWDB.byChild(c.id).then(list => { if (list.some(h => ['new', 'doing', 'returned'].includes(h.status))) { $('#hwtile', el).classList.remove('hidden'); homeworkBadge(el, c); } }).catch(() => {});
   $('#par', el).onclick = () => HK.askParent();
-  $('#me', el).onclick = () => { if (Store.children().length > 1) HK.go('pickChild', {}, { reset: true }); else speak('Habari ' + c.name + '!'); };
+  $('#me', el).onclick = () => HK.go('kidProfile');
   greetOnce(c, 'Habari ' + c.name + '! Gusa picha kuanza.');
   HK.setBack(() => true);
 }
@@ -103,11 +104,11 @@ function homeStandard(el, c, mode) {
 
   let tiles = '';
   if (mode === 'beginner') {
-    tiles = T('abc', '{}', 'blue', `<svg class="art" viewBox="0 0 110 110"><text x="16" y="78" font-family="Outfit,Roboto" font-weight="700" font-size="58" fill="#fff">Aa</text></svg>`, 'Herufi', 'A B C kwa sauti')
+    tiles = T('abc', '{}', 'blue', ART.reading, 'Herufi', 'A B C kwa sauti')
       + T('hwList', '{}', 'sun', ART.homework, 'Homework', 'Kazi za shule', '', '<span class="badge hidden" id="hwbadge"></span>')
       + T('games', '{}', 'coral', ART.games, 'Michezo', left > 0 ? 'Dakika ' + Math.ceil(left / 60) : 'Ya kujifunza')
       + T('lessons', '{}', 'teal', ART.lessons, 'Masomo', 'Namba, lugha, sayansi')
-      + wide('tutor', '{}', 'white', nuruSVG(58), 'Uliza Nuru', 'Ongea na rafiki yako')
+      + wide('tutor', '{}', 'white', mascot('nuru', 58), 'Uliza Nuru', 'Ongea na rafiki yako')
       + (faithOn(c) ? wide('faith', '{}', 'teal', `<div class="t-ic">${icon('sunrise', 30)}</div>`, rel.tile, rel.name) : '');
   } else if (mode === 'explorer') {
     tiles = T('hwList', '{}', 'sun', ART.homework, 'Homework', 'Kazi za shule', '', '<span class="badge hidden" id="hwbadge"></span>')
@@ -115,22 +116,23 @@ function homeStandard(el, c, mode) {
       + T('lessons', '{}', 'blue' + (faithOn(c) ? '' : ' wide'), ART.lessons, 'Masomo', 'Lugha, hesabu, sayansi')
       + (faithOn(c) ? T('faith', '{}', 'teal', ART.faith, rel.tile, rel.name) : '')
       + wide('safari', '{}', 'navy', `<div class="t-ic">${icon('flag', 30)}</div>`, 'Ramani ya Safari', 'Fungua visiwa vipya kwa nyota zako')
-      + wide('tutor', '{}', 'white', nuruSVG(58), 'Uliza Nuru', 'Rafiki yako wa kujifunza');
+      + wide('tutor', '{}', 'white', mascot('nuru', 58), 'Uliza Nuru', 'Rafiki yako wa kujifunza');
   } else {
     tiles = T('lessons', '{}', 'blue', ART.lessons, 'Masomo', 'Lugha, hesabu, sayansi')
       + T('hwList', '{}', 'sun', ART.homework, 'Homework', 'Kazi za shule', '', '<span class="badge hidden" id="hwbadge"></span>')
-      + wide('aiStudio', '{}', 'navy', nuruSVG(58), 'Studio ya AI', 'Miradi: hadithi, michezo, picha, video', 'background:linear-gradient(135deg,#7B61FF,#1EA7F0)')
+      + wide('aiStudio', '{}', 'navy', mascot('nuru', 58), 'Studio ya AI', 'Miradi: hadithi, michezo, picha, video', 'background:linear-gradient(135deg,#7B61FF,#1EA7F0)')
       + T('games', '{}', 'coral', ART.games, 'Changamoto', left > 0 ? 'Michezo na coding' : 'Ya kujifunza')
       + T('myReport', '{}', 'teal', `<svg class="art" viewBox="0 0 110 110"><rect x="20" y="58" width="14" height="30" rx="4" fill="#fff"/><rect x="44" y="40" width="14" height="48" rx="4" fill="#fff"/><rect x="68" y="24" width="14" height="64" rx="4" fill="#FFE27A"/></svg>`, 'Maendeleo', 'Ripoti yangu')
       + (faithOn(c) ? wide('faith', '{}', 'teal', `<div class="t-ic">${icon('sunrise', 30)}</div>`, rel.tile, rel.name) : '')
-      + wide('tutor', '{}', 'white', nuruSVG(58), 'Uliza Nuru', 'Utafiti na maswali magumu');
+      + wide('tutor', '{}', 'white', mascot('nuru', 58), 'Uliza Nuru', 'Utafiti na maswali magumu');
   }
 
   el.innerHTML = `
     <div class="scroll" style="padding:0">
-      <div class="hero">
+      <div class="hero home-hero">
+        <div class="home-guide">${mascot('nuru', 94, 'mascot-peek')}</div>
         <div class="row">
-          <button id="me" class="av" style="border:0;padding:3px">${kidAvatar(c, 58)}</button>
+          <button id="me" class="av" aria-label="Wasifu wangu" style="border:0;padding:3px">${kidAvatar(c, 58)}</button>
           <div><div class="hi">${greet},</div><div class="nm">${esc(c.name)}</div></div>
           <button class="lock" id="par">${icon('lock', 16)} Mzazi</button>
         </div>
@@ -145,6 +147,7 @@ function homeStandard(el, c, mode) {
         </div>
       </div>
 
+      ${saladHomeCard(c)}
       ${mode === 'beginner' ? `
       <div class="goal">
         <div class="ring"><svg width="62" height="62" viewBox="0 0 62 62"><circle cx="31" cy="31" r="${R}" stroke="#E8EEF7" stroke-width="8" fill="none"/><circle cx="31" cy="31" r="${R}" stroke="#0FB394" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - gp)}" transform="rotate(-90 31 31)"/></svg><span>${Math.round(gp * 100)}%</span></div>
@@ -176,30 +179,31 @@ function homeStandard(el, c, mode) {
     $('#annsay', el).onclick = () => speak(a.title + '. ' + (a.body || ''));
   }).catch(() => {});
   $('#par', el).onclick = () => HK.askParent();
-  $('#me', el).onclick = () => { if (Store.children().length > 1) HK.go('pickChild', {}, { reset: true }); else speak('Habari ' + c.name + '! Leo tujifunze nini?'); };
+  $('#me', el).onclick = () => HK.go('kidProfile');
   greetOnce(c, greet + ' ' + c.name);
   HK.setBack(() => true);
 }
 
 /* ---------- Ramani ya Safari ---------- */
 const ISLANDS = [
-  ['Kisiwa cha Namba', 'g_balloons', '#F65B4F', 'balloon'],
-  ['Msitu wa Herufi', 'g_letters', '#0FB394', 'letters'],
-  ['Bonde la Maumbo', 'g_shapes', '#7B61FF', 'shapes'],
-  ['Ziwa la Kumbukumbu', 'g_memory', '#1EA7F0', 'cards'],
-  ['Soko la Mji', 'g_market', '#FF8A3D', 'shop'],
-  ['Mlima wa Roboti', 'g_robot', '#0D2461', 'robot'],
-  ['Pwani ya Lugha', 'g_speak', '#14B8C9', 'mic'],
-  ['Kilele cha Mabingwa', 'raceMenu', '#FFC20E', 'trophy'],
+  ['Kisiwa cha Namba', 'g_balloons', '#F65B4F', 'balloon', 'namba'],
+  ['Msitu wa Herufi', 'g_letters', '#0FB394', 'letters', 'herufi'],
+  ['Bonde la Maumbo', 'g_shapes', '#7B61FF', 'shapes', 'maumbo'],
+  ['Ziwa la Kumbukumbu', 'g_memory', '#1EA7F0', 'cards', 'ziwa'],
+  ['Soko la Mji', 'g_market', '#FF8A3D', 'shop', 'soko'],
+  ['Mlima wa Roboti', 'g_robot', '#0D2461', 'robot', 'roboti'],
+  ['Pwani ya Lugha', 'g_speak', '#14B8C9', 'mic', 'lugha'],
+  ['Kilele cha Mabingwa', 'raceMenu', '#FFC20E', 'trophy', 'kilimanjaro'],
 ];
 HK.screens.safari = (el) => {
   const c = Store.active();
   const lv = kidLevel(c).level;
   el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Ramani ya Safari</h1><span class="chip-tag sun">Ngazi ${lv}</span></div>
-    <div class="scroll"><div class="map">${ISLANDS.map(([n, go, col, ic], i) => {
+    <div class="scroll"><div class="map">${ISLANDS.map(([n, , col, ic, scene], i) => {
       const open = lv >= i + 1, cur = lv === i + 1 || (i === ISLANDS.length - 1 && lv > ISLANDS.length);
-      return `<button class="island ${open ? '' : 'locked'} ${cur ? 'cur' : ''} ${i % 2 ? 'r' : 'l'}" data-i="${i}" style="--ic:${col}">
-        <span class="isl">${open ? icon(ic, 34) : icon('lock', 28)}</span><b>${n}</b><span class="muted">${open ? 'Fungua' : 'Ngazi ' + (i + 1)}</span></button>`;
+      return `<button class="island ${open ? '' : 'locked'} ${cur ? 'cur' : ''} scene-${scene}" data-i="${i}" style="--ic:${col}" ${cur ? 'aria-current="step"' : ''}>
+        <span class="island-view"><span class="isl">${open ? icon(ic, 24) : icon('lock', 22)}</span></span>
+        <span class="island-caption"><b>${n}</b><span>${open ? 'Fungua' : 'Ngazi ' + (i + 1)}</span></span></button>`;
     }).join('')}</div></div>`;
   $('#bk', el).onclick = () => HK.back();
   $$('.island', el).forEach(b => b.onclick = () => {

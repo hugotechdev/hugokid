@@ -59,7 +59,7 @@ HK.screens.aiStudio = (el) => {
     <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Studio ya AI</h1></div>
     <div class="scroll">
       <div class="hero" style="margin:4px 0 0;background:linear-gradient(135deg,#7B61FF,#1EA7F0)">
-        <div class="row"><span>${nuruSVG(64)}</span><div><div class="nm" style="font-size:20px">Unda na Nuru</div><div class="hi">Jifunze kutumia AI kuunda hadithi, michezo, picha na video.</div></div></div>
+        <div class="row"><span>${mascot('nuru', 64)}</span><div><div class="nm" style="font-size:20px">Unda na Nuru</div><div class="hi">Jifunze kutumia AI kuunda hadithi, michezo, picha na video.</div></div></div>
       </div>
       <div class="section-title">Anza hapa</div>
       <button class="item" data-lesson="1"><div class="i-ic" style="background:var(--navy)">${icon('robot', 26)}</div>
@@ -85,7 +85,7 @@ function projFrame(el, title, intro) {
   const c = Store.active();
   const t0 = Date.now();
   el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(title)}</h1></div>
-    <div class="scroll" id="pb"><div class="card row" style="align-items:flex-start;gap:12px"><span>${nuruSVG(48)}</span><p style="font-size:15px">${esc(intro)}</p></div><div id="pw"></div></div>`;
+    <div class="scroll" id="pb"><div class="card row" style="align-items:flex-start;gap:12px"><span>${mascot('nuru', 48)}</span><p style="font-size:15px">${esc(intro)}</p></div><div id="pw"></div></div>`;
   $('#bk', el).onclick = () => HK.back();
   speak(intro);
   return { c, body: $('#pw', el), done: () => HK.addLearnTime(c, Math.round((Date.now() - t0) / 1000)) };

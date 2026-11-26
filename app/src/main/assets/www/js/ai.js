@@ -133,7 +133,7 @@ Andika kila swali kama lilivyo kwenye karatasi (pamoja na namba na hesabu). Usit
 HK.screens.aiSettings = (el) => {
   const c = AI.cfg();
   el.innerHTML = `
-    <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>AI ya HUGO KID</h1></div>
+    <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>HUGOKID AI</h1></div>
     <div class="scroll">
       <div class="card"><p>Chagua AI na uweke API key yako. AI inasoma homework kutoka kwenye picha na inamsaidia mtoto hatua kwa hatua bila kumpa jibu. Key inakaa kwenye simu hii tu.</p></div>
       <label class="label">Chagua AI</label>
@@ -195,7 +195,7 @@ HK.screens.tutor = (el) => {
   const hist = [];
   el.innerHTML = `
     <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button>
-      ${nuruSVG(40)}<h1>Uliza Nuru</h1></div>
+      ${mascot('nuru', 40)}<h1>Uliza Nuru</h1></div>
     <div class="scroll" id="chat" style="padding-top:6px"></div>
     <div style="padding:8px 12px 6px;display:flex;gap:8px;overflow-x:auto" id="quick">
       ${['Nifundishe neno jipya la Kiingereza', 'Nipe swali la hesabu', 'Nieleze kuhusu tembo', 'Nipe hadithi fupi'].map(q => `<button class="chip" style="white-space:nowrap;flex:none">${q}</button>`).join('')}

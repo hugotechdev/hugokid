@@ -3,12 +3,13 @@
 HK.screens.lessons = (el) => {
   const c = Store.active();
   const done = Store.get('lessons_' + c.id, {});
-  const tile = (go, name, sub, ic, cls, params = '') => `<button class="tile ${cls}" data-go="${go}" data-p='${params}'><span class="deco"></span><div class="t-ic">${icon(ic, 30)}</div><div><div class="t-name" style="font-size:19px">${name}</div><div class="t-sub">${sub}</div></div></button>`;
+  const tile = (go, name, sub, ic, cls, params = '') => `<button class="tile ${cls}" data-go="${go}" data-p='${params}'><span class="deco"></span>${go === 'mathLesson' ? ART.math : `<div class="t-ic">${icon(ic, 30)}</div>`}<div><div class="t-name" style="font-size:19px">${name}</div><div class="t-sub">${sub}</div></div></button>`;
   el.innerHTML = `
     <div class="topbar"><h1 style="font-size:24px">Masomo</h1></div>
     <div class="scroll">
+      ${sceneBanner('herufi', 'twiga')}
       ${studioAllowed(c) ? `<button class="tile navy wide" data-go="aiStudio" style="margin-top:6px;background:linear-gradient(135deg,#7B61FF,#1EA7F0);--cd:#5A43D6">
-        <span>${nuruSVG(58)}</span><div class="grow"><div class="t-name">Studio ya AI</div><div class="t-sub">Unda hadithi, michezo, picha na video</div></div>${icon('chevR', 26)}</button>` : ''}
+        <span>${mascot('nuru', 58)}</span><div class="grow"><div class="t-name">Studio ya AI</div><div class="t-sub">Unda hadithi, michezo, picha na video</div></div>${icon('chevR', 26)}</button>` : ''}
       <div class="section-title">Lugha</div>
       <div class="tiles">
         ${tile('langCats', 'English', 'Kiingereza', 'letters', 'blue', '{"lang":"en"}')}
@@ -53,6 +54,7 @@ HK.screens.langLesson = (el, p) => {
       <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(p.cat)}</h1><span class="chip-tag">${i + 1}/${words.length}</span></div>
       <div class="center-col" style="justify-content:flex-start;padding-top:10px">
         <div class="lesson-card" style="width:100%;max-width:380px">
+          ${pic(row[1], 104)}
           <div class="tr notr">${esc(row[base])}</div>
           <div class="big notr ${p.lang === 'ar' ? 'arabic' : ''}" style="${p.lang === 'ar' ? 'font-size:46px' : ''}">${esc(w.word)}</div>
           ${w.sub ? `<div class="tr notr">${esc(w.sub)}</div>` : ''}
@@ -76,7 +78,7 @@ HK.screens.langLesson = (el, p) => {
     runQuiz(el, p.cat, qs.map(row => {
       const w = vocabWord(row, p.lang);
       const others = shuffle(words.filter(r => r !== row)).slice(0, 2);
-      return { html: `<span><span class="notr ${p.lang === 'ar' ? 'arabic' : ''}">${esc(w.word)}</span>${w.sub ? `<br><span class="notr" style="font-size:15px;color:var(--muted)">${esc(w.sub)}</span>` : ''}<br><span style="font-size:15px;color:var(--muted)">${base ? 'in English is?' : 'kwa Kiswahili ni?'}</span></span>`, say: w.say, lang: tts, notr: true, opts: shuffle([row, ...others]).map(r => ({ label: r[base], ok: r === row })) };
+      return { html: `<span><span class="notr ${p.lang === 'ar' ? 'arabic' : ''}">${esc(w.word)}</span>${w.sub ? `<br><span class="notr" style="font-size:15px;color:var(--muted)">${esc(w.sub)}</span>` : ''}<br><span style="font-size:15px;color:var(--muted)">${base ? 'in English is?' : 'kwa Kiswahili ni?'}</span></span>`, say: w.say, lang: tts, notr: true, opts: shuffle([row, ...others]).map(r => ({ label: r[base], html: hasPic(r[1]) ? picLabel(r[1], 40, r[base]) : '', ok: r === row })) };
     }), stars => saveLesson(c, 'lang_' + p.lang + '_' + p.cat, stars));
   };
   card();
@@ -159,19 +161,20 @@ function runQuiz(el, title, qs, onDone) {
       markMission('lesson');
       logSkill(/Hesabu/.test(title) ? 'math' : 'read', first / qs.length * 100);
       Sfx.win(); confetti(el); speak('Hongera! Umemaliza somo');
-      return modal(el, { iconName: 'trophy', iconColor: 'var(--sun)', title: 'Somo limekamilika!', html: `<div class="earned">${starsHTML(stars, 3, 44)}</div><p>Sahihi mara ya kwanza ${first}/${qs.length}</p>`, buttons: [{ label: 'Rudia somo', cls: 'sun', icon: 'repeat', onClick: () => HK.render() }, { label: 'Masomo mengine', cls: 'ghost', onClick: () => HK.back() }] });
+      return modal(el, { iconName: 'nuru', title: 'Somo limekamilika!', html: `<div class="earned">${starsHTML(stars, 3, 44)}</div><p>Sahihi mara ya kwanza ${first}/${qs.length}</p>`, buttons: [{ label: 'Rudia somo', cls: 'sun', icon: 'repeat', onClick: () => HK.render() }, { label: 'Masomo mengine', cls: 'ghost', onClick: () => HK.back() }] });
     }
     const q = qs[i]; missed = false;
     el.innerHTML = `
       <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(title)}</h1></div>
       <div class="g-progress">${qs.map((_, k) => `<i class="${k < i ? 'done' : ''}"></i>`).join('')}</div>
       <div class="g-q">${q.html || `<span>${esc(q.text)}</span>`}${q.say ? `<button class="icon-btn say" id="say">${icon('volume', 22)}</button>` : ''}</div>
-      <div class="g-opts" style="grid-template-columns:repeat(${q.cols || 2},1fr)">${q.opts.map((o, k) => `<button class="g-opt ${q.notr ? 'notr' : ''}" data-k="${k}" style="${o.style || ''}">${esc(o.label)}</button>`).join('')}</div>`;
+      <div class="g-opts" style="grid-template-columns:repeat(${q.cols || 2},1fr)">${q.opts.map((o, k) => `<button class="g-opt ${q.notr ? 'notr' : ''}" data-k="${k}" style="${o.style || ''}">${o.html || esc(o.label)}</button>`).join('')}</div>`;
     $('#bk', el).onclick = () => HK.back();
     if (q.say) { $('#say', el).onclick = () => speak(q.say, q.lang || 'sw'); setTimeout(() => speak(q.say, q.lang || 'sw'), 250); }
     $$('.g-opt', el).forEach(b => b.onclick = () => {
       const o = q.opts[+b.dataset.k];
-      if (o.ok) { b.classList.add('ok'); if (!missed) first++; Sfx.good(); i++; setTimeout(draw, 650); }
+      if (b.closest('.g-opts').querySelector('.ok')) return;
+      if (o.ok) { b.classList.add('ok'); if (!missed) first++; Sfx.good(); celebrateMascot(el); i++; setTimeout(draw, 650); }
       else { b.classList.add('no'); missed = true; Sfx.bad(); vibrate(60); }
     });
   };

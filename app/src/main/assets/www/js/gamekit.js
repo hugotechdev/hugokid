@@ -17,9 +17,11 @@ const GK = {
     const fun = gm.kind === 'fun';
     let coins = 0, ended = false, acc = 0;
 
+    el.classList.add('game-world', 'scene-' + GAME_SCENES[id]);
     el.innerHTML = `
-      <div class="topbar">
+      <div class="topbar game-topbar" style="--game-color:${gm.color}">
         <button class="icon-btn" id="gk-back">${icon('back')}</button>
+        <span class="game-medal" aria-hidden="true">${icon(gm.icon, 21)}</span>
         <div class="grow"><h1 style="font-size:19px">${esc(gm.name)}</h1><div class="sub">Ngazi ${level}${opts.maxLevel ? ' / ' + opts.maxLevel : ''}</div></div>
         <button class="icon-btn" id="gk-help" style="width:42px;height:42px">${icon('help', 22)}</button>
         <span class="hud-pill" style="background:#fff"><span style="color:var(--sun-d)">${icon('coin', 18)}</span><span id="gk-coins">0</span></span>
@@ -49,7 +51,7 @@ const GK = {
     const kit = {
       el, body, child, group, level, gm, paused: first, first, afterTut: [], hint: '',
       g: { explorer: 0, adventurer: 1, master: 2 }[group],
-      addCoins(n) { coins += n; $('#gk-coins', el).textContent = coins; if (n > 0) Sfx.coin(); },
+      addCoins(n) { coins += n; const ce = $('#gk-coins', el); ce.textContent = coins; if (n > 0) { Sfx.coin(); const pill = ce.closest('.hud-pill'); if (pill) { pill.classList.remove('coin-pop'); void pill.offsetWidth; pill.classList.add('coin-pop'); } } },
       get coins() { return coins; },
       get ended() { return ended; },
       finish({ won = true, stars = 3, text = '' } = {}) {
@@ -73,7 +75,7 @@ const GK = {
         const canPlay = !fun || HK.gameLeft(cc) > 0;
         const last = level >= (opts.maxLevel || 10);
         modal(el, {
-          iconName: won ? 'trophy' : 'repeat', iconColor: won ? 'var(--sun)' : 'var(--coral)',
+          iconName: won ? 'nuru' : 'repeat', iconColor: won ? 'var(--sun)' : 'var(--coral)',
           title: won ? (last ? 'Bingwa!' : 'Hongera!') : 'Jaribu tena',
           html: `${won ? `<div class="earned">${starsHTML(stars, 3, 44)}</div>` : ''}<p>${esc(text)}${text ? ' · ' : ''}Sarafu ${coins}</p>`,
           buttons: [
@@ -125,7 +127,7 @@ const GK = {
         if (locked || kit.ended) return;
         const o = q.opts[+b.dataset.k];
         if (o.ok) {
-          locked = true; b.classList.add('ok'); right++; marks[i] = marks[i] || 'done';
+          locked = true; b.classList.add('ok'); celebrateMascot(kit.el); right++; marks[i] = marks[i] || 'done';
           kit.addCoins(marks[i] === 'done' ? 3 : 1);
           speak(['Sahihi!', 'Vizuri sana!', 'Hongera!', 'Umeweza!'][Math.floor(Math.random() * 4)]);
           setTimeout(() => { i++; if (i >= total) end(); else draw(); }, 750);

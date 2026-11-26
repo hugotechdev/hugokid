@@ -1,0 +1,588 @@
+/* HUGO KID · Mandhari ya Safari */
+.scene-serengeti { --scene: url('../img/safari/bg-serengeti.webp'); }
+.scene-namba { --scene: url('../img/safari/bg-namba.webp'); }
+.scene-herufi { --scene: url('../img/safari/bg-herufi.webp'); }
+.scene-maumbo { --scene: url('../img/safari/bg-maumbo.webp'); }
+.scene-ziwa { --scene: url('../img/safari/bg-ziwa.webp'); }
+.scene-soko { --scene: url('../img/safari/bg-soko.webp'); }
+.scene-roboti { --scene: url('../img/safari/bg-roboti.webp'); }
+.scene-lugha { --scene: url('../img/safari/bg-lugha.webp'); }
+.scene-kilimanjaro { --scene: url('../img/safari/bg-kilimanjaro.webp'); }
+
+.mascot {
+  inline-size: var(--mascot-size);
+  block-size: var(--mascot-size);
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  vertical-align: middle;
+  pointer-events: none;
+}
+.mascot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 5px #30252329);
+}
+.mascot-lid {
+  position: absolute;
+  top: 39%;
+  left: 33.5%;
+  width: 14%;
+  height: 12%;
+  border-radius: 55%;
+  background: radial-gradient(ellipse at center, #f8c050 60%, #f8c05000 76%);
+  opacity: 0;
+  animation: mascot-blink 6s step-end infinite;
+}
+.mascot-lid.right { left: 57%; }
+.mascot-lid::after {
+  content: "";
+  position: absolute;
+  top: 26%;
+  left: 21%;
+  width: 60%;
+  height: 35%;
+  border-bottom: max(1px, calc(var(--mascot-size) * .018)) solid #663c1b;
+  border-radius: 50%;
+}
+@keyframes mascot-blink {
+  0%, 75%, 79%, 100% { opacity: 0; }
+  76% { opacity: 1; }
+}
+.mascot-peek { animation: mascot-peek .42s ease-out both; }
+@keyframes mascot-peek {
+  from { opacity: 0; transform: translateY(17px) rotate(5deg); }
+  75% { opacity: 1; transform: translateY(-3px) rotate(-2deg); }
+  to { opacity: 1; transform: none; }
+}
+.mascot-feedback {
+  position: absolute;
+  z-index: 8;
+  right: 12px;
+  bottom: 14px;
+  pointer-events: none;
+  animation: mascot-hop .6s ease-out both;
+}
+@keyframes mascot-hop {
+  0% { transform: translateY(22px); opacity: 0; }
+  38% { transform: translateY(-26px) rotate(7deg); opacity: 1; }
+  76% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(6px); opacity: 0; }
+}
+
+.screen:is([data-screen="home"], [data-screen="lessons"], [data-screen="games"],
+  [data-screen="safari"], [data-screen="rewards"], [data-screen="hwList"],
+  [data-screen="abc"], [data-screen="mathLesson"], [data-screen="langCats"], [data-screen="tutor"]) {
+  color: #203447;
+  background: linear-gradient(165deg, #e4f3f7, #fffcf4 48%, #f5edd9);
+}
+.screen:is([data-screen="lessons"], [data-screen="abc"], [data-screen="tutor"]) {
+  background: linear-gradient(180deg, #f7fbf0 22%, #f5f8eac9 68%, #fff9e9e8),
+    url('../img/safari/bg-herufi.webp') center bottom / 100% auto no-repeat, #f3f8ed;
+}
+.screen[data-screen="mathLesson"] { --scene: url('../img/safari/bg-namba.webp'); }
+.screen[data-screen="langCats"] { --scene: url('../img/safari/bg-lugha.webp'); }
+.screen:is([data-screen="mathLesson"], [data-screen="langCats"]) {
+  background: linear-gradient(180deg, #eaf8fb 22%, #f4fcf8d6 65%, #f8fbf0d6), var(--scene) center bottom / 100% auto no-repeat, #eff9fa;
+}
+
+.home-hero.hero {
+  color: #23374a;
+  border: 1px solid #fff;
+  padding-top: 18px;
+  background: linear-gradient(90deg, #fff9e6fa 3%, #fff8e1e6 38%, #ffedba33 100%),
+    url('../img/safari/bg-serengeti.webp') center 61% / cover, #f9e8bd;
+  box-shadow: 0 4px 0 #e3ceb6, 0 14px 24px -19px #765d36;
+}
+.home-hero:not(.home-hero-small) { padding-top: 22px; }
+.home-hero::before, .home-hero::after { content: none; }
+.home-hero .row > div { min-width: 0; }
+.home-hero .nm { overflow-wrap: anywhere; }
+.home-hero .hi { color: #425669; }
+.home-hero .lock, .home-hero .hero-stats div {
+  background: #fffdf1e8;
+  color: #23374a;
+  border: 1px solid #ffffffcf;
+}
+.home-hero .hero-stats .ic { color: #85551d; }
+.home-hero .lvl-top { color: #263e48; font-weight: 700; }
+.home-hero .lvl-bar { background: #fff8dd; border: 1px solid #b6a579; }
+.home-hero .lvl-bar i { background: #497344; box-shadow: none; }
+.home-hero .home-guide {
+  position: absolute;
+  right: 2px;
+  top: 49px;
+  z-index: 0;
+}
+.home-hero .lvl { margin-right: 76px; }
+.home-hero .lvl-top { flex-wrap: wrap; row-gap: 2px; }
+.home-hero .av { flex: none; background: #fff; }
+[data-screen="home"] .goal {
+  border: 1px solid #fff;
+  background: #fffdf7;
+  box-shadow: 0 3px 0 #e4e9dd, 0 12px 23px -20px #536149;
+}
+[data-screen="home"] .mission { background: #f1f6ec; }
+[data-screen="home"] .mission.done { background: #d9f1e6; }
+[data-screen="home"] .tiles { gap: 20px 12px; padding-top: 5px; }
+[data-screen="home"] .tile,
+[data-screen="lessons"] .tile:has(.mascot-tile) {
+  --paper: #e7edf9;
+  --paper-edge: #c6d3ea;
+  min-width: 0;
+  border: 1px solid #ffffffda;
+  color: #203447;
+  background: linear-gradient(147deg, #fff9, transparent 62%), var(--paper);
+  box-shadow: 0 4px 0 var(--paper-edge), 0 12px 18px -15px #30465480;
+}
+[data-screen="home"] .tile.sun { --paper: #ffe6a8; --paper-edge: #e5c579; }
+[data-screen="home"] .tile.coral { --paper: #ffdcd0; --paper-edge: #e4b5a7; }
+[data-screen="home"] .tile.teal { --paper: #d6edd7; --paper-edge: #b7d5b8; }
+[data-screen="home"] .tile.blue { --paper: #d8ecf8; --paper-edge: #afcce3; }
+[data-screen="home"] .tile.white { --paper: #fffdf3; --paper-edge: #e5dcc0; }
+[data-screen="home"] .tile[data-go="aiStudio"] { color: #fff; }
+.tile:has(.mascot-tile) {
+  overflow: visible;
+  min-height: 154px;
+  padding-top: 83px;
+}
+.tile .mascot-tile {
+  position: absolute;
+  top: -18px;
+  right: 4px;
+}
+.tile:has(.mascot-tile).wide {
+  padding-top: 16px;
+  padding-right: 111px;
+  min-height: 102px;
+}
+.tile:has(.mascot-tile).wide .mascot-tile { top: -10px; }
+.tile:has(.mascot-tile) .t-name, .tile:has(.mascot-tile) .t-sub { overflow-wrap: anywhere; }
+[data-screen="home"] .t-ic,
+[data-screen="games"] .g-ic {
+  background-image: linear-gradient(150deg, #ffffff45, transparent);
+  box-shadow: inset 0 1px 0 #fff7, 0 3px 0 #27355022;
+}
+[data-screen="home"] .t-ic { background-color: #ffffff9c; }
+[data-screen="home"] .kid-nav, [data-screen="games"] .kid-nav,
+[data-screen="lessons"] .kid-nav, [data-screen="rewards"] .kid-nav {
+  border-color: #fff;
+  background: #fffdf7;
+  box-shadow: 0 3px 0 #ded8c6, 0 9px 16px -12px #4c4439;
+}
+.kid-nav button.on { background: #e7f1d9; }
+
+.scene-banner {
+  position: relative;
+  min-height: 124px;
+  margin: 4px 0 16px;
+  border: 2px solid #fff;
+  border-radius: 23px;
+  background: var(--scene) center 54% / cover, #e4f3ed;
+  box-shadow: 0 4px 0 #d9decb;
+}
+.scene-banner > .mascot { position: absolute; right: 11px; bottom: -4px; }
+.scene-empty {
+  margin-top: 14px;
+  padding: 22px 18px;
+  border: 2px solid #fff;
+  border-radius: 24px;
+  color: #203447;
+  background: linear-gradient(180deg, #f0f7edf0, #fff8e4ec),
+    url('../img/safari/bg-maumbo.webp') center / cover, #f6f6e7;
+  box-shadow: 0 4px 0 #d6dfcc;
+}
+[data-screen="rewards"] .trophy-hero {
+  color: #25354c;
+  border: 2px solid #fff;
+  background: linear-gradient(180deg, #fffae33b, #fffae5f5 62%),
+    url('../img/safari/bg-kilimanjaro.webp') center 47% / cover, #fff1c6;
+  box-shadow: 0 4px 0 #dec796;
+}
+[data-screen="rewards"] .medal {
+  border-radius: 50%;
+  border: 2px solid #ffffffa3;
+  background-image: linear-gradient(138deg, #ffffff55, transparent);
+  box-shadow: inset 0 -4px 0 #0002, 0 4px 5px #51472922;
+}
+
+[data-screen="safari"] .map {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px 12px;
+  padding-top: 6px;
+}
+[data-screen="safari"] .map::before { content: none; }
+[data-screen="safari"] .island {
+  width: 100%;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  align-items: stretch;
+  text-align: left;
+  border: 2px solid #fff;
+  border-radius: 20px;
+  background: #fffdf7;
+  box-shadow: 0 4px 0 #d7ddd0;
+}
+.island .island-view {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  aspect-ratio: 1.55;
+  padding: 8px;
+  background: var(--scene) center / cover, #dce9d8;
+}
+.island .island-caption {
+  min-height: 68px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 7px 9px;
+  gap: 3px;
+  font-size: 12px;
+  color: #4e5d6b;
+}
+.island .island-caption b { color: #203447; line-height: 1.12; }
+[data-screen="safari"] .island .isl {
+  width: 36px;
+  height: 36px;
+  border: 2px solid #fff;
+  color: #25334a;
+  background: #fff7d7;
+  box-shadow: 0 3px 0 #20344728;
+}
+[data-screen="safari"] .island.cur { border-color: #e9b649; box-shadow: 0 4px 0 #d5ad52; }
+[data-screen="safari"] .island.locked { opacity: 1; }
+[data-screen="safari"] .island.locked .island-view { filter: saturate(.57); }
+[data-screen="safari"] .island.locked .isl { background: #f4f5ee; }
+
+@media (min-width: 760px) {
+  body:not(.is-dash) {
+    background: url('../img/safari/bg-desktop.webp') center / cover no-repeat #d2e8e9;
+  }
+  body:not(.is-dash)::before, body:not(.is-dash)::after { display: none; }
+  body:not(.is-dash) #app {
+    box-shadow: 0 24px 60px -18px #27383997, 0 0 0 7px #fffdf2e0;
+  }
+}
+@media (min-width: 1100px) and (min-height: 570px) {
+  body:not(.is-dash)::after {
+    display: block;
+    width: clamp(155px, 16vw, 240px);
+    height: clamp(155px, 16vw, 240px);
+    inset: auto auto 9vh calc(50% + 232px);
+    z-index: 1;
+    border-radius: 0;
+    background: url('../img/safari/simba.webp') center / contain no-repeat;
+    opacity: 1;
+    filter: drop-shadow(0 10px 8px #41381b42);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mascot-peek, .mascot-feedback, .mascot-lid { animation: none; }
+}
+
+/* Wasifu wa mtoto */
+.kid-portrait {
+  position: relative;
+  display: inline-block;
+  width: var(--portrait-size);
+  height: var(--portrait-size);
+  flex: none;
+  overflow: hidden;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: #ede7d8;
+}
+.kid-portrait img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.kid-portrait .portrait-accessory { position: absolute; inset: 0; width: 100%; height: 100%; }
+.screen[data-screen="kidProfile"] {
+  background: linear-gradient(180deg, #eff6ead9, #fffaf0 53%),
+    url('../img/safari/bg-herufi.webp') top center / 100% auto no-repeat, #fffaf0;
+}
+.profile-preview {
+  text-align: center;
+  background: #fffdf6;
+  border: 2px solid #fff;
+  box-shadow: 0 4px 0 #d2decd;
+}
+.profile-preview h2 { margin: 8px 0 0; overflow-wrap: anywhere; }
+.profile-avatars {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 18px;
+}
+.profile-avatars button {
+  border: 2px solid #e2e8dc;
+  border-radius: 18px;
+  padding: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+.profile-avatars button[aria-pressed="true"] {
+  border-color: #307b61;
+  background: #e1f0df;
+  box-shadow: 0 3px 0 #91bca6;
+}
+.profile-avatars button .kid-portrait { width: min(100%, 84px); height: auto; aspect-ratio: 1; }
+.profile-avatars .avatar-reset {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-weight: 700;
+}
+
+.screen.welcome {
+  background: linear-gradient(180deg, #fffdf9 15%, #fffaf0ea 61%, #ffeec755),
+    url('../img/safari/bg-serengeti.webp') center bottom / 100% auto no-repeat, #fff9ed;
+}
+
+/* Mandhari za michezo */
+.scene-town { --scene: url('../img/safari/bg-town.webp'); }
+.scene-runner { --scene: url('../img/safari/bg-runner.webp'); }
+.scene-pilot { --scene: url('../img/safari/bg-pilot.webp'); }
+.scene-penalty { --scene: url('../img/safari/bg-penalty.webp'); }
+.scene-bubbles { --scene: url('../img/safari/bg-bubbles.webp'); }
+.scene-village { --scene: url('../img/safari/bg-village.webp'); }
+.scene-kitchen { --scene: url('../img/safari/bg-kitchen.webp'); }
+.scene-race-serengeti { --scene: url('../img/safari/bg-race-serengeti.webp'); }
+.scene-race-kilimanjaro { --scene: url('../img/safari/bg-race-kilimanjaro.webp'); }
+
+[data-screen="games"] .games { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+[data-screen="games"] .game-card {
+  padding: 6px 6px 10px;
+  background: #fffdf6;
+  border: 1px solid #fff;
+  box-shadow: 0 3px 0 #dcdccc, 0 7px 12px -9px #344853;
+}
+[data-screen="games"] .game-card .g-ic {
+  align-items: end;
+  justify-items: end;
+  padding: 6px;
+  height: auto;
+  min-height: 84px;
+  aspect-ratio: 1.6;
+  background: var(--scene) center / cover, var(--gc);
+}
+[data-screen="games"] .game-card .g-ic::after { content: none; }
+[data-screen="games"] .game-card .g-ic > span, .game-medal {
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 37px;
+  flex: none;
+  border-radius: 50%;
+  background: #fff9e7;
+  color: #203447;
+  box-shadow: 0 2px 0 #2034472e;
+}
+[data-screen="games"] .game-card .g-name { font-size: 14px; min-height: 32px; display: grid; place-items: center; }
+
+.game-world {
+  background: linear-gradient(180deg, #f7fbec 11%, #f7fcf0d9 46%, #fff5df80),
+    var(--scene) center bottom / cover, #e6f3e8;
+}
+.game-topbar {
+  background: #fffdf3;
+  border-bottom: 1px solid #dfe6d8;
+  padding-inline: 10px;
+  gap: 7px;
+}
+.game-topbar .game-medal {
+  background: color-mix(in srgb, var(--game-color) 22%, #fff9e7);
+}
+.game-topbar h1 { line-height: 1.12; overflow-wrap: anywhere; }
+.game-topbar .hud-pill { flex: none; padding-inline: 7px; }
+.game-world .g-q, .game-world .g-opt:not(.ok, .no, .sel) {
+  border: 1px solid #fff;
+  background: linear-gradient(#fff, #fff9e8);
+  box-shadow: 0 4px 0 #d4ded0, 0 8px 14px -10px #314656;
+}
+.game-world .g-opt:active { box-shadow: 0 1px 0 #c8d3c4; }
+.game-world .g-progress i:not(.done, .miss) { background: #c6d6ce; }
+.game-world .mem-card:not(.open, .done) {
+  background: linear-gradient(145deg, #328b7c, #195653);
+  border: 2px solid #dfebd9;
+  box-shadow: 0 4px 0 #154941;
+}
+.game-world .g-body:not(.game-canvas) > .card { background: #fffdf6; }
+.game-world .game-canvas {
+  background: var(--scene) center / 100% 100% no-repeat #b2d9e7;
+}
+.scene-penalty .game-canvas { background-size: cover; background-position: center bottom; }
+.scene-bubbles .g-body {
+  background: var(--scene) center / cover, #7ad6e4;
+}
+.scene-kitchen .g-body, .scene-village .g-body { overflow-y: auto; }
+.game-world .build-grid {
+  background: #739b58;
+  border: 2px solid #fff6da;
+  box-shadow: 0 4px 0 #5a7440;
+}
+.game-world .build-grid div { box-shadow: inset 0 -3px 0 #20344729; }
+.scene-kitchen .ing .dot2 {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 27px;
+  background: color-mix(in srgb, var(--ingredient) 28%, #fff4dd);
+  box-shadow: inset 0 -3px 0 #24374819;
+}
+.screen[data-screen="raceMenu"] { background: linear-gradient(#e8f5f3, #fff7e8); }
+.race-region {
+  padding: 14px 12px;
+  margin: 12px 0 17px;
+  border: 2px solid #fff;
+  border-radius: 22px;
+  background: linear-gradient(90deg, #203447b8, #20344726), var(--scene) center 60% / cover, #527467;
+}
+.race-region h2 { margin: 0 0 10px; color: white; font-size: 19px; }
+.race-region .levels { gap: 8px; }
+.race-screen { background: var(--scene) center / 100% 100% no-repeat, #72905e; }
+
+@media (max-width: 355px) {
+  .game-topbar .game-medal { display: none; }
+  .home-hero .hero-stats { gap: 4px; }
+  .home-hero .hero-stats div { padding-inline: 6px; }
+}
+
+/* =========================================================
+   Uhai wa wahusika: kupumua, kuyumba, kuruka wakiguswa
+   ========================================================= */
+.mascot img { transform-origin: 50% 92%; animation: mascot-idle 3.8s ease-in-out infinite; }
+.mascot::after {
+  content: ""; position: absolute; left: 22%; right: 22%; bottom: 1%; height: 7%; border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(40,30,20,.22), transparent 70%); z-index: -1;
+  animation: mascot-shadow 3.8s ease-in-out infinite;
+}
+@keyframes mascot-idle {
+  0%, 100% { transform: translateY(0) scale(1, 1) rotate(0deg); }
+  25% { transform: translateY(-1px) scale(1.012, .992) rotate(-1.4deg); }
+  50% { transform: translateY(-3px) scale(.995, 1.018) rotate(0deg); }
+  75% { transform: translateY(-1px) scale(1.012, .992) rotate(1.4deg); }
+}
+@keyframes mascot-shadow { 0%, 100% { transform: scaleX(1); opacity: 1; } 50% { transform: scaleX(.86); opacity: .75; } }
+/* kila mhusika na mwendo wake, wasionekane wanacheza pamoja kama roboti */
+.tile:nth-child(2) .mascot img, .tile:nth-child(2) .mascot::after { animation-delay: -1.1s; animation-duration: 4.2s; }
+.tile:nth-child(3) .mascot img, .tile:nth-child(3) .mascot::after { animation-delay: -2.3s; animation-duration: 3.5s; }
+.tile:nth-child(4) .mascot img, .tile:nth-child(4) .mascot::after { animation-delay: -.6s; animation-duration: 4.6s; }
+.tile:nth-child(5) .mascot img, .tile:nth-child(5) .mascot::after { animation-delay: -1.8s; }
+
+/* akiguswa: anajikunja kidogo, anaruka, anatua */
+.mascot.is-tapped img { animation: mascot-jump .62s cubic-bezier(.3, .7, .4, 1) both; }
+.mascot.is-tapped::after { animation: mascot-jump-shadow .62s ease-out both; }
+@keyframes mascot-jump {
+  0% { transform: scale(1, 1); }
+  15% { transform: scale(1.12, .86); }
+  45% { transform: translateY(-22%) scale(.94, 1.08) rotate(-4deg); }
+  70% { transform: translateY(0) scale(1.08, .92); }
+  85% { transform: scale(.98, 1.03); }
+  100% { transform: scale(1, 1); }
+}
+@keyframes mascot-jump-shadow { 0%, 100% { transform: scaleX(1); } 45% { transform: scaleX(.55); opacity: .4; } }
+
+/* avatar za watoto: zinapumua na kung'aa mara kwa mara */
+.kid-portrait img { transform-origin: 50% 85%; animation: portrait-idle 4.4s ease-in-out infinite; }
+@keyframes portrait-idle {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  30% { transform: translateY(-1.5%) rotate(-1.6deg); }
+  65% { transform: translateY(.5%) rotate(1.2deg); }
+}
+.kid-portrait::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,.55) 50%, transparent 62%);
+  transform: translateX(-120%); animation: portrait-shine 7s ease-in-out infinite;
+}
+@keyframes portrait-shine { 0%, 82% { transform: translateX(-120%); } 92%, 100% { transform: translateX(120%); } }
+.kid-portrait.is-tapped img { animation: portrait-wiggle .6s ease-out both; }
+@keyframes portrait-wiggle {
+  0% { transform: scale(1); } 20% { transform: scale(1.1) rotate(-6deg); } 45% { transform: scale(1.06) rotate(5deg); }
+  70% { transform: scale(1.02) rotate(-2deg); } 100% { transform: scale(1); }
+}
+.profile-avatars button[aria-pressed="true"] .kid-portrait img { animation: portrait-idle 2.6s ease-in-out infinite; }
+
+/* jibu sahihi: Nuru anaruka na nyota zinatawanyika */
+.mascot-feedback { animation: mascot-hop .9s ease-out both; }
+.mascot-feedback .spark {
+  position: absolute; left: 50%; top: 45%; width: 12px; height: 12px; margin: -6px; pointer-events: none;
+  background: #FFC20E; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  opacity: 0; animation: spark-fly .7s ease-out var(--sd) both;
+}
+.mascot-feedback .spark:nth-child(3n) { background: #0FB394; }
+.mascot-feedback .spark:nth-child(3n+1) { background: #F65B4F; width: 9px; height: 9px; }
+@keyframes spark-fly {
+  0% { opacity: 0; transform: translate(0, 0) scale(.3) rotate(0); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--sx), var(--sy)) scale(1) rotate(160deg); }
+}
+
+/* ikoni za michezo na sarafu */
+.game-card:active .g-ic span { animation: icon-wiggle .45s ease-out; }
+.game-card .g-ic span { display: inline-grid; }
+@keyframes icon-wiggle { 0% { transform: rotate(0); } 30% { transform: rotate(-12deg) scale(1.1); } 60% { transform: rotate(8deg); } 100% { transform: rotate(0); } }
+.hud-pill.coin-pop { animation: coin-pop .45s ease-out; }
+.hud-pill.coin-pop .ic { animation: coin-spin .45s ease-out; }
+@keyframes coin-pop { 40% { transform: scale(1.14); } 100% { transform: scale(1); } }
+@keyframes coin-spin { from { transform: rotateY(0); } to { transform: rotateY(360deg); } }
+.badge-c:not(.locked) .medal { position: relative; overflow: hidden; }
+.badge-c:not(.locked) .medal::after {
+  content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.6) 50%, transparent 65%);
+  transform: translateX(-130%); animation: portrait-shine 5s ease-in-out infinite;
+}
+.badge-c:nth-child(2n) .medal::after { animation-delay: 1.4s; }
+.badge-c:nth-child(3n) .medal::after { animation-delay: 2.7s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot img, .mascot::after, .kid-portrait img, .kid-portrait::after, .mascot-feedback .spark, .badge-c .medal::after { animation: none !important; }
+}
+
+/* Nani anacheza? kila mtoto anaingia kwa kugusa avatar yake */
+.pick-hint { text-align: center; font-weight: 600; margin: 4px 0 14px; }
+.pick-kids .tile { background: #fffdf6 !important; border: 2px solid #fff; box-shadow: 0 4px 0 #e6dcc4, 0 14px 26px -20px #6a5432 !important; }
+.pick-kids .tile:active { transform: scale(.97); }
+.pick-kids .tile .t-name { font-size: 20px; margin-top: 10px; }
+
+/* umri: vitufe vya namba */
+.age-chips { gap: 8px; }
+.age-chips .chip { min-width: 48px; justify-content: center; padding: 10px 0; font-weight: 600; }
+.avatar-pick button .kid-portrait { width: 54px; height: 54px; }
+.screen[data-screen="pickChild"] {
+  background: linear-gradient(180deg, #eef8fb 0%, #fffcf4cc 45%, #fff8e8e6 100%),
+    url('../img/safari/bg-serengeti.webp') center bottom / 100% auto no-repeat, #fff8e8;
+}
+
+/* =========================================================
+   Picha za vitu kwenye maswali (kwa wasiojua kusoma)
+   ========================================================= */
+.pic { display: inline-grid; place-items: center; width: var(--pic); height: var(--pic); flex: none; vertical-align: middle; }
+.pic svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 2px 2px rgba(40,30,20,.15)); overflow: visible; }
+.g-q .pic, .lesson-card .pic { display: grid; margin: 0 auto 6px; animation: pic-pop .35s ease-out both; }
+@keyframes pic-pop { from { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } to { transform: none; } }
+.pic-label { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.1; }
+.pic-row { display: inline-flex; flex-wrap: wrap; gap: 2px; justify-content: center; }
+
+.market-q { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.price-tags { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.price-tag { display: flex; flex-direction: column; align-items: center; background: #fff8e6; border: 1.5px solid #f1dfb6; border-radius: 14px; padding: 6px 12px 8px; min-width: 96px; }
+.price-tag span { font-size: 13px; font-weight: 600; color: var(--navy-2); }
+.price-tag b { font: 700 18px var(--font-head); color: #8a5a12; }
+.buys { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.buys small { width: 100%; text-align: center; font-size: 13px; font-weight: 600; color: var(--muted); }
+.buys i { font-style: normal; font-weight: 700; font-size: 20px; color: var(--navy-2); }
+.q-ask { font: 700 19px var(--font-head); }
+.want-q { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 16px; }
+.want-big { display: flex; align-items: center; gap: 8px; }
+.want-big b { font: 700 30px var(--font-head); color: var(--navy); }
+.word-opt { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.recipe-item { display: inline-flex; align-items: center; gap: 4px; }
+.g-opt .pic-label span { font-size: 15px; }

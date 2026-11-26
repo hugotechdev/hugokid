@@ -20,7 +20,7 @@ function loopRun(fn) {
   raf = requestAnimationFrame(f);
   return () => { stop = true; cancelAnimationFrame(raf); };
 }
-function drawKid(ctx, x, y, r, color, t) {
+function drawKid(ctx, x, y, r, color, t, portrait) {
   ctx.save(); ctx.translate(x, y);
   ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
   ctx.fillStyle = '#FFF3E2'; ctx.beginPath(); ctx.arc(0, r * 0.08, r * 0.7, 0, 7); ctx.fill();
@@ -28,6 +28,12 @@ function drawKid(ctx, x, y, r, color, t) {
   ctx.beginPath(); ctx.arc(-r * 0.25, -r * 0.05, r * 0.11, 0, 7); ctx.arc(r * 0.25, -r * 0.05, r * 0.11, 0, 7); ctx.fill();
   ctx.strokeStyle = '#0D2461'; ctx.lineWidth = r * 0.09; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.arc(0, r * 0.15, r * 0.3, 0.2, Math.PI - 0.2); ctx.stroke();
+  if (portrait?.naturalWidth) {
+    ctx.save();
+    ctx.beginPath(); ctx.arc(0, 0, r - 2, 0, Math.PI * 2); ctx.clip();
+    ctx.drawImage(portrait, -r, -r, r * 2, r * 2);
+    ctx.restore();
+  }
   // miguu
   const sw = Math.sin((t || 0) * 18) * r * 0.3;
   ctx.strokeStyle = color; ctx.lineWidth = r * 0.22;
@@ -39,8 +45,12 @@ function drawKid(ctx, x, y, r, color, t) {
 HK.screens.g_runner = (el, p) => {
   const kit = GK.frame(el, 'runner', { level: p.level });
   const C = gameCanvas(kit), ctx = C.ctx;
+  kit.body.classList.add('game-canvas');
+  const avatar = new Image();
+  const avatarSrc = kidAvatarSrc(kit.child);
+  if (avatarSrc) avatar.src = avatarSrc;
   const hearts0 = kit.g === 0 ? 99 : 3;
-  const S = { x: 0, y: 0, vy: 0, on: true, dist: 0, hearts: hearts0, inv: 0, obs: [], next: 500, t: 0, slow: 0, decos: [] };
+  const S = { x: 0, y: 0, vy: 0, on: true, dist: 0, hearts: hearts0, inv: 0, obs: [], next: 500, t: 0, slow: 0 };
   const speed = [230, 300, 370][kit.g] + kit.level * 12;
   const LEN = 5000 + kit.level * 600;
   const ground = () => C.H * 0.74;
@@ -68,8 +78,6 @@ HK.screens.g_runner = (el, p) => {
       for (let k = 0; k < 3; k++) S.obs.push({ t: 'coin', x: C.W + 140 + k * 36, y: ground() - R * (rnd(2) ? 1.5 : 5) });
       S.next = S.dist + [520, 420, 340][kit.g] + rnd(260);
     }
-    if (Math.random() < dt * 0.8) S.decos.push({ x: C.W + 60, s: 0.6 + Math.random() * 0.8 });
-    S.decos.forEach(d => d.x -= dx * 0.5); S.decos = S.decos.filter(d => d.x > -80);
     S.obs.forEach(o => o.x -= dx);
     const px = C.W * 0.22;
     for (const o of S.obs) {
@@ -91,13 +99,17 @@ HK.screens.g_runner = (el, p) => {
 
   function draw() {
     const W = C.W, H = C.H, g = ground();
-    ctx.fillStyle = '#BFE6FB'; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#FFC20E'; ctx.beginPath(); ctx.arc(W * 0.82, H * 0.14, 30, 0, 7); ctx.fill();
-    ctx.fillStyle = '#A8D27A';
-    for (let k = -1; k < 4; k++) { const hx = k * 260 - (S.dist * 0.2) % 260; ctx.beginPath(); ctx.ellipse(hx + 130, g, 170, 90, 0, Math.PI, 0); ctx.fill(); }
-    S.decos.forEach(d => { ctx.save(); ctx.translate(d.x, g - 20 * d.s); ctx.scale(d.s, d.s); ctx.fillStyle = '#7A5230'; ctx.fillRect(-3, -6, 6, 30); ctx.fillStyle = '#4F8A2E'; ctx.beginPath(); ctx.ellipse(0, -12, 30, 10, 0, 0, 7); ctx.fill(); ctx.restore(); });
-    ctx.fillStyle = '#D9B26F'; ctx.fillRect(0, g, W, H - g);
-    ctx.fillStyle = '#C49A57'; for (let x = -((S.dist) % 50); x < W; x += 50) ctx.fillRect(x, g + 14, 24, 5);
+    ctx.clearRect(0, 0, W, H);
+    const dirt = ctx.createLinearGradient(0, g, 0, H);
+    dirt.addColorStop(0, '#ecd0a1'); dirt.addColorStop(0.11, '#c19a67'); dirt.addColorStop(1, '#5e3f22c4');
+    ctx.fillStyle = dirt; ctx.fillRect(0, g, W, H - g);
+    ctx.fillStyle = '#553b2526';
+    for (let x = -(S.dist % 72); x < W; x += 72) {
+      ctx.beginPath(); ctx.ellipse(x, g + 20, 13, 2, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x + 26, g + 38, 7, 3, 0, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = '#2d281e40';
+    ctx.beginPath(); ctx.ellipse(W * 0.22, g + 2, 22, 5, 0, 0, 7); ctx.fill();
     const fx = C.W * 0.22 + (LEN - S.dist);
     if (fx < W + 20) { ctx.fillStyle = '#0D2461'; ctx.fillRect(fx, g - 110, 6, 110); ctx.fillStyle = '#F65B4F'; ctx.beginPath(); ctx.moveTo(fx + 6, g - 110); ctx.lineTo(fx + 56, g - 92); ctx.lineTo(fx + 6, g - 74); ctx.fill(); }
     S.obs.forEach(o => {
@@ -106,7 +118,7 @@ HK.screens.g_runner = (el, p) => {
       else if (o.t === 'log') { ctx.fillStyle = '#8A5A2B'; rr(ctx, o.x - o.w / 2, g - o.h, o.w, o.h, 10); ctx.fill(); ctx.fillStyle = '#C48A50'; ctx.beginPath(); ctx.ellipse(o.x + o.w / 2 - 6, g - o.h / 2, 6, o.h / 2 - 2, 0, 0, 7); ctx.fill(); }
       else { ctx.fillStyle = '#3A4D80'; ctx.beginPath(); ctx.ellipse(o.x, o.y + 10, 14, 9, 0, 0, 7); ctx.fill(); const f = Math.sin(S.t * 14) * 10; ctx.beginPath(); ctx.moveTo(o.x - 4, o.y + 8); ctx.lineTo(o.x - 22, o.y + f); ctx.lineTo(o.x + 4, o.y + 8); ctx.fill(); }
     });
-    if (!(S.inv > 0 && Math.floor(S.inv * 10) % 2 === 0)) drawKid(ctx, C.W * 0.22, S.y, R, kit.child.color, S.on ? S.t : 0);
+    if (!(S.inv > 0 && Math.floor(S.inv * 10) % 2 === 0)) drawKid(ctx, C.W * 0.22, S.y, R, kit.child.color, S.on ? S.t : 0, avatar);
     // HUD
     ctx.fillStyle = 'rgba(255,255,255,.7)'; rr(ctx, 16, 14, W - 32, 12, 6); ctx.fill();
     ctx.fillStyle = '#0FB394'; rr(ctx, 16, 14, (W - 32) * Math.min(1, S.dist / LEN), 12, 6); ctx.fill();
@@ -119,6 +131,7 @@ HK.screens.g_runner = (el, p) => {
 HK.screens.g_pilot = (el, p) => {
   const kit = GK.frame(el, 'pilot', { level: p.level });
   const C = gameCanvas(kit), ctx = C.ctx;
+  kit.body.classList.add('game-canvas');
   const S = { y: 0, vy: 0, hold: false, rings: [], birds: [], got: 0, made: 0, t: 0, next: 1.2, hearts: kit.g === 0 ? 99 : 3, inv: 0, clouds: [] };
   const TOTAL = 10 + kit.level * 2;
   const speed = [170, 220, 270][kit.g] + kit.level * 8;
@@ -161,9 +174,8 @@ HK.screens.g_pilot = (el, p) => {
   });
   function draw() {
     const W = C.W, H = C.H;
-    const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#7CC8F5'); g.addColorStop(1, '#DDF1FD');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,.31)';
     S.clouds.forEach(c => { ctx.beginPath(); ctx.ellipse(c.x, c.y, 40 * c.s, 16 * c.s, 0, 0, 7); ctx.ellipse(c.x + 24 * c.s, c.y - 8 * c.s, 26 * c.s, 14 * c.s, 0, 0, 7); ctx.fill(); });
     S.rings.forEach(r => {
       ctx.lineWidth = 10; ctx.strokeStyle = r.done ? (r.ok ? '#0FB394' : 'rgba(246,91,79,.5)') : '#FFC20E';
@@ -173,7 +185,9 @@ HK.screens.g_pilot = (el, p) => {
     // ndege yetu
     if (!(S.inv > 0 && Math.floor(S.inv * 10) % 2 === 0)) {
       ctx.save(); ctx.translate(W * 0.25, S.y); ctx.rotate(S.vy / 900);
-      ctx.fillStyle = '#F65B4F'; rr(ctx, -34, -10, 64, 20, 10); ctx.fill();
+      const paint = ctx.createLinearGradient(0, -10, 0, 12);
+      paint.addColorStop(0, '#ffcbb6'); paint.addColorStop(0.36, '#f77757'); paint.addColorStop(1, '#a93032');
+      ctx.fillStyle = paint; rr(ctx, -34, -10, 64, 20, 10); ctx.fill();
       ctx.fillStyle = '#C63D33'; ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(-20, 26); ctx.lineTo(8, 0); ctx.fill();
       ctx.beginPath(); ctx.moveTo(-28, -6); ctx.lineTo(-40, -22); ctx.lineTo(-22, -6); ctx.fill();
       ctx.fillStyle = '#BFE6FB'; rr(ctx, 6, -7, 14, 8, 4); ctx.fill();
@@ -190,10 +204,12 @@ HK.screens.g_pilot = (el, p) => {
 HK.screens.g_penalty = (el, p) => {
   const kit = GK.frame(el, 'penalty', { level: p.level });
   const C = gameCanvas(kit), ctx = C.ctx;
+  kit.body.classList.add('game-canvas');
   const rounds = 5, keepTurns = kit.g > 0;
   const keeperSkill = [0.18, 0.3, 0.42][kit.g] + kit.level * 0.02;
   const S = { turn: 'shoot', n: 0, me: 0, cpu: 0, anim: null, keeper: 4, msg: '', t: 0, log: [] };
-  const goal = () => ({ x: C.W * 0.1, y: C.H * 0.12, w: C.W * 0.8, h: C.H * 0.3 });
+  /* goli limekaa kwenye nyasi za uwanja wa picha, si angani */
+  const goal = () => ({ x: C.W * 0.08, y: C.H * 0.3, w: C.W * 0.84, h: C.H * 0.32 });
   const zoneRect = z => { const g = goal(); const c = z % 3, r = Math.floor(z / 3); return { x: g.x + g.w / 3 * c, y: g.y + g.h / 2 * r, w: g.w / 3, h: g.h / 2 }; };
   const zoneAt = (x, y) => { const g = goal(); if (x < g.x || x > g.x + g.w || y < g.y || y > g.y + g.h) return -1; return Math.floor((x - g.x) / (g.w / 3)) + 3 * Math.floor((y - g.y) / (g.h / 2)); };
   const say = t => { S.msg = t; speak(t); };
@@ -252,12 +268,14 @@ HK.screens.g_penalty = (el, p) => {
 
   function draw() {
     const W = C.W, H = C.H, g = goal();
-    ctx.fillStyle = '#5DBB63'; ctx.fillRect(0, 0, W, H);
-    for (let y = 0; y < H; y += 60) { ctx.fillStyle = (y / 60) % 2 ? '#55B05B' : '#5DBB63'; ctx.fillRect(0, y, W, 60); }
+    ctx.clearRect(0, 0, W, H);
+    const pitch = ctx.createLinearGradient(0, 0, 0, H);
+    pitch.addColorStop(0, '#18302c29'); pitch.addColorStop(.75, '#18302c00'); pitch.addColorStop(1, '#18302c49');
+    ctx.fillStyle = pitch; ctx.fillRect(0, 0, W, H);
     ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 4;
-    ctx.strokeRect(W * 0.04, g.y + g.h, W * 0.92, H * 0.22);
+    ctx.strokeRect(W * 0.04, g.y + g.h, W * 0.92, H * 0.24);
     // wavu
-    ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(g.x, g.y, g.w, g.h);
+    ctx.fillStyle = 'rgba(255,255,255,.34)'; ctx.fillRect(g.x, g.y, g.w, g.h);
     ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1;
     for (let x = g.x; x < g.x + g.w; x += 16) { ctx.beginPath(); ctx.moveTo(x, g.y); ctx.lineTo(x, g.y + g.h); ctx.stroke(); }
     for (let y = g.y; y < g.y + g.h; y += 16) { ctx.beginPath(); ctx.moveTo(g.x, y); ctx.lineTo(g.x + g.w, y); ctx.stroke(); }
@@ -272,16 +290,30 @@ HK.screens.g_penalty = (el, p) => {
     ctx.fillStyle = '#FFF3E2'; ctx.beginPath(); ctx.arc(kx, ky - 30, 15, 0, 7); ctx.fill();
     ctx.fillStyle = '#FFC20E'; ctx.beginPath(); ctx.arc(kx - 30, ky - 14, 10, 0, 7); ctx.arc(kx + 30, ky - 14, 10, 0, 7); ctx.fill();
     // mpira
-    let bx = W / 2, by = H * 0.8, bs = 22;
+    let bx = W / 2, by = H * 0.84, bs = 22;
     if (S.anim) {
       const tr = zoneRect(S.anim.target), tx = tr.x + tr.w / 2, ty = tr.y + tr.h / 2;
       const t = Math.min(1, S.anim.t);
-      const sx = S.anim.kind === 'save' ? W / 2 : W / 2, sy = S.anim.kind === 'save' ? H * 0.62 : H * 0.8;
+      const sx = W / 2, sy = S.anim.kind === 'save' ? H * 0.7 : H * 0.84;
       bx = sx + (tx - sx) * t; by = sy + (ty - sy) * t - Math.sin(t * Math.PI) * 40; bs = 22 - 8 * t;
-      if (S.anim.kind === 'save') { bx = tx + (W / 2 - tx) * (1 - t); by = ty + (H * 0.55 - ty) * (1 - t); bs = 10 + 14 * t; }
+      if (S.anim.kind === 'save') { bx = tx + (W / 2 - tx) * (1 - t); by = ty + (H * 0.7 - ty) * (1 - t); bs = 10 + 14 * t; }
     }
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx, by, bs, 0, 7); ctx.fill();
-    ctx.fillStyle = '#0D2461'; ctx.beginPath(); ctx.arc(bx, by, bs * 0.38, 0, 7); ctx.fill();
+    const leather = ctx.createRadialGradient(bx - bs * .34, by - bs * .4, 2, bx, by, bs);
+    leather.addColorStop(0, '#fff'); leather.addColorStop(.73, '#eef2eb'); leather.addColorStop(1, '#aab8ba');
+    ctx.fillStyle = leather; ctx.beginPath(); ctx.arc(bx, by, bs, 0, 7); ctx.fill();
+    ctx.fillStyle = '#25334b';
+    const spin = (S.anim?.t || 0) * Math.PI * 2;
+    for (let patch = 0; patch < 6; patch++) {
+      const a = patch * Math.PI * 2 / 5 + spin;
+      const offset = patch === 5 ? 0 : bs * .8;
+      const x = bx + Math.cos(a) * offset, y = by + Math.sin(a) * offset;
+      ctx.beginPath();
+      for (let corner = 0; corner < 5; corner++) {
+        const theta = a + corner * Math.PI * 2 / 5;
+        ctx.lineTo(x + Math.cos(theta) * bs * .19, y + Math.sin(theta) * bs * .19);
+      }
+      ctx.closePath(); ctx.fill();
+    }
     // ubao wa matokeo
     ctx.fillStyle = 'rgba(13,36,97,.85)'; rr(ctx, W / 2 - 110, H - 96, 220, 70, 18); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '900 22px Outfit, Roboto, sans-serif';
@@ -319,7 +351,7 @@ HK.screens.g_bubbles = (el, p) => {
     const cells = [];
     for (let r = ROWS - 1; r >= 0; r--) for (let c = 0; c < COLS; c++) {
       const v = grid[c][r];
-      cells.push(`<button data-c="${c}" data-r="${r}" style="aspect-ratio:1;border:0;border-radius:50%;padding:0;${v == null ? 'background:transparent' : `background:radial-gradient(circle at 32% 30%, #fff8 0 14%, ${PAL[v]} 15%);box-shadow:0 3px 0 rgba(13,36,97,.18)`}"></button>`);
+      cells.push(`<button data-c="${c}" data-r="${r}" style="aspect-ratio:1;border:0;border-radius:50%;padding:0;${v == null ? 'background:transparent' : `background:radial-gradient(circle at 29% 25%, #fff 0, #fff9 10%, #fff0 28%), radial-gradient(circle at 65% 70%, #001c4d52, transparent 62%), ${PAL[v]};box-shadow:inset 0 0 0 2px #fff7,0 4px 6px #0023446a`}"></button>`);
     }
     $('#bb', el).innerHTML = cells.join('');
     $$('#bb button', el).forEach(b => b.onclick = () => pop(+b.dataset.c, +b.dataset.r));
@@ -443,10 +475,10 @@ HK.screens.g_kitchen = (el, p) => {
     kit.body.innerHTML = `
       <div class="g-progress">${list.map((_, k) => `<i class="${k < ri ? 'done' : ''}"></i>`).join('')}</div>
       <div class="card" style="margin:0 16px 10px"><div class="row"><b style="font-size:19px" class="grow">${esc(rc.name)}</b><button class="icon-btn" id="say" style="width:40px;height:40px">${icon('volume', 20)}</button></div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${Object.entries(want).map(([k, n]) => `<span class="chip-tag ${(pot[k] || 0) === n ? 'teal' : ''}">${INGR[k][0]}${kit.g ? ' × ' + n : ''}</span>`).join('')}</div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${Object.entries(want).map(([k, n]) => `<span class="chip-tag recipe-item ${(pot[k] || 0) === n ? 'teal' : ''}">${pic(k, 22)}${INGR[k][0]}${kit.g ? ' × ' + n : ''}</span>`).join('')}</div></div>
       <div style="display:flex;justify-content:center;margin:2px 0 10px"><svg width="150" height="84" viewBox="0 0 150 84"><ellipse cx="75" cy="18" rx="64" ry="12" fill="#3A4D80"/><path d="M11 18h128l-10 52a14 14 0 0 1-14 12H35a14 14 0 0 1-14-12z" fill="#5C6B8A"/><path d="M0 26h12M138 26h12" stroke="#3A4D80" stroke-width="7" stroke-linecap="round"/>
         <text x="75" y="58" text-anchor="middle" font-weight="900" font-size="18" fill="#fff" font-family="Outfit,Roboto">${Object.values(pot).reduce((a, b) => a + b, 0)}</text></svg></div>
-      <div class="ingredients">${shelf.map(k => `<button class="ing" data-k="${k}">${pot[k] ? `<span class="cnt">${pot[k]}</span>` : ''}<span class="dot2" style="background:${INGR[k][1]};border:2px solid rgba(13,36,97,.12)"></span>${INGR[k][0]}</button>`).join('')}</div>
+      <div class="ingredients">${shelf.map(k => `<button class="ing" data-k="${k}">${pot[k] ? `<span class="cnt">${pot[k]}</span>` : ''}<span class="dot2" style="--ingredient:${INGR[k][1]}" aria-hidden="true">${pic(k, 40)}</span>${INGR[k][0]}</button>`).join('')}</div>
       <div class="btn-row" style="padding:0 16px 16px"><button class="btn ghost" id="empty">${icon('repeat', 20)} Mwaga</button><button class="btn coral" id="cook" style="flex:2">${icon('pot', 20)} Pika</button></div>`;
     const sayIt = () => speak('Tupike ' + rc.name + '. Tunahitaji ' + Object.entries(want).map(([k, n]) => (kit.g ? n + ' ' : '') + INGR[k][0]).join(', '));
     $('#say', el).onclick = sayIt;

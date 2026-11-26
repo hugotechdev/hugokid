@@ -39,8 +39,8 @@ HK.screens.acctAuth = (el, p) => {
     el.innerHTML = `
       <div class="topbar">${p.skip ? '' : `<button class="icon-btn" id="bk">${icon('back')}</button>`}<h1>${kind === 'school' ? 'Shule na walimu' : kind === 'parent' ? 'Akaunti ya mzazi' : 'Ingia'}</h1>
         ${p.skip ? `<button class="btn small ghost" id="skip">Baadaye</button>` : ''}</div>
-      ${p.skip ? `<div class="card" style="margin:0 16px 12px;max-width:520px;align-self:center"><p>Akaunti ya mtandaoni inaunganisha mtoto na shule na mwalimu wake, na inaweka nakala ya maendeleo. Unaweza kuifungua baadaye kwenye Mipangilio.</p></div>` : ''}
-      <div class="scroll" style="max-width:520px;margin:0 auto;width:100%">
+      ${p.skip ? `<div class="card" style="margin:0 16px 12px;max-width:600px;align-self:center"><p>Akaunti ya mtandaoni inaunganisha mtoto na shule na mwalimu wake, na inaweka nakala ya maendeleo. Unaweza kuifungua baadaye kwenye Mipangilio.</p></div>` : ''}
+      <div class="scroll" style="max-width:600px;margin:0 auto;width:100%">
         <div class="seg" style="margin:4px 0 14px"><button data-t="login" class="${tab === 'login' ? 'on' : ''}">Ingia</button><button data-t="register" class="${tab === 'register' ? 'on' : ''}">Jisajili</button></div>
         ${tab === 'login' ? `
           <label class="label">Simu au barua pepe</label><input class="field" id="login" autocomplete="username" placeholder="07xx xxx xxx">

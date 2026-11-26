@@ -18,7 +18,7 @@ HK.screens.g_balloons = (el, p) => {
     const b = 2 + rnd(8), r = 2 + rnd(9); return { text: `${b * r} ÷ ${b} = ?`, ans: r, say: `${b * r} gawanya kwa ${b}` };
   };
 
-  kit.body.innerHTML = `<div class="g-progress" id="pr"></div><div class="g-q" id="q"></div><div id="sky" style="flex:1;position:relative;overflow:hidden;background:linear-gradient(#E2F3FD,#F4F8FD)"></div>`;
+  kit.body.innerHTML = `<div class="g-progress" id="pr"></div><div class="g-q" id="q"></div><div id="sky" style="flex:1;position:relative;overflow:hidden;background:transparent"></div>`;
   const sky = $('#sky', el);
 
   const next = () => {
@@ -37,14 +37,14 @@ HK.screens.g_balloons = (el, p) => {
       const b = document.createElement('button');
       const col = COLS[(i + k) % COLS.length];
       b.style.cssText = 'position:absolute;border:0;background:none;padding:0;width:84px;height:118px;cursor:pointer';
-      b.innerHTML = `<svg width="84" height="118" viewBox="0 0 84 118"><path d="M42 4C20 4 6 22 6 42c0 24 22 44 36 46 14-2 36-22 36-46C78 22 64 4 42 4z" fill="${col}"/><path d="M42 88l-5 8h10z" fill="${col}"/><path d="M42 96q-6 10 0 20" stroke="#8A97B2" stroke-width="2" fill="none"/><ellipse cx="28" cy="26" rx="7" ry="11" fill="#fff" opacity=".35"/>
+      b.innerHTML = `<svg width="84" height="118" viewBox="0 0 84 118"><defs><radialGradient id="balloon-${k}" cx=".34" cy=".22" r=".83"><stop stop-color="#fff" stop-opacity=".72"/><stop offset=".27" stop-color="${col}"/><stop offset="1" stop-color="${col}"/></radialGradient></defs><path d="M42 4C20 4 6 22 6 42c0 24 22 44 36 46 14-2 36-22 36-46C78 22 64 4 42 4z" fill="url(#balloon-${k})" stroke="#2d2647" stroke-opacity=".32" stroke-width="2"/><path d="M42 88l-5 8h10z" fill="${col}"/><path d="M42 96q-6 10 0 20" stroke="#8A97B2" stroke-width="2" fill="none"/><ellipse cx="28" cy="26" rx="7" ry="11" fill="#fff" opacity=".35"/>
         <text x="42" y="54" text-anchor="middle" font-family="Outfit,Roboto,sans-serif" font-weight="900" font-size="${String(v).length > 2 ? 24 : 30}" fill="#fff">${v}</text></svg>`;
       const it = { b, v, x: (W / 4) * k + (W / 4 - 84) / 2, y: H * 0.3 + rnd(Math.max(40, H * 0.6)), sp: 30 + rnd(20) + kit.level * 3, wob: Math.random() * 6 };
       b.onclick = () => {
         if (kit.ended) return;
         if (v === ans) {
           if (!missed) firstTry++;
-          kit.addCoins(missed ? 1 : 3); Sfx.good(); speak('Sahihi!');
+          kit.addCoins(missed ? 1 : 3); Sfx.good(); celebrateMascot(el, 'pundamilia'); speak('Sahihi!');
           b.style.transition = 'transform .2s, opacity .2s'; b.style.transform += ' scale(1.4)'; b.style.opacity = '0';
           i++; setTimeout(next, 500);
         } else {
@@ -89,13 +89,13 @@ HK.screens.g_letters = (el, p) => {
       const lang = en ? 'en' : 'sw-raw';
       if (kit.g === 0) {
         const opts = new Set([w[0]]); while (opts.size < 3) opts.add(pick(ABC));
-        return { html: `<span style="font-size:20px">${en ? 'Starts with which letter?' : 'Linaanza na herufi gani?'}<br><b style="font-size:30px">${esc(w)}</b></span>`, say: w.toLowerCase(), lang, cols: 3, opts: shuffle([...opts]).map(l => ({ label: l, ok: l === w[0] })) };
+        return { html: `<span style="font-size:20px">${en ? 'Starts with which letter?' : 'Linaanza na herufi gani?'}<br>${pic(w, 84)}<b class="notr" style="font-size:30px;display:block">${esc(w)}</b></span>`, say: w.toLowerCase(), lang, cols: 3, opts: shuffle([...opts]).map(l => ({ label: l, ok: l === w[0] })) };
       }
       if (kit.g === 1) {
         const k = 1 + rnd(w.length - 1);
         const opts = new Set([w[k]]); while (opts.size < 4) opts.add(pick(ABC));
         const shown = w.slice(0, k) + '_' + w.slice(k + 1);
-        return { html: `<span><span style="font-size:15px;color:var(--muted)">${esc(clue)}</span><br><span style="font-size:36px;letter-spacing:6px">${shown}</span></span>`, say: clue, lang, opts: shuffle([...opts]).map(l => ({ label: l, ok: l === w[k] })) };
+        return { html: `<span>${pic(w, 76)}<span style="font-size:15px;color:var(--muted);display:block">${esc(clue)}</span><span class="notr" style="font-size:36px;letter-spacing:6px">${shown}</span></span>`, say: clue, lang, opts: shuffle([...opts]).map(l => ({ label: l, ok: l === w[k] })) };
       }
       // master: tahajia sahihi
       const wrong = new Set();
@@ -105,7 +105,7 @@ HK.screens.g_letters = (el, p) => {
         if (rnd(2) && a.length > 3) a.splice(k, 1); else a[k] = pick(ABC);
         const v = a.join(''); if (v !== w) wrong.add(v);
       }
-      return { html: `<span style="font-size:18px">${esc(clue)}</span>`, say: clue, lang, cols: 1, opts: shuffle([w, ...wrong]).map(v => ({ label: v, ok: v === w, style: 'font-size:24px;letter-spacing:3px;min-height:64px' })) };
+      return { html: `<span>${pic(w, 76)}<span style="font-size:18px;display:block">${esc(clue)}</span></span>`, say: clue, lang, cols: 1, notr: true, opts: shuffle([w, ...wrong]).map(v => ({ label: v, ok: v === w, style: 'font-size:24px;letter-spacing:3px;min-height:64px' })) };
     },
   });
   return () => kit.cleanup();
@@ -258,6 +258,9 @@ HK.screens.g_robot = (el, p) => {
 
 /* ===== 5. Soko Dogo ===== */
 const FRUITS = [['Embe', '#FFB020'], ['Chungwa', '#FF8A3D'], ['Ndizi', '#FFD93D'], ['Nanasi', '#E3B341'], ['Tikiti', '#3FB36B'], ['Parachichi', '#5B8C2A']];
+/* picha halisi ya tunda (au mpira wa rangi kama haipo) */
+function fruitPic(f, s = 40) { return pic(f[0], s) || fruitSvg(f[1], s); }
+const picRow = (f, n, s = 30) => `<span class="pic-row">${Array.from({ length: n }, () => fruitPic(f, s)).join('')}</span>`;
 function fruitSvg(col, s = 40) { return `<svg width="${s}" height="${s}" viewBox="0 0 40 40"><circle cx="20" cy="22" r="15" fill="${col}"/><path d="M20 7q4-5 9-3-3 5-9 4z" fill="#3FA34D"/><ellipse cx="14" cy="17" rx="4" ry="6" fill="#fff" opacity=".35"/></svg>`; }
 HK.screens.g_market = (el, p) => {
   const kit = GK.frame(el, 'market', { level: p.level });
@@ -270,10 +273,16 @@ HK.screens.g_market = (el, p) => {
         const pa = (1 + rnd(5)) * 100, pb = (1 + rnd(5)) * 100, na = 1 + rnd(kit.level < 4 ? 2 : 3), nb = rnd(3);
         const ans = pa * na + pb * nb;
         const txt = I18N.lang === 'en'
-          ? `${T(a[0])}: ${pa}/= each, ${T(b[0])}: ${pb}/= each. The customer buys ${na} ${T(a[0]).toLowerCase()}${nb ? ' and ' + nb + ' ' + T(b[0]).toLowerCase() : ''}. What is the total?`
+          ? `${T(a[0])}: ${pa}/= each, ${T(b[0])}: ${pb}/= each. The customer buys ${na} ${T(a[0]).toLowerCase()}${na > 1 ? 's' : ''}${nb ? ' and ' + nb + ' ' + T(b[0]).toLowerCase() + (nb > 1 ? 's' : '') : ''}. What is the total?`
           : `${a[0]} ni ${pa}/=, ${b[0]} ni ${pb}/=. Mteja ananunua ${a[0].toLowerCase()} ${na}${nb ? ' na ' + b[0].toLowerCase() + ' ' + nb : ''}. Jumla ni?`;
         const s = new Set([ans]); while (s.size < 4) { const v = ans + (rnd(2) ? 1 : -1) * 100 * (1 + rnd(3)); if (v > 0) s.add(v); }
-        return { html: `<span style="font-size:18px;line-height:1.4">${esc(txt)}</span>`, say: txt.replace(/\/=/g, ' shilingi'), opts: shuffle([...s]).map(v => ({ label: v + '/=', ok: v === ans, style: 'font-size:22px' })) };
+        /* picha za matunda na bei zake, ili hata asiyejua kusoma aelewe */
+        const tag = (f, pr) => `<span class="price-tag">${fruitPic(f, 46)}<span>${esc(f[0])}</span><b>${pr}/=</b></span>`;
+        const html = `<div class="market-q">
+            <div class="price-tags">${tag(a, pa)}${tag(b, pb)}</div>
+            <div class="buys"><small>Mteja ananunua:</small>${picRow(a, na)}${nb ? '<i>+</i>' + picRow(b, nb) : ''}</div>
+            <b class="q-ask">Jumla ni?</b></div>`;
+        return { html, say: txt.replace(/\/=/g, ' shilingi'), opts: shuffle([...s]).map(v => ({ label: v + '/=', ok: v === ans, style: 'font-size:22px' })) };
       },
     });
     return () => kit.cleanup();
@@ -287,12 +296,12 @@ HK.screens.g_market = (el, p) => {
       const f = pick(FRUITS), n = 1 + rnd(Math.min(5, 2 + kit.level));
       let got = 0;
       kit.body.innerHTML = `<div class="g-progress">${Array.from({ length: total }, (_, k) => `<i class="${k < round - 1 ? 'done' : ''}"></i>`).join('')}</div>
-        <div class="g-q" style="font-size:20px">Mteja anataka ${f[0].toLowerCase()} ${n}</div>
+        <div class="g-q want-q"><div class="want-big">${fruitPic(f, 64)}<b>&times; ${n}</b></div><span>Mteja anataka ${esc(f[0].toLowerCase())} ${n}</span>${picRow(f, n, 26)}</div>
         <div class="card" style="margin:0 16px 12px;text-align:center;min-height:96px"><div class="muted" style="font-weight:900;margin-bottom:6px">Kikapu</div><div id="bk2" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center"></div></div>
-        <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:6px 16px">${Array.from({ length: 8 }, () => `<button class="ing fr" style="width:72px">${fruitSvg(f[1], 46)}</button>`).join('')}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:6px 16px">${Array.from({ length: 8 }, () => `<button class="ing fr" style="width:72px">${fruitPic(f, 46)}</button>`).join('')}</div>
         <div class="btn-row" style="padding:14px 16px"><button class="btn ghost" id="rs">${icon('repeat', 20)} Anza</button><button class="btn" id="give" style="flex:2">${icon('check', 20)} Mpe mteja</button></div>`;
       speak('Mteja anataka ' + f[0].toLowerCase() + ' ' + ['', 'moja', 'mbili', 'tatu', 'nne', 'tano'][n]);
-      $$('.fr', el).forEach(b => b.onclick = () => { if (got >= 9) return; got++; Sfx.tap(); speak(String(got)); $('#bk2', el).innerHTML += fruitSvg(f[1], 30); b.style.visibility = 'hidden'; });
+      $$('.fr', el).forEach(b => b.onclick = () => { if (got >= 9) return; got++; Sfx.tap(); speak(String(got)); $('#bk2', el).innerHTML += fruitPic(f, 30); b.style.visibility = 'hidden'; });
       $('#rs', el).onclick = () => { round--; next(); };
       $('#give', el).onclick = () => {
         if (got === n) { good++; kit.addCoins(3); Sfx.good(); speak('Asante! Mteja amefurahi'); setTimeout(next, 700); }
@@ -422,15 +431,15 @@ HK.screens.g_speak = (el, p) => {
         <span style="position:absolute;right:12px;top:70px;width:12px;height:12px;border-radius:50%;background:#FFC20E"></span>
         <span style="position:absolute;left:50%;top:22px;transform:translateX(-50%);color:#FFE07A">${icon('lock', 30)}</span></div></div>
       ${canListen ? `
-        <div class="lesson-card" style="margin-top:0"><div class="tr">${esc(row[0])}</div><div class="big ${lang === 'ar' ? 'arabic' : ''}" style="${lang === 'ar' ? 'font-size:40px' : ''}">${esc(w.word)}</div>${w.sub ? `<div class="tr">${esc(w.sub)}</div>` : ''}</div>
+        <div class="lesson-card notr" style="margin-top:0">${pic(row[1], 80)}<div class="tr">${esc(row[I18N.lang === 'en' && lang !== 'en' ? 1 : 0])}</div><div class="big ${lang === 'ar' ? 'arabic' : ''}" style="${lang === 'ar' ? 'font-size:40px' : ''}">${esc(w.word)}</div>${w.sub ? `<div class="tr">${esc(w.sub)}</div>` : ''}</div>
         <div class="btn-row" style="padding:6px 16px"><button class="btn ghost" id="hear">${icon('volume', 22)} Sikiliza</button><button class="btn coral" id="mic" style="flex:2">${icon('mic', 22)} Sema neno</button></div>
         <p class="muted" style="text-align:center;font-weight:800;margin:6px 16px" id="heard"></p>
         ${tries >= 2 ? `<div style="padding:0 16px"><button class="btn block ghost small" id="skip">Ruka neno hili</button></div>` : ''}`
       : `<div class="g-q" style="font-size:18px">Sikiliza, kisha chagua neno sahihi <button class="icon-btn say" id="hear">${icon('volume', 22)}</button></div>
-        <div class="g-opts" style="grid-template-columns:1fr">${opts.map((r, k) => { const v = vocabWord(r, lang); return `<button class="g-opt ${lang === 'ar' ? 'arabic' : ''}" data-k="${k}" style="font-size:24px;min-height:64px">${esc(v.word)}${v.sub ? `<div style="font-size:14px;color:var(--muted)">${esc(v.sub)}</div>` : ''}</button>`; }).join('')}</div>`}`;
+        <div class="g-opts" style="grid-template-columns:1fr">${opts.map((r, k) => { const v = vocabWord(r, lang); return `<button class="g-opt notr word-opt ${lang === 'ar' ? 'arabic' : ''}" data-k="${k}" style="font-size:24px;min-height:64px">${pic(r[1], 44)}${esc(v.word)}${v.sub ? `<div style="font-size:14px;color:var(--muted)">${esc(v.sub)}</div>` : ''}</button>`; }).join('')}</div>`}`;
     $$('[data-l]', el).forEach(b => b.onclick = () => { lang = b.dataset.l; Store.set('speakLang', lang); draw(); });
-    $('#hear', el).onclick = () => speak(w.say, LANGS[lang].tts);
-    setTimeout(() => speak(w.say, LANGS[lang].tts), 300);
+    $('#hear', el).onclick = () => speak(w.say, LANGS[lang].tts === 'sw' ? 'sw-raw' : LANGS[lang].tts);
+    setTimeout(() => speak(w.say, LANGS[lang].tts === 'sw' ? 'sw-raw' : LANGS[lang].tts), 300);
     if (canListen) {
       $('#mic', el).onclick = () => {
         $('#heard', el).textContent = 'Nasikiliza...';
