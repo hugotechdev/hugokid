@@ -37,6 +37,12 @@ object LearningMode {
         if (on) ContextCompat.startForegroundService(ctx, svc) else ctx.stopService(svc)
     }
 
+    fun restrictedApp(ctx: Context, pkg: String): Boolean {
+        if (pkg.endsWith(".settings") || pkg.endsWith(".packageinstaller") || pkg.endsWith(".permissioncontroller")) return true
+        val homes = ctx.packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), 0)
+        return homes.any { it.activityInfo.packageName == pkg }
+    }
+
     fun allowed(ctx: Context): JSONObject =
         try { JSONObject(prefs(ctx).getString("allowed", "{}") ?: "{}") } catch (e: Exception) { JSONObject() }
 

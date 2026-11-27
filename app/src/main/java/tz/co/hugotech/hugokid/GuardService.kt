@@ -82,7 +82,7 @@ class GuardService : Service() {
         val n: Notification = NotificationCompat.Builder(this, "hk_guard")
             .setSmallIcon(R.drawable.ic_stat_hugo)
             .setContentTitle("HUGO KID: Learning Mode")
-            .setContentText("Simu iko kwenye hali ya kujifunza")
+            .setContentText("Learning Mode is active")
             .setOngoing(true)
             .setContentIntent(open)
             .build()
@@ -115,7 +115,7 @@ class GuardService : Service() {
         if (fg == packageName || fg in safePackages || fg == keyboardPackage()) return
 
         val allowed = LearningMode.allowed(this)
-        if (allowed.has(fg)) {
+        if (allowed.has(fg) && !LearningMode.restrictedApp(this, fg)) {
             val limitMin = allowed.optInt(fg, 0)
             val used = LearningMode.addUsage(this, fg, 1)
             if (limitMin > 0 && used >= limitMin * 60) bounce("appTimeUp", fg)

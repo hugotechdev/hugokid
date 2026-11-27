@@ -3,6 +3,8 @@ package tz.co.hugotech.hugokid
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.ActivityManager
+import android.app.ActivityOptions
 import android.app.admin.DevicePolicyManager
 import android.content.Context
 import android.content.Intent
@@ -52,6 +54,7 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var web: WebView
+    private var finishingSetupVisit = false
     private var pageReady = false
     private var pendingRoute: Pair<String, String>? = null
 
@@ -178,12 +181,19 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPermissionRequest(request: PermissionRequest) {
                 runOnUiThread {
+                    if (request.origin.scheme != "https" || request.origin.host != "appassets.androidplatform.net") {
+                        request.deny()
+                        return@runOnUiThread
+                    }
                     val need = ArrayList<String>()
                     if (request.resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) need.add(Manifest.permission.RECORD_AUDIO)
                     if (request.resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) need.add(Manifest.permission.CAMERA)
                     val missing = need.filter { ContextCompat.checkSelfPermission(this@MainActivity, it) != PackageManager.PERMISSION_GRANTED }
                     if (missing.isEmpty()) {
-                        request.grant(request.resources)
+                        val media = request.resources.filter {
+                            it == PermissionRequest.RESOURCE_AUDIO_CAPTURE || it == PermissionRequest.RESOURCE_VIDEO_CAPTURE
+                        }.toTypedArray()
+                        if (media.isEmpty()) request.deny() else request.grant(media)
                     } else {
                         pendingWebPerm?.deny()
                         pendingWebPerm = request
@@ -272,11 +282,11 @@ class MainActivity : AppCompatActivity() {
             cameraFile = null
             cameraUri = null
         }
-        val chooser = Intent.createChooser(pick, "Chagua faili").apply {
+        val chooser = Intent.createChooser(pick, "Choose a file").apply {
             putExtra(Intent.EXTRA_INITIAL_INTENTS, extras.toTypedArray())
         }
         return try {
-            LearningMode.pause(this, 3)
+            pauseForSetup(3)
             pickFiles.launch(chooser)
             true
         } catch (e: Exception) {
@@ -345,6 +355,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (finishingSetupVisit) {
+            LearningMode.pause(this, 0)
+            finishingSetupVisit = false
+        }
+        applyManagedLearningMode()
         if (pageReady) web.evaluateJavascript("window.HK && HK.onResume && HK.onResume()", null)
     }
 
@@ -373,6 +388,32 @@ class MainActivity : AppCompatActivity() {
         "data:image/png;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
     } catch (e: Exception) { "" }
 
+    private fun applyManagedLearningMode() {
+        val manager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        if (!manager.isDeviceOwnerApp(packageName)) return
+        val admin = LearningMode.adminComponent(this)
+        val enabled = LearningMode.isOn(this)
+        val active = enabled && System.currentTimeMillis() >= LearningMode.pauseUntil(this)
+        val apps = LearningMode.allowed(this).keys().asSequence().filterNot { LearningMode.restrictedApp(this, it) }.toList()
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        manager.setUninstallBlocked(admin, packageName, enabled)
+        if (active) {
+            manager.setLockTaskPackages(admin, (apps + packageName).toTypedArray())
+            if (activityManager.lockTaskModeState == ActivityManager.LOCK_TASK_MODE_NONE && manager.isLockTaskPermitted(packageName)) {
+                startLockTask()
+            }
+        } else {
+            if (activityManager.lockTaskModeState == ActivityManager.LOCK_TASK_MODE_LOCKED) stopLockTask()
+            manager.setLockTaskPackages(admin, emptyArray())
+        }
+    }
+
+    private fun pauseForSetup(minutes: Int) {
+        finishingSetupVisit = true
+        LearningMode.pause(this, minutes)
+        applyManagedLearningMode()
+    }
+
     inner class Bridge {
         private val ctx: Context get() = this@MainActivity
 
@@ -383,8 +424,9 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun openUrl(url: String) {
             if (!url.startsWith("https://") && !url.startsWith("http://")) return
-            LearningMode.pause(ctx, 5)
-            runOnUiThread { tryStart(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+            runOnUiThread {
+                pauseForSetup(5)
+                tryStart(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
         }
 
         /* ----- Text to speech ----- */
@@ -437,6 +479,8 @@ class MainActivity : AppCompatActivity() {
             o.put("overlay", LearningMode.hasOverlay(ctx))
             o.put("home", LearningMode.isDefaultHome(ctx))
             o.put("admin", LearningMode.isAdmin(ctx))
+            val policy = ctx.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            o.put("managed", policy.isDeviceOwnerApp(packageName))
             o.put("paused", System.currentTimeMillis() < LearningMode.pauseUntil(ctx))
             return o.toString()
         }
@@ -450,7 +494,7 @@ class MainActivity : AppCompatActivity() {
                 .sortedBy { it.loadLabel(packageManager).toString().lowercase() }
             for (ri in list) {
                 val pkg = ri.activityInfo.packageName
-                if (pkg == packageName || !seen.add(pkg)) continue
+                if (pkg == packageName || LearningMode.restrictedApp(ctx, pkg) || !seen.add(pkg)) continue
                 val o = JSONObject()
                 o.put("pkg", pkg)
                 o.put("name", ri.loadLabel(packageManager).toString())
@@ -461,7 +505,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun setAllowed(json: String) { LearningMode.setAllowed(ctx, json) }
+        fun setAllowed(json: String) { runOnUiThread { LearningMode.setAllowed(ctx, json); applyManagedLearningMode() } }
 
         @JavascriptInterface
         fun setLearningMode(on: Boolean) {
@@ -470,49 +514,64 @@ class MainActivity : AppCompatActivity() {
                     ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
                 ) askNotif.launch(Manifest.permission.POST_NOTIFICATIONS)
                 LearningMode.setOn(ctx, on)
+                applyManagedLearningMode()
             }
         }
 
         @JavascriptInterface
-        fun pauseGuard(minutes: Int) { LearningMode.pause(ctx, minutes) }
+        fun pauseGuard(minutes: Int) { runOnUiThread { LearningMode.pause(ctx, minutes.coerceIn(0, 30)); applyManagedLearningMode() } }
 
         /** Returns one of: ok, limit, no. */
         @JavascriptInterface
         fun launchApp(pkg: String): String {
             val allowed = LearningMode.allowed(ctx)
-            if (LearningMode.isOn(ctx) && !allowed.has(pkg)) return "no"
+            if (LearningMode.isOn(ctx) && (!allowed.has(pkg) || LearningMode.restrictedApp(ctx, pkg))) return "no"
             val limit = allowed.optInt(pkg, 0)
             if (LearningMode.isOn(ctx) && limit > 0 && LearningMode.usage(ctx).optInt(pkg, 0) >= limit * 60) return "limit"
             val li = packageManager.getLaunchIntentForPackage(pkg) ?: return "no"
             li.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            runOnUiThread { try { startActivity(li) } catch (e: Exception) { } }
+            runOnUiThread {
+                try {
+                    val policy = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+                    val managed = policy.isDeviceOwnerApp(packageName) && policy.isLockTaskPermitted(pkg)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && managed) {
+                        startActivity(li, ActivityOptions.makeBasic().setLockTaskEnabled(true).toBundle())
+                    } else {
+                        startActivity(li)
+                    }
+                } catch (_: SecurityException) {
+                } catch (_: android.content.ActivityNotFoundException) {
+                }
+            }
             return "ok"
         }
 
         @JavascriptInterface
         fun openUsageAccess() {
-            LearningMode.pause(ctx, 5)
-            runOnUiThread { tryStart(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
+            runOnUiThread {
+                pauseForSetup(5)
+                tryStart(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
         }
 
         @JavascriptInterface
         fun openOverlay() {
-            LearningMode.pause(ctx, 5)
-            runOnUiThread { tryStart(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))) }
+            runOnUiThread {
+                pauseForSetup(5)
+                tryStart(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))) }
         }
 
         @JavascriptInterface
         fun openHomeSettings() {
-            LearningMode.pause(ctx, 5)
             runOnUiThread {
+                pauseForSetup(5)
                 if (!tryStart(Intent(Settings.ACTION_HOME_SETTINGS))) tryStart(Intent(Settings.ACTION_SETTINGS))
             }
         }
 
         @JavascriptInterface
         fun requestAdmin() {
-            LearningMode.pause(ctx, 5)
             runOnUiThread {
+                pauseForSetup(5)
                 val i = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
                     putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, LearningMode.adminComponent(ctx))
                     putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Inazuia mtoto kufuta HUGO KID bila ruhusa ya mzazi.")
