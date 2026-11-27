@@ -176,7 +176,7 @@ textarea.field { min-height: 96px; resize: vertical; }
 /* ---------- celebration / overlays ---------- */
 .overlay { position: absolute; inset: 0; background: rgba(13,36,97,.55); display: flex; align-items: center; justify-content: center; padding: 24px; z-index: 50; animation: fade .2s; }
 @keyframes fade { from { opacity: 0; } }
-.modal { background: #fff; border-radius: 28px; padding: 26px 22px 22px; width: 100%; max-width: 360px; text-align: center; animation: pop .3s cubic-bezier(.2,1.4,.4,1); }
+.modal { background: #fff; color: var(--navy); border-radius: 28px; padding: 26px 22px 22px; width: 100%; max-width: 360px; text-align: center; animation: pop .3s cubic-bezier(.2,1.4,.4,1); }
 @keyframes pop { from { transform: scale(.85); opacity: 0; } }
 .modal h2 { margin: 6px 0 6px; font-size: 24px; font-weight: 900; }
 .modal p { color: var(--navy-2); margin: 0 0 18px; font-weight: 700; line-height: 1.45; }
@@ -223,8 +223,9 @@ textarea.field { min-height: 96px; resize: vertical; }
 
 /* ---------- time up / sleep ---------- */
 .timeup { background: linear-gradient(180deg, #E2F3FD 0%, #F4F8FD 60%); }
-.sleep { background: linear-gradient(180deg, #0D2461 0%, #1B3A86 100%); color: #fff; }
-.sleep p { color: #C8D4F0; }
+.screen.sleep { background: linear-gradient(180deg, #E7EDF9, #F8FAFF); color: var(--navy); }
+.sleep > .center-col > p { color: var(--navy-2); }
+.sleep .sleep-bar { justify-content: flex-end; flex: none; }
 .activity { background: #fff; border-radius: 24px; padding: 20px; margin: 18px 0 22px; box-shadow: 0 4px 0 var(--line); width: 100%; max-width: 340px; }
 .activity b { font-size: 20px; display: block; margin-bottom: 4px; }
 .count-big { font-size: 64px; font-weight: 900; color: var(--blue-d); line-height: 1; margin: 8px 0; }
