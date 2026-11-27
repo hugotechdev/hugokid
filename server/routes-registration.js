@@ -31,16 +31,45 @@ function issueWaitingInvoices() {
 
 const field = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 const grades = ['Sijaanza shule', ...LEVELS];
-const dateIsValid = birth => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(birth)) return false;
-  const date = new Date(birth);
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === birth && date <= new Date();
-};
+const ages = Array.from({ length: 11 }, (_, index) => index + 3);
+
+function registrationAge(child) {
+  if (child?.age !== undefined) {
+    const value = typeof child.age === 'number' || typeof child.age === 'string' ? Number(child.age) : NaN;
+    return ages.includes(value) ? value : null;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(child?.birth || '')) return null;
+  const birth = new Date(child.birth);
+  const today = new Date();
+  if (Number.isNaN(birth.getTime()) || birth.toISOString().slice(0, 10) !== child.birth || birth > today) return null;
+  const beforeBirthday = today.toISOString().slice(5, 10) < child.birth.slice(5);
+  const age = today.getUTCFullYear() - birth.getUTCFullYear() - Number(beforeBirthday);
+  return age >= ages[0] ? Math.min(age, ages[ages.length - 1]) : null;
+}
+
+function registrationChild(child) {
+  const avatar = /^[1-6]$/.test(field(child?.avatar, 8)) ? child.avatar.trim() : '';
+  const religion = ['values', 'islam', 'christian'].includes(child?.religion) ? child.religion : 'values';
+  const needs = Array.isArray(child?.needs) ? ['vision', 'hearing', 'dyslexia', 'attention'].filter(need => child.needs.includes(need)) : [];
+  return {
+    name: field(child?.name, 100), age: registrationAge(child), grade: field(child?.grade, 60),
+    avatar, religion, faithOn: child?.faithOn !== false, needs,
+  };
+}
+
+// Existing learning levels use a reference date internally to calculate age.
+function referenceDateForAge(age) {
+  const date = new Date();
+  date.setUTCFullYear(date.getUTCFullYear() - age);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
 
 route('GET', '/api/registration', user => {
   role(user, 'parent', 'school_admin');
   const saved = J(q.get('SELECT draft FROM customer_registrations WHERE user_id = ?', user.id)?.draft) || {};
-  return { draft: saved, levels: LEVELS, grades };
+  if (Array.isArray(saved.children)) saved.children = saved.children.map(registrationChild);
+  return { draft: saved, levels: LEVELS, grades, ages };
 });
 
 route('PUT', '/api/registration', (user, body) => {
@@ -49,9 +78,7 @@ route('PUT', '/api/registration', (user, body) => {
   if (!existing || existing.completed) return { user: A.publicUser(user) };
   const parent = user.role === 'parent';
   const draft = parent ? {
-    children: (Array.isArray(body.children) ? body.children : []).slice(0, 25).map(child => ({
-      name: field(child?.name, 100), birth: field(child?.birth, 10), grade: field(child?.grade, 60),
-    })),
+    children: (Array.isArray(body.children) ? body.children : []).slice(0, 25).map(registrationChild),
   } : {
     name: field(body.name, 100), region: field(body.region, 80), district: field(body.district, 80),
     levels: Array.isArray(body.levels) ? LEVELS.filter(level => body.levels.includes(level)) : [],
@@ -64,7 +91,7 @@ route('PUT', '/api/registration', (user, body) => {
   if (A.accessStatus(user) !== 'pending') fail(409, 'Contact HUGO TECH to complete this registration.');
   const count = parent ? draft.children.length : Number(draft.studentCount);
   if (parent) {
-    if (!count || draft.children.some(c => !c.name || !dateIsValid(c.birth) || !grades.includes(c.grade))) fail(400, 'Enter the name, date of birth and grade for each child.');
+    if (!count || draft.children.some(c => !c.name || c.age === null || !grades.includes(c.grade))) fail(400, 'Enter the name, choose the age and select a grade for each child.');
   } else if (!draft.name || !draft.region || !draft.district || !draft.levels.length || !Number.isSafeInteger(count) || count < 1 || count > 10000) {
     fail(400, 'Enter the school or centre name, location, classes and number of students (1–10,000).');
   }
@@ -75,7 +102,7 @@ route('PUT', '/api/registration', (user, body) => {
     q.run("UPDATE customer_registrations SET draft = '{}', completed = ?, student_count = ? WHERE user_id = ?", completed, count, user.id);
     if (parent) {
       for (const child of draft.children) q.run('INSERT INTO children(name,birth,parent_id,local_id,progress,created) VALUES (?,?,?,?,?,?)',
-        child.name, child.birth, user.id, randomUUID(), JSON.stringify({ profile: { grade: child.grade } }), completed);
+        child.name, referenceDateForAge(child.age), user.id, randomUUID(), JSON.stringify({ profile: { grade: child.grade, avatar: child.avatar, religion: child.religion, faithOn: child.faithOn, needs: child.needs } }), completed);
     } else {
       const school = q.get('SELECT type FROM schools WHERE id = ?', user.school_id);
       q.run('UPDATE schools SET name = ?, region = ?, district = ?, levels = ? WHERE id = ?', draft.name, draft.region, draft.district, JSON.stringify(draft.levels), user.school_id);
