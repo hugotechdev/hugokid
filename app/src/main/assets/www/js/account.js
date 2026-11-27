@@ -20,15 +20,12 @@ HK.screens.welcome = (el) => {
       <img class="word" src="img/logo-word.png" alt="HUGO KID - Learn, Play, Grow">
     </div>
     <div class="actions">
-      <p>Sign in or create an account while connected to the internet. Once approved, you can learn and play offline.</p>
       <button class="btn block blue" id="parent">Create a parent account</button>
       <button class="btn block navy" id="school">School or teacher</button>
-      <button class="btn block ghost" id="link-device">Child sign-in with a link code</button>
-      <button class="link-btn" id="login"><b>Parent or staff sign-in</b></button>
-      ${IS_WEB ? '<a class="btn block ghost" href="/download">Download for Android</a>' : ''}
+      <button class="link-btn" id="login"><b>Sign in</b></button>
+      ${IS_WEB ? '<a class="btn block ghost" href="/download">Download APK</a>' : ''}
     </div>
   </div>`;
-  $('#link-device', el).onclick = () => HK.go('deviceLink');
   $('#parent', el).onclick = () => { Sfx.tap(); HK.go('acctAuth', { kind: 'parent', tab: 'register' }); };
   $('#school', el).onclick = () => { Sfx.tap(); HK.go('acctAuth', { kind: 'school', tab: 'register' }); };
   $('#login', el).onclick = () => { Sfx.tap(); HK.go('acctAuth', { kind: 'any', tab: 'login' }); };
@@ -47,7 +44,7 @@ HK.screens.acctAuth = (el, p) => {
           <label class="label">Password</label><input class="field" id="pass" type="password" autocomplete="current-password">
           <div style="height:18px"></div><button class="btn block" id="go">${icon('key', 20)} Sign in</button>
           <button class="btn small ghost" id="forgot-password" style="margin-top:14px">Forgot password?</button>
-          <p class="muted" style="font-size:13px;margin-top:14px">Enter your phone number or email and your password.</p>`
+          <button class="btn block ghost" id="link-device" style="margin-top:14px">Use a child link code</button>`
         : `
           <label for="registration-kind" class="label">Account type</label>
           <select id="registration-kind" class="field">
@@ -72,6 +69,8 @@ HK.screens.acctAuth = (el, p) => {
     const tl = $('#tlink', el); if (tl) tl.onclick = e => { e.preventDefault(); HK.go('terms', { mode: 'view' }); };
     const signIn=$('#sign-in-instead',el); if(signIn) signIn.onclick=()=>{ tab='login'; draw(); };
     $('#go', el).onclick = submit;
+    const link = $('#link-device', el);
+    if (link) link.onclick = () => HK.go('deviceLink');
     const forgot = $('#forgot-password', el);
     if (forgot) forgot.onclick = () => HK.go('forgotPassword', {
       email: $('#login', el).value.includes('@') ? $('#login', el).value.trim() : '',
