@@ -24,7 +24,7 @@ object LearningMode {
     fun isOn(ctx: Context): Boolean = prefs(ctx).getBoolean("on", false)
 
     fun setOn(ctx: Context, on: Boolean) {
-        prefs(ctx).edit().putBoolean("on", on).apply()
+        prefs(ctx).edit().putBoolean("on", on).remove("pause_until").apply()
         val state = if (on) PackageManager.COMPONENT_ENABLED_STATE_ENABLED
         else PackageManager.COMPONENT_ENABLED_STATE_DISABLED
         try {
