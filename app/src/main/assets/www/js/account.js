@@ -50,7 +50,7 @@ HK.screens.acctAuth = (el, p) => {
           <label class="label">Password</label><input class="field" id="pass" type="password" autocomplete="current-password">
           <div style="height:18px"></div><button class="btn block" id="go">${icon('key', 20)} Sign in</button>
           <button class="btn small ghost" id="forgot-password" style="margin-top:14px">Forgot password?</button>
-          <p class="muted" style="font-size:13px;margin-top:14px">Teachers get a temporary password from the head teacher.</p>`
+          <p class="muted" style="font-size:13px;margin-top:14px">Enter your phone number or email and your password.</p>`
         : `
           ${kind === 'any' ? `<label class="label">You are registering as</label><div class="chips" id="kind"><button class="chip on" data-k="parent">Parent</button><button class="chip" data-k="school">School / Teacher</button></div>` : ''}
           ${kind === 'school' ? `
@@ -67,6 +67,7 @@ HK.screens.acctAuth = (el, p) => {
           <label class="card row" style="cursor:pointer;gap:12px;align-items:flex-start;margin-top:16px">
             <input type="checkbox" id="ok" style="width:22px;height:22px;flex:none;accent-color:var(--teal)">
             <span style="font-weight:600;font-size:13px">Nimesoma na ninakubali <a href="#" id="tlink" style="color:var(--blue)">Terms and Privacy Policy</a>.</span></label>
+          <p class="muted">Keep the password you choose here. You’ll use it to sign in after approval.</p>
           <button class="btn block" id="go">${icon('check', 20)} Create account</button><button class="link-btn" id="sign-in-instead">Already registered? Sign in</button>`}
 
       </div>`;
@@ -224,6 +225,7 @@ HK.screens.accountAccess = el => {
       <div class="card">
         <h2>${pending ? 'Awaiting approval' : 'Access suspended'}</h2>
         <p>${pending ? 'HUGO TECH will activate your account after checking payment.' : 'Contact HUGO TECH to review your account status.'}</p>
+        ${pending && ['parent', 'school_admin'].includes(user.role) ? '<p>After approval, sign in with the phone number or email and password you entered when you registered.</p>' : ''}
         ${user.role === 'child' ? '<p>Ask your parent to check billing on their phone.</p>' : user.role === 'teacher' ? '<p>Ask your school administrator to check the school’s billing status.</p>' : '<button class="btn block" id="access-billing">View invoices and submit payment</button>'}
         ${['parent','school_admin'].includes(user.role) ? '<button class="btn block ghost" id="customer-notices">Notifications</button>' : ''}
         <button class="btn block ghost" id="access-refresh" style="margin-top:10px">Check access again</button>
@@ -235,12 +237,17 @@ HK.screens.accountAccess = el => {
   bindCustomerNotices(el);
   const billing = $('#access-billing', el);
   if (billing) billing.onclick = () => HK.go('billing');
-  $('#access-refresh', el).onclick = async () => {
+  $('#access-refresh', el).onclick = async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
     const note = $('#access-note', el);
     try {
       await Net.refreshAccess();
-      note.textContent = pending ? 'Your account is still awaiting approval.' : 'Your account is still suspended.';
+      if (!el.isConnected) return;
+      const status = Net.user()?.access_status;
+      note.textContent = status === 'active' ? 'Your account is approved.' : status === 'pending' ? 'Your account is still awaiting approval.' : 'Your account is still suspended.';
     } catch (error) { note.textContent = error.message; }
+    finally { button.disabled = false; }
   };
   $('#access-signout', el).onclick = () => { Net.logout(); HK.go('acctAuth', {}, { reset: true }); };
   bindLockedDeviceControls(el);

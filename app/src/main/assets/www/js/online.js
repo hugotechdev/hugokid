@@ -103,6 +103,7 @@ HK.screens.superHome = (el) => {
       const paid = b.invoices.filter(i => i.status === 'paid').reduce((a, i) => a + i.amount, 0);
       const st = { unpaid: ['coral', 'Unpaid'], pending: ['sun', 'Awaiting verification'], paid: ['teal', 'Paid'] };
       const accessLabels = { active: 'Active', pending: 'Awaiting payment', blocked: 'Suspended' };
+      const accessAction = status => status === 'active' ? 'Suspend' : status === 'pending' ? 'Approve account' : 'Activate';
       body.innerHTML = `<div class="stat-grid">
           ${statCard('School', s.schools, 'build', 'var(--blue)')}${statCard('Teachers', s.teachers, 'user', 'var(--teal)')}${statCard('Parents', s.parents, 'users', 'var(--coral)')}
           ${statCard('Students', s.children, 'star', 'var(--sun-d)')}${statCard('Homework', s.homework, 'file', '#7B61FF')}${statCard('Revenue (TSh)', paid.toLocaleString(), 'coin', 'var(--navy)')}</div>
@@ -110,7 +111,7 @@ HK.screens.superHome = (el) => {
         <div class="card table-card"><table><tr><th>School</th><th>Location</th><th>Students</th><th>Status</th><th></th></tr>
           ${s.list.map(x => `<tr data-search="${esc(x.name + ' ' + (x.phone || ''))}"><td><input type="checkbox" data-customer-school="${x.id}" aria-label="Select ${esc(x.name)}"> ${esc(x.name)}<br><span class="muted">${x.type === 'tutor' ? 'Tutor' : 'School'} · ${esc(x.phone || '')}</span></td><td>${esc(x.region || '')} ${esc(x.district || '')}</td><td>${x.students}</td>
             <td><span class="chip-tag ${x.status === 'active' ? 'teal' : 'coral'}">${accessLabels[x.status] || 'Unknown'}</span></td>
-            <td><button class="btn small ghost" data-inv="${x.id}" data-n="${esc(x.name)}">Invoice</button> <button class="btn small ${x.status === 'active' ? 'coral' : ''}" data-st="${x.id}" data-v="${x.status === 'active' ? 'blocked' : 'active'}">${x.status === 'active' ? 'Suspend' : 'Activate'}</button></td></tr>`).join('')}</table></div>
+            <td><button class="btn small ghost" data-inv="${x.id}" data-n="${esc(x.name)}">Invoice</button> <button class="btn small ${x.status === 'active' ? 'coral' : ''}" data-st="${x.id}" data-v="${x.status === 'active' ? 'blocked' : 'active'}">${accessAction(x.status)}</button></td></tr>`).join('')}</table></div>
         <div class="section-title">Users</div>
         <div class="card"><div class="form-row"><div class="seg" style="margin:0;flex:2" id="ur">${[['parent', 'Parents'], ['teacher', 'Teachers'], ['school_admin', 'School admins'], ['children', 'Children']].map(([k, n], i) => `<button data-r="${k}" class="${i ? '' : 'on'}">${n}</button>`).join('')}</div>
           <input class="field" id="uq" aria-label="Search users" placeholder="Search name, phone or email"></div><div id="ul" style="margin-top:10px"></div></div>
@@ -238,7 +239,7 @@ HK.screens.superHome = (el) => {
               ${x.matches?.length ? `<details><summary>Possible duplicate</summary>
                 ${x.matches.map(match => `<p>Same ${esc(match.field)}: ${match.accounts.map(account => esc(account.name) + ' (#' + account.id + ', ' + esc(account.role) + ')').join(', ')}</p>`).join('')}
               </details>` : ''}</td>
-            <td>${ur === 'parent' ? `<button class="btn small ${x.access_status === 'active' ? 'coral' : ''}" data-parent-access="${x.id}" data-status="${x.access_status === 'active' ? 'blocked' : 'active'}">${x.access_status === 'active' ? 'Suspend' : 'Activate'}</button> ` : ''}<button class="btn small ghost" data-rst="${x.id}">Password</button>${ur === 'parent' ? ` <button class="btn small ghost" data-pinv="${x.id}" data-n="${esc(x.name)}">Invoice</button>` : ''}</td></tr>`).join('')}</table></div>`;
+            <td>${ur === 'parent' ? `<button class="btn small ${x.access_status === 'active' ? 'coral' : ''}" data-parent-access="${x.id}" data-status="${x.access_status === 'active' ? 'blocked' : 'active'}">${accessAction(x.access_status)}</button> ` : ''}${x.role === 'teacher' || (!x.email && (x.school_status || x.access_status) === 'active') ? `<button class="btn small ghost" data-rst="${x.id}">Recover password</button>` : ''}${ur === 'parent' ? ` <button class="btn small ghost" data-pinv="${x.id}" data-n="${esc(x.name)}">Invoice</button>` : ''}</td></tr>`).join('')}</table></div>`;
           if (ur === 'parent') bulk($('#parent-bulk', box), box, 'parent');
           $$('[data-parent-access]', box).forEach(btn => btn.onclick = async () => {
             try {
@@ -246,7 +247,14 @@ HK.screens.superHome = (el) => {
               await loadUsers();
             } catch (error) { toast(error.message); }
           });
-          $$('[data-rst]', box).forEach(btn => btn.onclick = async () => { const r = await Net.post(`/api/admin/users/${btn.dataset.rst}/reset`); modal(el, { iconName: 'key', title: "Temporary password", html: `<p>${esc(r.login)}</p><p style="font-size:22px;font-weight:700">${esc(r.password)}</p><div style="height:10px"></div>`, buttons: [{ label: 'OK' }] }); });
+          $$('[data-rst]', box).forEach(btn => btn.onclick = () => confirmBox(el,
+            'Recover password?', 'Only continue if the user requested help signing in. This replaces their current password.',
+            'Create temporary password', async () => {
+              try {
+                const result = await Net.post(`/api/admin/users/${btn.dataset.rst}/reset`);
+                modal(el, { iconName: 'key', title: 'Temporary password', html: `<p>${esc(result.login)}</p><p style="font-size:22px;font-weight:700">${esc(result.password)}</p>`, buttons: [{ label: 'OK' }] });
+              } catch (error) { toast(error.message); }
+            }));
           $$('[data-pinv]', box).forEach(btn => btn.onclick = () => modal(el, { title: 'Invoice: ' + btn.dataset.n, html: '<input class="field" id="ia" type="number" placeholder="Amount (TSh)"><input class="field" id="ip" placeholder="Period (e.g. December)" style="margin-top:8px"><div style="height:14px"></div>', buttons: [
             { label: 'Send invoice', onClick: async o => { try { await Net.post('/api/admin/invoices', { parent_id: +btn.dataset.pinv, amount: +$('#ia', o).value, period: $('#ip', o).value, plan: 'HUGO KID Parent' }); toast("Invoice sent"); HK.render(); } catch (e) { toast(e.message); } } },
             { label: 'Cancel', cls: 'ghost' }] }));
