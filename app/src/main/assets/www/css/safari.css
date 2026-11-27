@@ -603,20 +603,28 @@
 .recipe-item { display: inline-flex; align-items: center; gap: 4px; }
 .g-opt .pic-label span { font-size: 15px; }
 
-.life-animal {width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+.life-animal {width:100%;height:100%;object-fit:contain;border-radius:inherit;display:block}
 .tap-opt {overflow:hidden}
 .shop-car {width:95px;height:90px;object-fit:contain;transform:rotate(90deg)}
 .meal-result {position:relative;text-align:center;margin:16px}
-.meal-result .meal {width:100%;max-height:42vh;object-fit:cover;border-radius:16px}
-.meal-result .mum {width:85px;height:85px;border-radius:50%;margin:-40px auto 0;position:relative;border:4px solid white}
+.meal-result .meal {display:block;width:100%;max-height:42vh;object-fit:contain;border-radius:16px}
+.meal-result .mum {width:85px;height:85px;border-radius:50%;margin:8px auto 0;border:4px solid white}
 @media (prefers-reduced-motion:no-preference) {
  .opening-avatar .mascot,.tap-opt.ok .life-animal {animation:hugo-welcome 1s ease-in-out infinite alternate}
  @keyframes hugo-welcome {to {transform:translateY(-6px) rotate(2deg)}}
 }
-.quest-scene {margin:8px 16px;position:relative;height:clamp(100px,24vh,245px);overflow:hidden;border-radius:18px}
-.quest-scene>img {width:100%;height:100%;object-fit:cover}
+.quest-scene {
+  position:relative;
+  width:min(calc(100% - 32px),360px,max(232px,42vh));
+  margin:8px auto 12px;
+}
+.quest-scene>img {display:block;width:100%;height:auto;border-radius:18px}
 .quest-runner {position:absolute;bottom:4px;left:46%}
-.g-opt .life-animal {height:90px}
+.g-opt .life-animal {height:auto;aspect-ratio:1}
+@media(max-width:400px) {
+  [data-screen="g_rescue"] .g-opts {gap:8px}
+  [data-screen="g_rescue"] .g-opt {padding:6px}
+}
 @media (prefers-reduced-motion:no-preference) {
  .quest-runner {animation:quest-run 1.3s ease-out both}
  @keyframes quest-run {from {transform:translateX(-120px) scale(.6)} 50% {transform:translate(-50px,-9px) scale(.82)}}
@@ -631,7 +639,7 @@
 .home-actions .tile .art,.home-actions .tile .mascot-tile {width:66px;height:66px;--mascot-size:66px!important;top:3px;right:10px}
 .home-actions .tile.wide {min-height:76px;gap:12px;align-items:center}
 .home-actions .tile.wide .grow {min-width:0}
-.home-actions .home-animal {width:80px;height:80px;object-fit:cover;border-radius:50%}
+.home-actions .home-animal {width:80px;height:80px;object-fit:contain;border-radius:50%}
 .home-hero .lvl {margin-right:0}
 .home-hero .row {display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:center}
 .home-hero .hero-stats {display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -641,13 +649,13 @@
 [data-screen="home"] .kid-nav {bottom:calc(8px + env(safe-area-inset-bottom))}
 @media(max-width:360px){.home-actions{padding-inline:10px}.home-actions .tile .t-name{font-size:17px}.home-hero .hero-stats div{padding-inline:4px}}
 .cook-pot {position:relative;text-align:center;margin:0 auto 10px;width:140px}
-.cook-pot img {display:block;width:100%;height:96px;object-fit:cover;border-radius:18px}
+.cook-pot img {display:block;width:100%;height:96px;object-fit:contain;border-radius:18px}
 .cook-pot span {position:absolute;bottom:3px;left:50%;transform:translateX(-50%);background:white;border-radius:16px;padding:0 9px;color:#22364c;font-weight:700}
 
 .dough {margin:25px auto;width:105px;height:94px;border-radius:48%;background:radial-gradient(ellipse at 40% 30%,#f3ddbd,#dbbb8e);border:2px solid #caad83;touch-action:none;transition:transform .2s}
 .animal-catalog {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
 .animal-card {overflow:hidden;border:1px solid #e2e8d8;border-radius:16px;background:white;color:var(--navy);font:inherit;text-align:left;padding:0}
-.animal-card img {width:100%;height:auto;aspect-ratio:1.16;object-fit:cover;border-radius:0}
+.animal-card img {width:100%;height:auto;aspect-ratio:1;object-fit:contain;border-radius:0}
 .animal-card span {display:flex;align-items:center;justify-content:space-between;gap:6px;padding:8px 10px;min-height:42px}
 .animal-card svg {flex:none}
-.guide-thumb {width:48px;height:48px;object-fit:cover;border-radius:12px;display:block}
+.guide-thumb {width:48px;height:48px;object-fit:contain;border-radius:12px;display:block}
