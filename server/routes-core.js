@@ -1,5 +1,5 @@
 
-const { q } = require('./db');
+const { db, q } = require('./db');
 const A = require('./auth');
 const hub = require('./hub');
 const { route, fail, need, J, now, role, classFor, childFor, className, childOut, hwOut, uniqueLinkCode, LEVELS, TERMS_VERSION } = require('./router');
@@ -15,18 +15,25 @@ route('POST', '/api/register', (u, b) => {
   if (String(b.password || '').length < 6) fail(400, "The password must have 6 or more characters");
   if (phone && q.get('SELECT id FROM users WHERE phone = ?', phone)) fail(409, 'Namba hii imeshasajiliwa');
   if (email && q.get('SELECT id FROM users WHERE email = ?', email)) fail(409, "This email is already registered");
-  let schoolId = null;
-  if (kind !== 'parent') {
-    const s = b.school || {};
-    const sname = kind === 'tutor' ? (s.name || name) : need(s.name, "Enter the school name");
-    const levels = Array.isArray(s.levels) && s.levels.length ? s.levels.filter(l => typeof l === 'string').slice(0, 30) : LEVELS;
-    schoolId = Number(q.run("INSERT INTO schools(name, type, region, district, phone, levels, created, status) VALUES (?,?,?,?,?,?,?,'pending')",
-      sname, kind, s.region || '', s.district || '', phone, JSON.stringify(levels), now()).lastInsertRowid);
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    let schoolId = null;
+    if (kind !== 'parent') {
+      const school = b.school || {};
+      const levels = Array.isArray(school.levels) ? LEVELS.filter(level => school.levels.includes(level)) : [];
+      schoolId = Number(q.run("INSERT INTO schools(name, type, region, district, phone, levels, created, status) VALUES (?,?,?,?,?,?,?,'pending')",
+        school.name || name, kind, school.region || '', school.district || '', phone, JSON.stringify(levels), now()).lastInsertRowid);
+    }
+    const id = Number(q.run('INSERT INTO users(role, name, phone, email, pass, school_id, terms, created, access_status) VALUES (?,?,?,?,?,?,?,?,?)',
+      kind === 'parent' ? 'parent' : 'school_admin', name, phone || null, email || null, A.hashPass(b.password), schoolId, JSON.stringify({ v: TERMS_VERSION, at: now() }), now(), kind === 'parent' ? 'pending' : 'active').lastInsertRowid);
+    q.run('INSERT INTO customer_registrations(user_id) VALUES (?)', id);
+    const result = { token: A.newToken(id), user: A.publicUser(q.get('SELECT * FROM users WHERE id = ?', id)) };
+    db.exec('COMMIT');
+    return result;
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
   }
-  const id = Number(q.run('INSERT INTO users(role, name, phone, email, pass, school_id, terms, created, access_status) VALUES (?,?,?,?,?,?,?,?,?)',
-    kind === 'parent' ? 'parent' : 'school_admin', name, phone || null, email || null, A.hashPass(b.password), schoolId, JSON.stringify({ v: TERMS_VERSION, at: now() }), now(), kind === 'parent' ? 'pending' : 'active').lastInsertRowid);
-  const user = q.get('SELECT * FROM users WHERE id = ?', id);
-  return { token: A.newToken(id), user: A.publicUser(user) };
 });
 
 const tries = new Map();

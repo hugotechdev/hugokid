@@ -62,8 +62,8 @@ async function handle(req, res, body, method) {
   const m = url.pathname.match(r.re);
   const params = {}; r.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); });
   const u = device?.parent || userFromReq(req);
-  const recoveryRoute = ['/api/me', '/api/password', '/api/logout', '/api/billing', '/api/customer/notices', '/api/customer/notices/read'].includes(url.pathname) ||
-    /^\/api\/billing\/\d+\/pay$/.test(url.pathname);
+  const recoveryRoute = ['/api/me', '/api/password', '/api/logout', '/api/billing', '/api/registration', '/api/customer/notices', '/api/customer/notices/read'].includes(url.pathname) ||
+    /^\/api\/billing\/\d+\/(?:pay|receipt)$/.test(url.pathname);
   const status = A.accessStatus(u);
   if (u && status !== 'active' && !recoveryRoute) {
     const error = new HttpError(403, status === 'pending' ? 'Your account is awaiting approval.' : 'Your account is suspended.');

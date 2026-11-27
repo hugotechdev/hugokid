@@ -33,11 +33,16 @@ function accessStatus(user, school) {
   return (school || (user.school_id && q.get('SELECT status FROM schools WHERE id = ?', user.school_id)))?.status || 'active';
 }
 
+function registrationPending(id) {
+  return !!q.get('SELECT 1 FROM customer_registrations WHERE user_id = ? AND completed IS NULL', id);
+}
+
 function publicUser(u) {
   if (!u) return null;
   const school = u.school_id ? q.get('SELECT * FROM schools WHERE id = ?', u.school_id) : null;
   return {
     id: u.id, role: u.role, name: u.name, phone: u.phone, email: u.email, must_change: !!u.must_change, access_status: accessStatus(u, school),
+    registration_pending: registrationPending(u.id),
     school: school ? { id: school.id, name: school.name, type: school.type, region: school.region, district: school.district, levels: JSON.parse(school.levels || '[]') } : null,
   };
 }
@@ -60,4 +65,4 @@ function bootstrap() {
   console.log(`[HUGO KID] Created initial administrator account for ${email}.`);
 }
 
-module.exports = { hashPass, checkPass, newToken, userFromToken, tokenOf, publicUser, code, tempPassword, bootstrap, accessStatus };
+module.exports = { hashPass, checkPass, newToken, userFromToken, tokenOf, publicUser, code, tempPassword, bootstrap, accessStatus, registrationPending };

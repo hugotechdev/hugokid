@@ -142,6 +142,18 @@ CREATE TABLE IF NOT EXISTS invoices (
   method TEXT, reference TEXT,
   created INTEGER NOT NULL, paid INTEGER
 );
+CREATE TABLE IF NOT EXISTS customer_registrations (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  draft TEXT NOT NULL DEFAULT '{}',
+  completed INTEGER,
+  student_count INTEGER
+);
+CREATE TABLE IF NOT EXISTS invoice_payment_details (
+  invoice_id INTEGER PRIMARY KEY REFERENCES invoices(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,
+  account_name TEXT NOT NULL,
+  receipt BLOB
+);
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT
@@ -173,6 +185,17 @@ CREATE TABLE IF NOT EXISTS calls (
 for (const sql of ['ALTER TABLE children ADD COLUMN progress TEXT', "ALTER TABLE users ADD COLUMN access_status TEXT NOT NULL DEFAULT 'active'"]) {
   try { db.exec(sql); } catch (error) { if (!/duplicate column name/i.test(error.message)) throw error; }
 }
+
+db.exec(`
+INSERT OR IGNORE INTO customer_registrations(user_id)
+SELECT u.id FROM users u LEFT JOIN schools s ON s.id = u.school_id
+WHERE (u.role = 'parent' AND u.access_status = 'pending'
+       AND NOT EXISTS (SELECT 1 FROM children c WHERE c.parent_id = u.id)
+       AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.parent_id = u.id))
+   OR (u.role = 'school_admin' AND s.status = 'pending'
+       AND NOT EXISTS (SELECT 1 FROM classes c WHERE c.school_id = s.id)
+       AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.school_id = s.id));
+`);
 
 const q = {
   get: (sql, ...a) => db.prepare(sql).get(...a),

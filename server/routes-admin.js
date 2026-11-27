@@ -2,6 +2,7 @@
 const { q } = require('./db');
 const A = require('./auth');
 const hub = require('./hub');
+const { checkRegistration } = require('./routes-registration');
 const { route, fail, need, J, now, role, classFor, childFor, className, childOut, hwOut, uniqueLinkCode, LEVELS, TERMS_VERSION } = require('./router');
 
 route('GET', '/api/admin/stats', u => {
@@ -14,13 +15,14 @@ route('GET', '/api/admin/stats', u => {
     homework: q.get('SELECT count(*) n FROM homework').n,
     submissions: q.get('SELECT count(*) n FROM submissions').n,
     list: q.all('SELECT id, name, type, region, district, phone, status, created FROM schools ORDER BY created DESC LIMIT 200').map(s => ({
-      ...s, students: q.get('SELECT count(*) n FROM children WHERE school_id = ?', s.id).n,
+      ...s, registration_pending: !!q.get("SELECT 1 FROM customer_registrations r JOIN users u ON u.id=r.user_id WHERE u.school_id=? AND u.role='school_admin' AND r.completed IS NULL", s.id), students: q.get('SELECT count(*) n FROM children WHERE school_id = ?', s.id).n,
     })),
   };
 });
 route('POST', '/api/admin/schools/:id/status', (u, b, req, p) => {
   role(u, 'superadmin');
   if (!['blocked','active'].includes(b.status)) fail(400, 'Choose an access status.');
+  if (b.status === 'active') checkRegistration(null, +p.id);
   if (!q.run('UPDATE schools SET status = ? WHERE id = ?', b.status, +p.id).changes) fail(404, 'School not found.');
   if (b.status === 'blocked') q.all('SELECT id FROM users WHERE school_id=?', +p.id).forEach(user => hub.closeUser(user.id));
   return { ok: true };
@@ -30,6 +32,7 @@ route('POST', '/api/admin/parents/:id/status', (u, b, req, p) => {
   role(u, 'superadmin');
   if (!['blocked','active'].includes(b.status)) fail(400, 'Choose an access status.');
   const id = +p.id;
+  if (b.status === 'active') checkRegistration(id, null);
   if (!q.run("UPDATE users SET access_status = ? WHERE id = ? AND role = 'parent'", b.status, id).changes) fail(404, 'Parent not found.');
   if (b.status === 'blocked') hub.closeUser(id);
   return { ok: true };
@@ -65,7 +68,7 @@ route('GET', '/api/admin/users', (u, b, req) => {
   const matches = matchingAccounts();
   return q.all(`SELECT us.id, us.name, us.phone, us.email, us.role, us.created, us.access_status, us.school_id, sc.name school, sc.status school_status FROM users us LEFT JOIN schools sc ON sc.id = us.school_id
     WHERE us.role = ? AND (lower(us.name) LIKE ? OR us.phone LIKE ? OR lower(coalesce(us.email,'')) LIKE ?) ORDER BY us.created DESC LIMIT 300`, r, s, s, s)
-    .map(x => ({ ...x, matches: matches.get(x.id) || [], children: x.role === 'parent' ? q.all('SELECT name FROM children WHERE parent_id = ?', x.id).map(c => c.name) : undefined }));
+    .map(x => ({ ...x, registration_pending: A.registrationPending(x.id), matches: matches.get(x.id) || [], children: x.role === 'parent' ? q.all('SELECT name FROM children WHERE parent_id = ?', x.id).map(c => c.name) : undefined }));
 });
 route('GET', '/api/admin/children', (u, b, req) => {
   role(u, 'superadmin');
@@ -105,6 +108,7 @@ route('POST', '/api/admin/customers/action', (u, b) => {
     q.run('INSERT INTO customer_notices(user_id,body,created) SELECT id,?,? FROM users WHERE id IN (' + recipients.map(() => '?').join(',') + ')', message, now(), ...recipients.map(r => r.id));
     recipients.forEach(r => hub.toUser(r.id, { t: 'customer_notice' }));
   } else {
+    if (b.action === 'active') for (const id of ids) checkRegistration(school ? null : id, school ? id : null);
     q.run((school ? 'UPDATE schools SET status=? WHERE' : "UPDATE users SET access_status=? WHERE role='parent' AND") + ' id IN (' + marks + ')', b.action, ...ids);
     if (b.action === 'blocked') {
       const affected = school ? q.all('SELECT id FROM users WHERE school_id IN (' + marks + ')', ...ids) : recipients;

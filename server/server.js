@@ -11,6 +11,7 @@ const router = require('./router');
 const tts = require('./tts');
 const { MAX_APK, sendAndroidApk } = require('./android-download');
 require('./routes-core');
+require('./routes-registration');
 require('./password-reset');
 require('./routes-homework');
 require('./routes-family');

@@ -2,6 +2,7 @@
 const { db, q } = require('./db');
 const hub = require('./hub');
 const ai = require('./ai');
+const { issueWaitingInvoices, checkRegistration } = require('./routes-registration');
 const { route, fail, need, J, now, role, classFor, childFor, className } = require('./router');
 
 const DEFAULT_SUBJECTS = ['Kiswahili', 'English', 'Hisabati', 'Sayansi', 'Maarifa ya Jamii', 'Uraia na Maadili', 'Dini', 'Michezo na Sanaa'];
@@ -161,26 +162,79 @@ route('GET', '/api/school/analytics', u => {
 /* ---------- Malipo (billing) ---------- */
 const getSetting = (k, d) => { const r = q.get('SELECT value FROM settings WHERE key = ?', k); return r ? J(r.value) : d; };
 const setSetting = (k, v) => q.run('INSERT INTO settings(key, value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', k, JSON.stringify(v));
+const invoiceFields = 'i.*, d.provider, d.account_name, d.receipt IS NOT NULL AS has_receipt';
+const invoiceDetails = 'LEFT JOIN invoice_payment_details d ON d.invoice_id = i.id';
+
+function billingInvoice(user, id, adminCanRead = false) {
+  if (!user) fail(401, 'Sign in first');
+  const invoice = q.get('SELECT * FROM invoices WHERE id = ?', Number(id));
+  if (!invoice) fail(404, 'Invoice not found.');
+  const permitted = (user.role === 'school_admin' && invoice.school_id === user.school_id) ||
+    (user.role === 'parent' && invoice.parent_id === user.id) ||
+    (adminCanRead && user.role === 'superadmin');
+  if (!permitted) fail(403, 'You cannot access this invoice.');
+  return invoice;
+}
+
 route('GET', '/api/billing', u => {
-  if (!u) fail(401, "Sign in first");
+  if (!u) fail(401, 'Sign in first');
   const plans = getSetting('plans', { school_student_term: 0, parent_month: 0, pay_info: '' });
   let rows = [];
-  if (u.role === 'school_admin') rows = q.all('SELECT * FROM invoices WHERE school_id = ? ORDER BY created DESC', u.school_id);
-  else if (u.role === 'parent') rows = q.all('SELECT * FROM invoices WHERE parent_id = ? ORDER BY created DESC', u.id);
-  else if (u.role === 'superadmin') rows = q.all(`SELECT i.*, s.name school, us.name parent, COALESCE(s.phone,us.phone) phone FROM invoices i LEFT JOIN schools s ON s.id = i.school_id LEFT JOIN users us ON us.id = i.parent_id ORDER BY i.created DESC LIMIT 300`);
+  if (u.role === 'school_admin') rows = q.all(`SELECT ${invoiceFields} FROM invoices i ${invoiceDetails} WHERE i.school_id = ? ORDER BY i.created DESC`, u.school_id);
+  else if (u.role === 'parent') rows = q.all(`SELECT ${invoiceFields} FROM invoices i ${invoiceDetails} WHERE i.parent_id = ? ORDER BY i.created DESC`, u.id);
+  else if (u.role === 'superadmin') rows = q.all(`SELECT ${invoiceFields}, s.name school, us.name parent, COALESCE(s.phone,us.phone) phone FROM invoices i ${invoiceDetails}
+    LEFT JOIN schools s ON s.id = i.school_id LEFT JOIN users us ON us.id = i.parent_id ORDER BY i.created DESC LIMIT 300`);
   return { plans, invoices: rows };
 });
+
+route('GET', '/api/billing/:id/receipt', (u, b, req, p) => {
+  const invoice = billingInvoice(u, p.id, true);
+  const detail = q.get('SELECT receipt FROM invoice_payment_details WHERE invoice_id = ?', invoice.id);
+  if (!detail?.receipt) fail(404, 'This invoice has no receipt image.');
+  return { image: 'data:image/jpeg;base64,' + Buffer.from(detail.receipt).toString('base64') };
+});
+
 route('POST', '/api/billing/:id/pay', (u, b, req, p) => {
-  if (!u) fail(401, "Sign in first");
-  const inv = q.get('SELECT * FROM invoices WHERE id = ?', +p.id); if (!inv) fail(404, "Invoice not found");
-  if (!((u.role === 'school_admin' && inv.school_id === u.school_id) || (u.role === 'parent' && inv.parent_id === u.id))) fail(403, 'Huna ruhusa');
-  if (inv.status === 'paid') fail(409, 'This invoice is already paid.');
-  q.run(`UPDATE invoices SET status = 'pending', method = ?, reference = ? WHERE id = ?`, (b.method || 'M-Pesa').slice(0, 40), need(b.reference, "Enter the transaction number").slice(0, 60), inv.id);
+  const invoice = billingInvoice(u, p.id);
+  if (invoice.status !== 'unpaid') fail(409, invoice.status === 'paid' ? 'This invoice is already paid.' : 'This payment is awaiting verification.');
+  const reference = typeof b.reference === 'string' ? b.reference.trim().slice(0, 60) : '';
+  const legacy = !b.payment_type && b.provider === undefined && b.account_name === undefined && b.receipt === undefined;
+  let method, provider, account, receipt = null;
+  if (legacy) {
+    method = typeof b.method === 'string' ? b.method.trim().slice(0, 40) || 'M-Pesa' : 'M-Pesa';
+  } else {
+    method = b.payment_type;
+    if (!['Mobile money', 'Bank transfer', 'Other'].includes(method)) fail(400, 'Choose a payment type.');
+    provider = need(typeof b.provider === 'string' ? b.provider : '', 'Enter the bank, mobile network or payment provider.').slice(0, 100);
+    account = need(typeof b.account_name === 'string' ? b.account_name : '', 'Enter the account holder name.').slice(0, 120);
+    if (b.receipt) {
+      const prefix = 'data:image/jpeg;base64,';
+      const maxBytes = 2 * 1024 * 1024;
+      if (typeof b.receipt !== 'string' || !b.receipt.startsWith(prefix) || b.receipt.length > prefix.length + 4 * Math.ceil(maxBytes / 3)) fail(400, 'Upload a receipt image up to 2 MB.');
+      const encoded = b.receipt.slice(prefix.length);
+      receipt = Buffer.from(encoded, 'base64');
+      if (receipt.length < 5 || receipt.length > maxBytes || receipt.toString('base64') !== encoded ||
+          receipt[0] !== 0xff || receipt[1] !== 0xd8 || receipt[2] !== 0xff ||
+          receipt[receipt.length - 2] !== 0xff || receipt[receipt.length - 1] !== 0xd9) fail(400, 'The receipt must be a valid JPEG image.');
+    }
+  }
+  if (!reference && !receipt) fail(400, 'Attach a receipt image or enter the transaction reference.');
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    if (!q.run("UPDATE invoices SET status = 'pending', method = ?, reference = ? WHERE id = ? AND status = 'unpaid'", method, reference || null, invoice.id).changes) fail(409, 'This invoice has already been submitted.');
+    if (legacy) q.run('DELETE FROM invoice_payment_details WHERE invoice_id = ?', invoice.id);
+    else q.run('INSERT OR REPLACE INTO invoice_payment_details (invoice_id, provider, account_name, receipt) VALUES (?, ?, ?, ?)', invoice.id, provider, account, receipt);
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
   return { ok: true };
 });
 route('PUT', '/api/admin/plans', (u, b) => {
   role(u, 'superadmin');
   setSetting('plans', { school_student_term: Math.max(0, +b.school_student_term || 0), parent_month: Math.max(0, +b.parent_month || 0), pay_info: (b.pay_info || '').slice(0, 500) });
+  issueWaitingInvoices();
   return { ok: true };
 });
 route('POST', '/api/admin/invoices', (u, b) => {
@@ -192,6 +246,7 @@ route('POST', '/api/admin/invoices', (u, b) => {
   if (Boolean(schoolId) === Boolean(parentId)) fail(400, 'Choose one school or parent.');
   if (schoolId && !q.get('SELECT id FROM schools WHERE id = ?', schoolId)) fail(404, 'School not found.');
   if (parentId && !q.get("SELECT id FROM users WHERE id = ? AND role = 'parent'", parentId)) fail(404, 'Parent not found.');
+  checkRegistration(parentId, schoolId);
   q.run('INSERT INTO invoices(school_id, parent_id, plan, amount, period, created) VALUES (?,?,?,?,?,?)', schoolId, parentId, String(b.plan || 'HUGO KID').slice(0, 60), amount, need(b.period, 'Enter a period.').slice(0, 40), now());
   return { ok: true };
 });
