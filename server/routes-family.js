@@ -1,5 +1,5 @@
 
-const { q } = require('./db');
+const { db, q } = require('./db');
 const A = require('./auth');
 const hub = require('./hub');
 const { route, fail, need, J, now, role, classFor, childFor, className, childOut, hwOut, uniqueLinkCode, LEVELS, TERMS_VERSION } = require('./router');
@@ -24,10 +24,20 @@ route('POST', '/api/children/link', (u, b) => {
   const mine = b.child_id ? q.get('SELECT * FROM children WHERE id = ? AND parent_id = ?', +b.child_id, u.id) : null;
   if (mine && mine.id !== st.id) {
 
-    q.run('UPDATE submissions SET child_id = ? WHERE child_id = ?', mine.id, st.id);
-    q.run('UPDATE children SET school_id = ?, class_id = ?, link_code = NULL WHERE id = ?', st.school_id, st.class_id, mine.id);
-    q.run('DELETE FROM children WHERE id = ?', st.id);
-    q.run('UPDATE children SET link_code = ? WHERE id = ?', code, mine.id);
+    if (st.parent_id || mine.school_id) fail(409, 'A child profile is already linked. Check the selected child and school code.');
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      for (const table of ['attendance', 'submissions', 'files', 'messages']) {
+        q.run(`UPDATE ${table} SET child_id = ? WHERE child_id = ?`, mine.id, st.id);
+      }
+      q.run('UPDATE children SET link_code = NULL WHERE id = ?', st.id);
+      q.run('UPDATE children SET school_id = ?, class_id = ?, link_code = ? WHERE id = ?', st.school_id, st.class_id, code, mine.id);
+      q.run('DELETE FROM children WHERE id = ?', st.id);
+      db.exec('COMMIT');
+    } catch (error) {
+      db.exec('ROLLBACK');
+      throw error;
+    }
     return childOut(q.get('SELECT * FROM children WHERE id = ?', mine.id));
   }
   q.run('UPDATE children SET parent_id = ?, local_id = COALESCE(?, local_id), color = COALESCE(?, color), birth = COALESCE(?, birth) WHERE id = ?', u.id, b.local_id || null, b.color || null, b.birth || null, st.id);

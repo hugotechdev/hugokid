@@ -23,14 +23,14 @@ route('DELETE', '/api/subjects/:id', (u, b, req, p) => { role(u, 'school_admin')
 route('GET', '/api/classes/:id/attendance', (u, b, req, p) => {
   role(u, 'school_admin', 'teacher');
   const c = classFor(u, p.id);
-  const day = new URL(req.url, 'http://x').searchParams.get('day') || new Date().toISOString().slice(0, 10);
+  const day = new URL(req.url, 'http://x').searchParams.get('day') || new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Dar_es_Salaam' }).format(new Date());
   const rows = q.all('SELECT child_id, present FROM attendance WHERE class_id = ? AND day = ?', c.id, day);
   return { day, students: q.all('SELECT id, name FROM children WHERE class_id = ? ORDER BY name', c.id).map(k => { const r = rows.find(x => x.child_id === k.id); return { id: k.id, name: k.name, present: r ? !!r.present : null }; }) };
 });
 route('POST', '/api/classes/:id/attendance', (u, b, req, p) => {
   role(u, 'school_admin', 'teacher');
   const c = classFor(u, p.id);
-  const day = /^\d{4}-\d{2}-\d{2}$/.test(b.day || '') ? b.day : new Date().toISOString().slice(0, 10);
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(b.day || '') ? b.day : new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Dar_es_Salaam' }).format(new Date());
   Object.entries(b.present || {}).forEach(([cid, v]) => {
     if (!q.get('SELECT id FROM children WHERE id = ? AND class_id = ?', +cid, c.id)) return;
     q.run('INSERT INTO attendance(class_id, child_id, day, present) VALUES (?,?,?,?) ON CONFLICT(child_id, day) DO UPDATE SET present = excluded.present, class_id = excluded.class_id', c.id, +cid, day, v ? 1 : 0);
@@ -94,7 +94,7 @@ route('GET', '/api/inbox', u => {
 function childStats(ch) {
   const hws = ch.class_id ? q.all('SELECT id, title, subject, max_score, due, created FROM homework WHERE class_id = ?', ch.class_id) : [];
   const subs = q.all('SELECT * FROM submissions WHERE child_id = ?', ch.id);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Dar_es_Salaam' }).format(new Date());
   const pending = hws.filter(h => !subs.find(s => s.homework_id === h.id));
   const bySubject = {};
   subs.forEach(s => {
@@ -167,7 +167,7 @@ route('GET', '/api/billing', u => {
   let rows = [];
   if (u.role === 'school_admin') rows = q.all('SELECT * FROM invoices WHERE school_id = ? ORDER BY created DESC', u.school_id);
   else if (u.role === 'parent') rows = q.all('SELECT * FROM invoices WHERE parent_id = ? ORDER BY created DESC', u.id);
-  else if (u.role === 'superadmin') rows = q.all(`SELECT i.*, s.name school, us.name parent FROM invoices i LEFT JOIN schools s ON s.id = i.school_id LEFT JOIN users us ON us.id = i.parent_id ORDER BY i.created DESC LIMIT 300`);
+  else if (u.role === 'superadmin') rows = q.all(`SELECT i.*, s.name school, us.name parent, COALESCE(s.phone,us.phone) phone FROM invoices i LEFT JOIN schools s ON s.id = i.school_id LEFT JOIN users us ON us.id = i.parent_id ORDER BY i.created DESC LIMIT 300`);
   return { plans, invoices: rows };
 });
 route('POST', '/api/billing/:id/pay', (u, b, req, p) => {

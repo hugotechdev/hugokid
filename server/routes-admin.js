@@ -83,3 +83,38 @@ route('POST', '/api/admin/users/:id/reset', (u, b, req, p) => {
   q.run('DELETE FROM sessions WHERE user_id = ?', t.id);
   return { login: t.phone || t.email, password: pass };
 });
+
+route('POST', '/api/admin/customers/action', (u, b) => {
+  role(u, 'superadmin');
+  const ids = Array.isArray(b.ids) ? [...new Set(b.ids)] : [];
+  if (!ids.length || ids.length > 300 || !ids.every(id => Number.isSafeInteger(id) && id > 0)) fail(400, 'Select customers first.');
+  if (!['school', 'parent'].includes(b.kind) || !['active', 'blocked', 'message'].includes(b.action)) fail(400, 'Invalid action.');
+  const message = String(b.message || '').trim();
+  if (b.action === 'message' && (!message || message.length > 2000)) fail(400, 'Enter a message of up to 2,000 characters.');
+  const school = b.kind === 'school';
+  const marks = ids.map(() => '?').join(',');
+  const target = school ? 'schools WHERE' : "users WHERE role='parent' AND";
+  if (q.get('SELECT COUNT(*) n FROM ' + target + ' id IN (' + marks + ')', ...ids).n !== ids.length) fail(404, 'Refresh the customer list.');
+  const recipients = q.all('SELECT id FROM users WHERE ' + (school ? "role='school_admin' AND school_id" : "role='parent' AND id") + ' IN (' + marks + ')', ...ids);
+  if (b.action === 'message') {
+    if (!recipients.length) fail(400, 'No recipients found.');
+    q.run('INSERT INTO customer_notices(user_id,body,created) SELECT id,?,? FROM users WHERE id IN (' + recipients.map(() => '?').join(',') + ')', message, now(), ...recipients.map(r => r.id));
+    recipients.forEach(r => hub.toUser(r.id, { t: 'customer_notice' }));
+  } else {
+    q.run((school ? 'UPDATE schools SET status=? WHERE' : "UPDATE users SET access_status=? WHERE role='parent' AND") + ' id IN (' + marks + ')', b.action, ...ids);
+    if (b.action === 'blocked') {
+      const affected = school ? q.all('SELECT id FROM users WHERE school_id IN (' + marks + ')', ...ids) : recipients;
+      affected.forEach(r => hub.closeUser(r.id));
+    }
+  }
+  return { count: ids.length };
+});
+route('GET', '/api/customer/notices', u => {
+  role(u, 'parent', 'school_admin');
+  return q.all('SELECT id,body,created,seen FROM customer_notices WHERE user_id=? ORDER BY id DESC LIMIT 100', u.id);
+});
+route('POST', '/api/customer/notices/read', (u,b) => {
+  role(u, 'parent', 'school_admin');
+  q.run('UPDATE customer_notices SET seen=1 WHERE user_id=? AND id<=?', u.id, Number(b.through) || 0);
+  return { ok: true };
+});

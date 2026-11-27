@@ -8,7 +8,7 @@ const ai = require('./ai');
 const { route, fail, need, J, now, role, classFor, childFor, className, hwOut } = require('./router');
 
 const MAX_FILE = 60 * 1024 * 1024;
-const OK_MIME = /^(image\/(png|jpe?g|webp|gif)|application\/pdf|audio\/[\w.+-]+|video\/[\w.+-]+)$/i;
+const OK_MIME = /^(image\/(png|jpe?g|webp|gif)|application\/(pdf|msword|vnd\.openxmlformats-officedocument\.wordprocessingml\.document)|audio\/[\w.+-]+|video\/[\w.+-]+)$/i;
 
 route('UPLOAD', '/api/upload', (u, buf, req) => {
   if (!u) fail(401, "Sign in first");
@@ -19,7 +19,7 @@ route('UPLOAD', '/api/upload', (u, buf, req) => {
   if (buf.length > MAX_FILE) fail(413, "The file is too large (max 60 MB)");
   const childId = url.searchParams.get('child_id');
   if (childId) childFor(u, childId);
-  const ext = { 'application/pdf': '.pdf' }[mime] || ('.' + mime.split('/')[1].replace(/[^a-z0-9]/gi, '').slice(0, 5));
+  const ext = { 'application/pdf': '.pdf', 'application/msword': '.doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx' }[mime] || ('.' + mime.split('/')[1].replace(/[^a-z0-9]/gi, '').slice(0, 5));
   const name = crypto.randomBytes(16).toString('hex') + ext;
   fs.writeFileSync(path.join(FILES_DIR, name), buf);
   q.run('INSERT INTO files(name, mime, size, label, owner_id, school_id, child_id, created) VALUES (?,?,?,?,?,?,?,?)',
@@ -54,14 +54,18 @@ function markQuestion(qn, ans) {
   if (qn.type === 'mcq') return { ok: +ans === +qn.answer, pts: +ans === +qn.answer ? pts : 0, max: pts };
   if (qn.type === 'match') {
     const pairs = qn.pairs || []; const a = Array.isArray(ans) ? ans : [];
-    const right = pairs.filter((_, i) => +a[i] === i).length;
+    const right = pairs.filter((_, i) => a[i] === i || a[i] === String(i)).length;
     return { ok: right === pairs.length, pts: pairs.length ? pts * right / pairs.length : 0, max: pts };
   }
-  const accepted = String(qn.answer ?? '').split('|').map(norm).filter(Boolean);
+  const accepted = String(qn.answer ?? '').split('|').map(s => s.trim()).filter(Boolean);
   if (!accepted.length) return { ok: null, pts: 0, max: pts, open: true };
-  const given = norm(ans);
-  const num = x => { const v = parseFloat(String(x).replace(',', '.')); return isNaN(v) ? null : v; };
-  const ok = accepted.some(a => a === given || (num(a) !== null && num(a) === num(given)));
+  const numeric = value => {
+    const text = String(value).trim().replace(',', '.');
+    return /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(text) ? Number(text) : NaN;
+  };
+  const ok = accepted.some(expected => Number.isFinite(numeric(expected))
+    ? numeric(ans) === numeric(expected)
+    : norm(ans) === norm(expected));
   return { ok, pts: ok ? pts : 0, max: pts };
 }
 function autoMark(hw, answers) {
@@ -85,10 +89,13 @@ route('POST', '/api/homework', (u, b) => {
     pairs: Array.isArray(x.pairs) ? x.pairs.slice(0, 8) : undefined, answer: x.answer, points: +x.points || 1,
   }));
   const attachments = (Array.isArray(b.attachments) ? b.attachments : []).slice(0, 10)
-    .filter(a => a && a.file && q.get('SELECT name FROM files WHERE name = ?', a.file))
-    .map(a => ({ file: a.file, mime: a.mime, label: a.label || '' }));
+    .flatMap(a => {
+      if (typeof a?.file !== 'string') return [];
+      const file = q.get('SELECT name, mime, label FROM files WHERE name = ? AND owner_id = ? AND school_id = ? AND child_id IS NULL', a.file, u.id, c.school_id);
+      return file ? [{ file: file.name, mime: file.mime, label: file.label || '' }] : [];
+    });
   if (kind === 'quiz' && !questions.length) fail(400, 'Ongeza maswali');
-  if (kind === 'paper' && !pages.length && !b.instructions) fail(400, "Add a page or instructions");
+  if (kind === 'paper' && !pages.length && !b.instructions && !attachments.length) fail(400, "Add a page or instructions");
   const id = Number(q.run(`INSERT INTO homework(class_id, author_id, title, subject, kind, instructions, pages, questions, attachments, max_score, due, created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
     c.id, u.id, title, b.subject || '', kind, (b.instructions || '').slice(0, 4000), JSON.stringify(pages), JSON.stringify(questions), JSON.stringify(attachments),
     Math.max(1, Math.min(100, +b.max_score || 10)), b.due || null, now()).lastInsertRowid);
@@ -246,7 +253,7 @@ route('GET', '/api/classes/:id/results', (u, b, req, p) => {
 });
 
 route('POST', '/api/ai/generate', async (u, b) => {
-  role(u, 'school_admin', 'teacher');
+  role(u, 'school_admin', 'teacher', 'parent');
   if (!ai.ready()) fail(400, 'AI haijawekwa kwenye server. Mwambie msimamizi wa HUGO TECH');
   return ai.generate({ task: b.task === 'worksheet' ? 'worksheet' : 'quiz', level: b.level, subject: b.subject, topic: need(b.topic, "Enter a topic"), count: b.count, lang: b.lang || 'Kiswahili' });
 });
