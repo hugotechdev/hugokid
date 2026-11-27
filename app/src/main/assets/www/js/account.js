@@ -24,7 +24,7 @@ HK.screens.welcome = (el) => {
       <button class="btn block blue" id="parent">Create a parent account</button>
       <button class="btn block navy" id="school">School or teacher</button>
       <button class="btn block ghost" id="link-device">Child sign-in with a link code</button>
-      <button class="link-btn" id="login">Already have an account? <b>Sign in</b></button>
+      <button class="link-btn" id="login"><b>Parent or staff sign-in</b></button>
       ${IS_WEB ? '<a class="btn block ghost" href="/download">Download for Android</a>' : ''}
     </div>
   </div>`;
@@ -100,6 +100,7 @@ HK.screens.acctAuth = (el, p) => {
       }
       if (!el.isConnected) return;
       Net.acceptSession(r.token, r.user);
+      HK.parentEntryToken = r.user.role === 'parent' ? r.token : null;
       Sfx.good();
       if (r.user.role === 'parent' && !Net.accessScreen()) {
         await SchoolSync.pullChildren().catch(() => {});

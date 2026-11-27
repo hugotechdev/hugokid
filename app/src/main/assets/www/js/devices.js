@@ -3,7 +3,7 @@ function exitSetup(){
   HK.go('welcome',{}, {reset:true});
   return true;
 }
-const minutesField = '<label class="label">Extra minutes</label><input class="field" id="minutes" type="number" min="1" max="1440" value="30"><div class="chips">'+[15,30,60].map(n=>'<button class="chip" data-minutes="'+n+'">'+n+' min</button>').join('')+'</div>';
+const minutesField = '<label class="label" for="minutes">Extra minutes</label><input class="field" id="minutes" type="number" min="1" max="1440" value="30"><div class="chips">'+[15,30,60].map(n=>'<button type="button" class="chip" data-minutes="'+n+'">'+n+' min</button>').join('')+'</div>';
 function bindMinutes(el){$$('[data-minutes]',el).forEach(b=>b.onclick=()=>$('#minutes',el).value=b.dataset.minutes);}
 function minutesOf(el){
   const n=Number($('#minutes',el).value);
@@ -46,8 +46,12 @@ HK.screens.devices=(el,{id})=>{
   return ()=>clearInterval(timer);
 };
 async function syncDevice(request=false){
-  if(Net.role()!=='child'||Net.accessScreen())return;
-  const token=Net.token(),c=Store.active();if(!c)return;
+  const c=Store.active();
+  if(Net.role()!=='child'||Net.accessScreen()||!c){
+    if(request) throw Error('Sign in again to request more time.');
+    return;
+  }
+  const token=Net.token();
   const work=await HWDB.byChild(c.id).catch(()=>[]);
   if(token!==Net.token())return;
   const d=await Net.post('/api/device/status',{...Store.usage(c.id),stars:c.stars,request,homework:work.filter(h=>['approved','submitted'].includes(h.status)).length});
@@ -58,13 +62,12 @@ async function syncDevice(request=false){
 }
 function bindNightControls(el){
   const button=$('#par',el);
-  button.textContent='Parent approval';
   if(Net.role()==='child'){
     const ask=document.createElement('button');ask.className='btn';ask.textContent='Ask for more time';button.before(ask);
     ask.onclick=()=>syncDevice(true).then(()=>toast('Request sent to your parent.')).catch(e=>toast(e.message));
   }
   button.onclick=()=>{
-    const box=modal(el,{title:'Allow extra time tonight',html:'<label class="label">Parent PIN</label><input type="password" class="field" inputmode="numeric" id="night-pin">'+minutesField,buttons:[{label:'Allow',keepOpen:true,onClick:async o=>{
+    const box=modal(el,{title:'Allow extra time tonight',html:'<label class="label" for="night-pin">Parent PIN</label><input type="password" class="field" inputmode="numeric" id="night-pin">'+minutesField,buttons:[{label:'Allow',keepOpen:true,onClick:async o=>{
       try{
         const n=minutesOf(o),pin=$('#night-pin',o).value;
         const attempts=Store.get('night_attempts',{}); if(attempts.until>Date.now())throw Error('Try again in five minutes.');

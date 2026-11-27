@@ -232,15 +232,19 @@ HK.screens.timeUp = (el) => {
 HK.screens.sleep = (el) => {
   const c = Store.active();
   el.classList.add('sleep');
+  const sharedDevice = Net.role() === 'parent';
   el.innerHTML = `
+    ${sharedDevice ? `<div class="topbar sleep-bar"><button class="btn ghost small" id="parent-dashboard">${icon('lock', 18)} Parent dashboard</button></div>` : ''}
     <div class="center-col">
       <div style="color:#FFC20E;margin-bottom:10px">${icon('moon', 64, 2)}</div>
       ${avatarSVG(c ? c.color : '#1EA7F0', 120, 'sleep')}
-      <h2 style="font-size:28px;margin:18px 0 6px">Usiku mwema${c ? ', ' + esc(c.name) : ''}</h2>
+      <h2 style="font-size:28px;margin:18px 0 6px">Good night${c ? ', ' + esc(c.name) : ''}</h2>
       <p style="font-weight:700;max-width:300px;margin:0 0 30px">It's bedtime. Your brain grows well when you sleep early. See you tomorrow!</p>
-      <button class="btn ghost small" id="par">${icon('lock', 18)} Mzazi</button>
+      <button class="btn ghost small" id="par">${icon('clock', 18)} ${sharedDevice ? 'Ask for more time' : 'Approve here with PIN'}</button>
     </div>`;
-  setTimeout(() => speak("Good night. It's time to sleep."), 300);
+  if (sharedDevice) $('#parent-dashboard', el).onclick = () => HK.askParent();
+  const bedtimeSpeech = setTimeout(() => speak("Good night. It's time to sleep."), 300);
   bindNightControls(el);
   HK.setBack(() => true);
+  return () => clearTimeout(bedtimeSpeech);
 };

@@ -132,6 +132,10 @@ const HK = window.HK = {
     if (!Store.parent()) Store.saveParent(par);
     if (!termsAccepted()) return this.go('terms', { mode: 'accept', update: !!par.pinHash }, { reset: true });
     if (!par.pinHash) return this.go('pin', { mode: 'create' }, { reset: true });
+    if (this.parentEntryToken && this.parentEntryToken === Net.token()) {
+      this.parentEntryToken = null;
+      return this.go('parentHome', {}, { reset: true });
+    }
     const kids = Store.children();
     if (!kids.length) return this.go('childForm', { first: true }, { reset: true });
 
