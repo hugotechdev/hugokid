@@ -345,6 +345,32 @@
     url('../img/safari/bg-serengeti.webp') center bottom / 100% auto no-repeat, #fff9ed;
 }
 
+@media (max-width: 759px) {
+  #app.is-welcome { top: 0; right: 0; bottom: 0; left: 0; }
+}
+.screen.welcome { top: 0; right: 0; bottom: 0; left: 0; }
+
+@media (min-width: 760px) {
+  body:not(.is-dash) #app.is-welcome {
+    height: min(505px, calc(100vh - 36px));
+    border-radius: 34px;
+  }
+  .welcome > .center-col {
+    min-height: 0;
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding-block: 24px;
+  }
+  .welcome .hk-logo {
+    flex-shrink: 0;
+    margin-block: auto 24px;
+  }
+  .welcome .actions {
+    flex-shrink: 0;
+    margin-bottom: auto;
+  }
+}
+
 .scene-town { --scene: url('../img/safari/bg-town.webp'); }
 .scene-runner { --scene: url('../img/safari/bg-runner.webp'); }
 .scene-pilot { --scene: url('../img/safari/bg-pilot.webp'); }
