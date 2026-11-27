@@ -5,25 +5,45 @@ HK.screens.registration = el => {
   const body = dash(el, 'Complete registration', '', '<p role="status">Loading your registration…</p>', false);
   const token = Net.token();
 
-  Net.get('/api/registration').then(({ draft, levels, grades }) => {
+  Net.get('/api/registration').then(({ draft, levels, grades, ages = Array.from({ length: 11 }, (_, index) => index + 3) }) => {
     if (!el.isConnected) return;
-    const emptyChild = () => ({ name: '', birth: '', grade: '' });
+    const emptyChild = () => ({ name: '', age: '', grade: '', avatar: '', religion: 'values', faithOn: true, needs: [] });
     let children = draft.children?.length ? draft.children : [emptyChild()];
     const escape = value => esc(value || '');
-    const date = new Date();
-    const latestBirth = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const ageLabel = age => age === ages[ages.length - 1] ? age + '+' : String(age);
 
     function childFields(child, i) {
       return `<fieldset class="card registration-child">
         <legend>Child ${i + 1}</legend>
         <label class="label" for="child-name-${i}">Full name</label>
         <input class="field" id="child-name-${i}" data-field="name" maxlength="100" value="${escape(child.name)}" required>
-        <label class="label" for="child-birth-${i}">Date of birth</label>
-        <input class="field" id="child-birth-${i}" data-field="birth" type="date" max="${latestBirth}" value="${escape(child.birth)}" required>
+        <label class="label" for="child-age-${i}">Age (years)</label>
+        <select class="field" id="child-age-${i}" data-field="age" required><option value="">Choose age</option>
+          ${ages.map(age => `<option value="${age}" ${age === Number(child.age) ? 'selected' : ''}>${ageLabel(age)}</option>`).join('')}
+        </select>
         <label class="label" for="child-grade-${i}">Grade</label>
         <select class="field" id="child-grade-${i}" data-field="grade" required><option value="">Choose grade</option>
           ${grades.map((grade, j) => `<option value="${esc(grade)}" ${grade === child.grade ? 'selected' : ''}>${esc(j ? T(grade) : 'Not in school yet')}</option>`).join('')}
         </select>
+        <fieldset class="registration-levels">
+          <legend>Child avatar</legend>
+          <div class="avatar-pick chips">${KID_AVATARS.map((id, index) => {
+            const selected = id === (child.avatar || KID_AVATARS[i % KID_AVATARS.length]);
+            return `<label><input type="radio" name="avatar-${i}" data-field="avatar" value="${id}" ${selected ? 'checked' : ''} aria-label="Avatar ${index + 1}">${kidAvatar({ avatar: id, color: AVATAR_COLORS[index] }, 44)}</label>`;
+          }).join('')}</div>
+        </fieldset>
+        <fieldset class="registration-levels">
+          <legend>Faith and values</legend>
+          <label><input type="checkbox" data-faith ${child.faithOn !== false ? 'checked' : ''}> Include the faith and values section</label>
+          <label class="label" for="child-faith-${i}">Faith or values preference</label>
+          <select class="field" id="child-faith-${i}" data-field="religion">
+            ${Object.entries(RELIGIONS).map(([id, choice]) => `<option value="${id}" ${id === (child.religion || 'values') ? 'selected' : ''}>${esc(T(choice.name))}</option>`).join('')}
+          </select>
+        </fieldset>
+        <fieldset class="registration-levels">
+          <legend>Learning support (optional)</legend>
+          ${Object.entries(NEEDS).map(([id, label]) => `<label><input type="checkbox" data-need value="${id}" ${child.needs?.includes(id) ? 'checked' : ''}> ${esc(T(label))}</label>`).join('')}
+        </fieldset>
         ${children.length > 1 ? `<button type="button" class="btn ghost small" data-remove="${i}">Remove child</button>` : ''}
       </fieldset>`;
     }
@@ -40,15 +60,17 @@ HK.screens.registration = el => {
       `}
       <p id="registration-message" role="status"></p>
       <div class="chips registration-actions">
-        <button class="btn" type="submit">Review registration</button>
-        <button class="btn ghost" type="button" id="save-registration">Save and continue later</button>
+        <button class="btn" type="submit">Complete registration</button>
         <button class="btn ghost" type="button" id="registration-signout">Sign out</button>
       </div></form>`;
 
     const form = $('form', body);
     const message = $('#registration-message', form);
-    const readChildren = () => $$('.registration-child', form).map(card =>
-      Object.fromEntries($$('[data-field]', card).map(input => [input.dataset.field, input.value.trim()])));
+    const readChildren = () => $$('.registration-child', form).map(card => ({
+      ...Object.fromEntries($$('[data-field]:not([type=radio]), [data-field][type=radio]:checked', card).map(input => [input.dataset.field, input.value.trim()])),
+      faithOn: $('[data-faith]', card).checked,
+      needs: $$('[data-need]:checked', card).map(input => input.value),
+    }));
     const drawChildren = () => {
       $('#registration-children', form).innerHTML = children.map(childFields).join('');
       $('#add-child', form).disabled = children.length >= 25;
@@ -72,26 +94,21 @@ HK.screens.registration = el => {
       levels: $$('input[name=level]:checked', form).map(input => input.value),
     };
 
-    async function save(button, data, complete) {
+    async function completeRegistration(button, data) {
       if (button.disabled) return;
       button.disabled = true;
       message.textContent = '';
       try {
-        const result = await Net.put('/api/registration', { ...data, complete });
+        const result = await Net.put('/api/registration', { ...data, complete: true });
         if (!el.isConnected || Net.token() !== token) return;
-        if (result.user) {
-          Net.acceptSession(token, result.user);
-          routeByRole();
-        } else {
-          message.textContent = 'Draft saved. You can sign out and resume later.';
-        }
+        Net.acceptSession(token, result.user);
+        routeByRole();
       } catch (error) {
         message.textContent = error.message;
         toast(error.message);
       } finally { button.disabled = false; }
     }
 
-    $('#save-registration', form).onclick = event => save(event.currentTarget, collect(), false);
     $('#registration-signout', form).onclick = () => { Net.logout(); routeByRole(); };
     form.onsubmit = event => {
       event.preventDefault();
@@ -100,16 +117,7 @@ HK.screens.registration = el => {
         message.textContent = 'Choose at least one class.';
         return;
       }
-      const lines = parent ? data.children.map(c => [c.name, c.birth, c.grade === grades[0] ? 'Not in school yet' : T(c.grade)].join(' · ')) :
-        [data.name, [data.district, data.region].join(', '), data.levels.map(T).join(', '), data.studentCount + ' students'];
-      modal(el, {
-        title: 'Review registration',
-        html: `<p>${esc(user.name)}</p>${lines.map(line => `<p>${esc(line)}</p>`).join('')}`,
-        buttons: [
-          { label: 'Complete registration', keepOpen: true, onClick: dialog => save($('.btn-row .btn', dialog), data, true) },
-          { label: 'Edit details', cls: 'ghost' },
-        ],
-      });
+      completeRegistration($('button[type=submit]', form), data);
     };
   }).catch(error => { if (el.isConnected) body.innerHTML = errBox(error); });
 };
