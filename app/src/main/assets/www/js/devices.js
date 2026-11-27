@@ -65,8 +65,13 @@ function bindNightControls(el){
   if(Net.role()==='child'){
     const ask=document.createElement('button');ask.className='btn';ask.textContent='Ask for more time';button.before(ask);
     ask.onclick=()=>syncDevice(true).then(()=>toast('Request sent to your parent.')).catch(e=>toast(e.message));
+    if (!Store.get('offlinePin', null)) { button.remove(); return; }
   }
   button.onclick=()=>{
+    if (Net.role() === 'parent' && !Store.parent()?.pinHash) {
+      toast('Sign in as a parent to set up your PIN.');
+      return HK.askParent();
+    }
     const box=modal(el,{title:'Allow extra time tonight',html:'<label class="label" for="night-pin">Parent PIN</label><input type="password" class="field" inputmode="numeric" id="night-pin">'+minutesField,buttons:[{label:'Allow',keepOpen:true,onClick:async o=>{
       try{
         const n=minutesOf(o),pin=$('#night-pin',o).value;

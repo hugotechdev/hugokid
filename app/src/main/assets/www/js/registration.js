@@ -4,6 +4,7 @@ HK.screens.registration = el => {
   const tutor = user.school?.type === 'tutor';
   const body = dash(el, 'Complete registration', '', '<p role="status">Loading your registration…</p>', false);
   const token = Net.token();
+  const needsPin = parent && !Store.parent()?.pinHash;
 
   Net.get('/api/registration').then(({ draft, levels, grades, ages = Array.from({ length: 11 }, (_, index) => index + 3) }) => {
     if (!el.isConnected) return;
@@ -58,6 +59,14 @@ HK.screens.registration = el => {
         <fieldset class="registration-levels"><legend>Classes taught</legend>${levels.map(level => `<label><input type="checkbox" name="level" value="${esc(level)}" ${(draft.levels ?? user.school?.levels ?? []).includes(level) ? 'checked' : ''}> ${esc(T(level))}</label>`).join('')}</fieldset>
         <label class="label" for="registration-count">Number of students</label><input class="field" id="registration-count" type="number" min="1" max="10000" value="${escape(draft.studentCount)}" required>
       `}
+      ${needsPin ? `<fieldset class="card registration-levels">
+        <legend>Parent PIN</legend>
+        <p>Use this PIN to open the parent area on this device and approve extra time.</p>
+        <label class="label" for="registration-pin">Create a 4-digit PIN</label>
+        <input class="field" id="registration-pin" type="password" inputmode="numeric" autocomplete="new-password" minlength="4" maxlength="4" pattern="[0-9]{4}" required>
+        <label class="label" for="registration-pin-confirm">Confirm PIN</label>
+        <input class="field" id="registration-pin-confirm" type="password" inputmode="numeric" autocomplete="new-password" minlength="4" maxlength="4" pattern="[0-9]{4}" required>
+      </fieldset>` : ''}
       <p id="registration-message" role="status"></p>
       <div class="chips registration-actions">
         <button class="btn" type="submit">Complete registration</button>
@@ -94,13 +103,20 @@ HK.screens.registration = el => {
       levels: $$('input[name=level]:checked', form).map(input => input.value),
     };
 
-    async function completeRegistration(button, data) {
+    async function completeRegistration(button, data, pin) {
       if (button.disabled) return;
       button.disabled = true;
       message.textContent = '';
       try {
-        const result = await Net.put('/api/registration', { ...data, complete: true });
+        const pinHash = pin ? await hashPin(pin) : null;
         if (!el.isConnected || Net.token() !== token) return;
+        const result = await Net.put('/api/registration', { ...data, complete: true });
+        if (Net.token() !== token) return;
+        if (pinHash) Store.saveParent({
+          created: Date.now(), settings: {}, terms: { v: TERMS_VERSION, at: Date.now() },
+          ...Store.parent(), pinHash,
+        });
+        if (!el.isConnected) return;
         Net.acceptSession(token, result.user);
         routeByRole();
       } catch (error) {
@@ -117,7 +133,12 @@ HK.screens.registration = el => {
         message.textContent = 'Choose at least one class.';
         return;
       }
-      completeRegistration($('button[type=submit]', form), data);
+      const pin = needsPin ? $('#registration-pin', form).value : '';
+      if (needsPin && (!/^[0-9]{4}$/.test(pin) || pin !== $('#registration-pin-confirm', form).value)) {
+        message.textContent = 'Enter the same 4-digit PIN in both fields.';
+        return;
+      }
+      completeRegistration($('button[type=submit]', form), data, pin);
     };
   }).catch(error => { if (el.isConnected) body.innerHTML = errBox(error); });
 };

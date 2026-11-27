@@ -3,6 +3,9 @@
 /* ---------- PIN ---------- */
 HK.screens.pin = (el, p) => {
   const mode = p.mode || 'verify'; // create | verify | change
+  if (mode === 'verify' && Net.role() === 'parent' && !Store.parent()?.pinHash) {
+    return HK.go('acctAuth', { kind: 'parent' }, { replace: true });
+  }
   let step = mode === 'verify' ? 'verify' : 'new';
   let first = '';
   let pin = '';
@@ -39,8 +42,8 @@ HK.screens.pin = (el, p) => {
       } },
       { label: 'Ghairi', cls: 'ghost' }] });
   };
-  if (mode === 'create' && !p.forChildMode) HK.setBack(exitSetup);
-  $('#bk', el).onclick = () => mode === 'create' && !p.forChildMode ? exitSetup() : HK.back();
+  if (mode === 'create' && !p.forChildMode && !p.fromDashboard) HK.setBack(exitSetup);
+  $('#bk', el).onclick = () => mode === 'create' && !p.forChildMode && !p.fromDashboard ? exitSetup() : HK.back();
 
   const dots = $$('.pin-dots i', el);
   const draw = () => {
@@ -80,7 +83,8 @@ HK.screens.pin = (el, p) => {
       par.pinHash = h;
       Store.saveParent(par);
       Sfx.good();
-      if (p.forChildMode) HK.toChild();
+      if (p.fromDashboard) { toast('Parent PIN set'); HK.back(); }
+      else if (p.forChildMode) HK.toChild();
       else if (mode === 'create') routeByRole();
       else { toast("PIN changed"); HK.back(); }
     }
@@ -230,7 +234,13 @@ HK.screens.parentHome = (el, p) => {
     tabs.forEach(b => b.classList.toggle('on', b.dataset.t === t));
     const body = $('#body', el);
     body.scrollTop = 0;
-    if (t === 'kids') renderKids(body);
+    if (t === 'kids') {
+      renderKids(body);
+      if (!Store.parent()?.pinHash) {
+        body.insertAdjacentHTML('afterbegin', '<div class="card"><h3>Parent PIN</h3><p>Set up your PIN before switching to child mode or approving extra time on this device.</p><button class="btn small" id="set-parent-pin">Set up parent PIN</button></div>');
+        $('#set-parent-pin', body).onclick = () => HK.go('pin', { mode: 'create', fromDashboard: true });
+      }
+    }
     if (t === 'hw') renderHw(body);
     if (t === 'set') renderSettings(body);
     if (t === 'school') renderParentSchool(body);
@@ -359,7 +369,7 @@ HK.screens.parentHome = (el, p) => {
       </div>
       <div class="set-group">Account</div>
       <div class="card set-list">
-        ${row('chpin', '#F65B4F', 'key', 'Badilisha PIN', '')}
+        ${row('chpin', '#F65B4F', 'key', Store.parent()?.pinHash ? 'Change parent PIN' : 'Set up parent PIN', '')}
         ${row('terms', '#6B778C', 'file', 'Masharti na Faragha', '')}
       </div>
       <p class="set-foot">HUGO KID 2.3 · Learn, Play, Grow<br>HUGO TECH · info@hugotech.co.tz</p>`;
@@ -375,7 +385,8 @@ HK.screens.parentHome = (el, p) => {
     bind('lim', 'gameLimitMin', true);
     bind('bon', 'bonusMin', true);
     bind('bed', 'bedtime', false);
-    $('#chpin', body).onclick = () => HK.go('pin', { mode: 'change' });
+    $('#chpin', body).onclick = () => HK.go('pin', Store.parent()?.pinHash
+      ? { mode: 'change' } : { mode: 'create', fromDashboard: true });
     $('#terms', body).onclick = () => HK.go('terms', { mode: 'view' });
     const ac = AI.cfg();
     $('#aiset-sub', body).textContent = ac.key ? AI_PROVIDERS[ac.provider].name + (ac.enabled ? ' · imewashwa' : ' · imezimwa') : "Choose Gemini, Claude or ChatGPT";
