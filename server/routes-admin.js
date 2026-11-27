@@ -77,7 +77,11 @@ route('GET', '/api/admin/children', (u, b, req) => {
 route('POST', '/api/admin/users/:id/reset', (u, b, req, p) => {
   role(u, 'superadmin');
   const t = q.get(`SELECT * FROM users WHERE id = ? AND role <> 'superadmin'`, +p.id);
-  if (!t) fail(404, 'Mtumiaji hayupo');
+  if (!t) fail(404, 'User not found.');
+  if (t.role !== 'teacher') {
+    if (t.email) fail(409, 'Ask the customer to use Forgot password? with their registered email.');
+    if (A.accessStatus(t) !== 'active') fail(409, 'Approve the account before using assisted password recovery.');
+  }
   const pass = A.tempPassword();
   q.run('UPDATE users SET pass = ?, must_change = 1 WHERE id = ?', A.hashPass(pass), t.id);
   q.run('DELETE FROM sessions WHERE user_id = ?', t.id);
