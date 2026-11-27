@@ -7,7 +7,7 @@ const HW_STATUS = {
   returned: { label: 'Irekebishwe', cls: 'sun' },
   approved: { label: 'Imekubaliwa', cls: 'teal' },
 };
-const SUBJECTS = ['Hesabu', 'Kiingereza', 'Kiswahili', 'Sayansi', 'Dini', 'Nyingine'];
+const SUBJECTS = ['Math', 'English', 'Kiswahili', 'Science', 'Faith', 'Other'];
 const PAGE_W = 1000, PAGE_H = 1414;
 
 function wrapText(ctx, text, maxW) {
@@ -32,12 +32,12 @@ function loadImg(src) {
   return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
 }
 
-async function drawPageBg(ctx, pg) {
+async function drawPageBg(ctx, pg, isCurrent = () => true) {
   const { w, h } = pageSize(pg);
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
   if (pg.bg) {
     const img = await loadImg(pg.bg);
-    ctx.drawImage(img, 0, 0, w, h);
+    if (isCurrent()) ctx.drawImage(img, 0, 0, w, h);
     return;
   }
 
@@ -92,14 +92,15 @@ async function renderPage(pg, quality = 0.8) {
 
 HK.screens.hwNew = (el) => {
   const kids = Store.children();
-  const hw = { id: uid(), childId: Store.activeId() || kids[0].id, title: '', subject: 'Hesabu', pages: [], status: 'new', created: Date.now(), stars: 0, feedback: '' };
+  if (!kids.length) return HK.go('childForm', { first: true }, { replace: true });
+  const hw = { id: uid(), childId: Store.active()?.id || kids[0].id, title: '', subject: SUBJECTS[0], files: [], pages: [], status: 'new', created: Date.now(), stars: 0, feedback: '' };
 
   el.innerHTML = `
     <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>New homework</h1></div>
     <div class="scroll">
       ${kids.length > 1 ? `<label class="label">Whose is it?</label><div class="chips" id="kid">${kids.map(k => `<button class="chip ${k.id === hw.childId ? 'on' : ''}" data-id="${k.id}">${esc(k.name)}</button>`).join('')}</div>` : ''}
       <label class="label">Jina la homework</label>
-      <input class="field" id="title" placeholder="Mfano: Hesabu ukurasa 12">
+      <input class="field" id="title" aria-label="Homework title" placeholder="Mfano: Hesabu ukurasa 12">
       <label class="label">Lesson</label>
       <div class="chips" id="sub">${SUBJECTS.map(s => `<button class="chip ${s === hw.subject ? 'on' : ''}">${s}</button>`).join('')}</div>
       <label class="label">Kurasa</label>
@@ -111,6 +112,7 @@ HK.screens.hwNew = (el) => {
       </div>
       <div style="height:12px"></div>
       <button class="btn block navy hidden" id="ai">${icon('book', 22)} Soma picha kwa AI (iwe rahisi kuandika)</button>
+      <label class="label" for="document">Attach Word or PDF</label><input class="field" id="document" type="file" accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><div id="documents"></div>
       <input type="file" id="file" accept="image/*" multiple class="hidden">
       <div style="height:22px"></div>
       <button class="btn block" id="save">${icon('send', 22)} Mpe mtoto</button>
@@ -140,15 +142,46 @@ HK.screens.hwNew = (el) => {
     e.target.value = '';
     drawPages();
   };
+  $('#document', el).onchange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const save = $('#save', el);
+    save.disabled = true;
+    e.target.disabled = true;
+    try {
+      const child = Store.child(hw.childId);
+      const uploaded = await Net.upload(file, file.name, child?.serverId);
+      hw.files.push({ file: uploaded.file, mime: uploaded.mime, label: file.name });
+      $('#documents', el).textContent = hw.files.map(f => f.label).join(', ');
+    } catch (error) { toast(error.message); }
+    finally { save.disabled = false; e.target.disabled = false; e.target.value = ''; }
+  };
   $('#blank', el).onclick = () => {
     const ov = modal(el, {
-      title: "Enter a question", html: '<textarea class="field" id="q" placeholder="Mfano: 1) 5 + 3 = ?  2) Chora miti mitatu" style="margin-bottom:16px;text-align:left"></textarea>',
-      buttons: [{ label: 'Ongeza ukurasa', onClick: (o) => {
+      title: "Enter a question", html: '<label class="label" for="topic">Ask Nuru to draft questions</label><input id="topic" class="field" placeholder="Topic, e.g. counting fruit"><button type="button" class="btn ghost" id="suggest">Generate questions</button><label class="label" for="q">Review or write your questions</label><textarea class="field" id="q" placeholder="Example: What is 5 + 3?" style="margin-bottom:16px;text-align:left"></textarea>',
+      buttons: [{ label: 'Add page', keepOpen: true, onClick: (o) => {
         const t = $('#q', o).value.trim();
-        hw.pages.push({ bg: null, questions: t ? t.split(/\n+/).filter(Boolean) : [], strokes: [] });
+        if (!t) return toast('Enter at least one question.');
+        const questions = t.split(/\n+/).map(line => line.trim()).filter(Boolean);
+        for (let i = 0; i < questions.length; i += 3) {
+          hw.pages.push({ bg: null, questions: questions.slice(i, i + 3), strokes: [] });
+        }
+        o.remove();
         drawPages();
       } }, { label: 'Ghairi', cls: 'ghost' }],
     });
+    $('#suggest', ov).onclick = async e => {
+      const topic = $('#topic', ov).value.trim();
+      if (!topic) return toast('Enter a topic first.');
+      const button = e.currentTarget;
+      button.disabled = true;
+      try {
+        const draft = AI.ready() ? await AI.ask({ system: 'Draft three short age-appropriate homework questions, one per line, without answers. Use English except for a Kiswahili lesson.', text: hw.subject + ': ' + topic, maxTokens: 300 }) : (await Net.post('/api/ai/generate', { task: 'worksheet', topic, subject: hw.subject, level: Store.child(hw.childId)?.grade, count: 3, lang: hw.subject === 'Kiswahili' ? 'Kiswahili' : 'English' })).text;
+        const field = $('#q', ov);
+        field.value = [field.value.trim(), draft].filter(Boolean).join('\n');
+      } catch (error) { toast(error.message); }
+      finally { button.disabled = false; }
+    };
     setTimeout(() => $('#q', ov) && $('#q', ov).focus(), 100);
   };
 
@@ -179,6 +212,7 @@ HK.screens.hwNew = (el) => {
 
   $('#save', el).onclick = async () => {
     hw.title = $('#title', el).value.trim() || hw.subject;
+    if (!hw.pages.length && hw.files.length) hw.pages.push({ bg: null, questions: ["Open the attachment and write your answers here."], strokes: [] });
     if (!hw.pages.length) return toast("Add at least one page");
     await HWDB.put(hw);
     Sfx.good(); toast("Homework sent to the child");
@@ -202,6 +236,7 @@ HK.screens.hwReview = (el, p) => {
         <div class="grow"><h1 style="font-size:19px">${esc(hw.title)}</h1><div class="sub">${esc(c ? c.name : '')} · ${esc(hw.subject)}</div></div>
         <span class="chip-tag ${st.cls}">${st.label}</span></div>
       <div class="scroll">
+        ${attachmentsHTML(hw.files)}
         ${imgs.map(s => `<img class="review-page" src="${s}">`).join('')}
         ${hw.original ? `<div class="section-title">Original photo</div>${hw.original.map(s => `<img class="review-page" src="${s}">`).join('')}` : ''}
         ${hw.status === 'submitted' ? `
@@ -217,6 +252,7 @@ HK.screens.hwReview = (el, p) => {
         ${hw.status === 'approved' ? `<div class="card" style="text-align:center"><div class="earned">${starsHTML(hw.stars)}</div>${hw.feedback ? `<p>${esc(hw.feedback)}</p>` : ''}</div>` : ''}
         <button class="btn block ghost" id="del">${icon('trash', 20)} Futa homework</button>
       </div>`;
+    bindAttachments(el, hw.files);
     $('#bk', el).onclick = () => HK.back();
     const paint = () => $$('.stars-pick button', el).forEach(b => b.classList.toggle('on', +b.dataset.s <= stars));
     $$('.stars-pick button', el).forEach(b => b.onclick = () => { stars = +b.dataset.s; Sfx.tap(); paint(); });
@@ -278,19 +314,20 @@ HK.screens.hwDo = (el, p) => {
   el.classList.add('hw-screen');
   el.innerHTML = '<div class="center-col">Inafungua...</div>';
   let hw, pageI = 0, tool = 'pen', color = '#0D2461', width = 5;
-  let bgCanvas, inkCanvas, ictx, paper, drawing = null, saveT = null;
+  let bgCanvas, inkCanvas, ictx, paper, drawing = null, saveT = null, renderId = 0;
   const t0 = Date.now();
   const readOnly = () => hw.status === 'approved';
 
   const COLORS = ['#0D2461', '#1EA7F0', '#F65B4F', '#0FB394'];
 
   HWDB.get(p.id).then(h => {
+    if (!el.isConnected) return;
     hw = h;
     if (!hw) return HK.back();
     const school = hw.origin === 'school';
     if (school && readOnly() && hw.marked && hw.marked.length) {
       el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><div class="grow"><h1 style="font-size:18px">${esc(hw.title)}</h1><div class="sub">Imesahihishwa na Mwl. ${esc(hw.teacher || '')}</div></div></div>
-        <div class="scroll"><div class="trophy-hero" style="margin:0 0 14px"><div class="big">${hw.score ?? '-'}/${hw.max_score}</div><div class="earned" style="margin:8px 0 0">${starsHTML(hw.stars || 0, 3, 32)}</div>${hw.feedback ? `<p style="color:#fff;margin-top:8px">${esc(hw.feedback)}</p>` : ''}</div>
+        <div class="scroll"><div class="trophy-hero" style="margin:0 0 14px"><div class="big">${hw.score ?? '-'}/${hw.max_score}</div><div class="earned" style="margin:8px 0 0">${starsHTML(hw.stars || 0, 3, 32)}</div>${hw.feedback ? `<p style="color:inherit;margin-top:8px">${esc(hw.feedback)}</p>` : ''}</div>
         ${hw.marked.map(m => `<img class="review-page" src="${m}">`).join('')}</div>`;
       $('#bk', el).onclick = () => HK.back();
       if (hw.feedback) speak(hw.feedback);
@@ -304,7 +341,7 @@ HK.screens.hwDo = (el, p) => {
       </div>
       ${hw.status === 'returned' && hw.feedback ? `<div class="feedback">${icon('edit', 20)} ${esc(hw.feedback)}</div>` : ''}
       ${readOnly() && hw.feedback ? `<div class="feedback" style="background:#E3F8F3;color:var(--teal-d)">${icon('star', 20)} ${esc(hw.feedback)}</div>` : ''}
-      ${school && (hw.instructions || (hw.files || []).length) ? `<div class="feedback" style="background:#fff;color:var(--navy);flex-direction:column;align-items:stretch">
+      ${(school && hw.instructions || (hw.files || []).length) ? `<div class="feedback" style="background:#fff;color:var(--navy);flex-direction:column;align-items:stretch">
         <div class="row"><span class="grow">${esc(hw.instructions || '')}</span>${hw.instructions ? `<button class="icon-btn" id="sayins" style="width:38px;height:38px">${icon('volume', 18)}</button>` : ''}</div>${attachmentsHTML(hw.files)}</div>` : ''}
       <div class="hw-stage" id="stage"><div class="hw-paper" id="paper"><canvas id="bg"></canvas><canvas id="ink"></canvas></div></div>
       ${readOnly() ? '' : `<div class="hw-tools">
@@ -352,8 +389,8 @@ HK.screens.hwDo = (el, p) => {
     $('#prev', el).onclick = () => { if (pageI > 0) { pageI--; Sfx.tap(); showPage(); } };
     $('#next', el).onclick = () => { if (pageI < hw.pages.length - 1) { pageI++; Sfx.tap(); showPage(); } };
 
+    bindAttachments(el, hw.files);
     if (school) {
-      bindAttachments(el, hw.files);
       const si = $('#sayins', el); if (si) { si.onclick = () => speak(hw.instructions); if (['toddler', 'beginner'].includes(kidMode(c))) setTimeout(() => speak(hw.instructions), 600); }
       const rb = (id, t) => { const b = $('#' + id, el); if (b) b.onclick = () => addResponse(el, hw, t); };
       rb('r-photo', 'photo'); rb('r-audio', 'audio'); rb('r-video', 'video');
@@ -383,7 +420,11 @@ HK.screens.hwDo = (el, p) => {
     bgCanvas.width = inkCanvas.width = w;
     bgCanvas.height = inkCanvas.height = h;
     fit();
-    await drawPageBg(bgCanvas.getContext('2d'), pg);
+    const id = ++renderId;
+    const isCurrent = () => id === renderId && el.isConnected;
+    try { await drawPageBg(bgCanvas.getContext('2d'), pg, isCurrent); }
+    catch { if (isCurrent()) toast('This page image could not be opened.'); }
+    if (!isCurrent()) return;
     redrawInk();
     $('#pi', el).textContent = (pageI + 1) + ' / ' + hw.pages.length;
     $('#prev', el).style.visibility = pageI > 0 ? 'visible' : 'hidden';

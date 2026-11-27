@@ -207,7 +207,7 @@ HK.screens.parentHome = (el, p) => {
     <div class="topbar">
       <img src="img/mark.png" style="width:34px;height:34px;object-fit:contain">
       <div class="grow" style="min-width:0"><h1 style="font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Parent</h1></div>
-      <button class="btn small" id="tochild">${icon('home', 18)} Kwa mtoto</button>
+      <button class="chip" id="customer-notices">Notifications</button><button class="btn small" id="tochild">${icon('home', 18)} Kwa mtoto</button>
     </div>
     <div class="seg">
       <button data-t="kids">Watoto</button>
@@ -217,6 +217,7 @@ HK.screens.parentHome = (el, p) => {
     </div>
     <div class="scroll" id="body"></div>`;
 
+  bindCustomerNotices(el);
   $('#tochild', el).onclick = () => HK.toChild();
   HK.setBack(() => { HK.toChild(); return true; });
 
@@ -264,7 +265,7 @@ HK.screens.parentHome = (el, p) => {
           ${kidAvatar(c, 56)}
           <div class="grow">
             <h3 style="margin:0">${esc(c.name)} ${Store.activeId() === c.id ? '<span class="chip-tag teal">anatumia sasa</span>' : ''}</h3>
-            <div class="muted" style="font-size:13px;font-weight:600">${esc(g.name)} · Miaka ${ageYears(c.birth)}${c.grade && c.grade !== GRADES[0] ? ' · ' + esc(c.grade) : ''} · ${faithOn(c) ? esc(RELIGIONS[c.religion].name) : 'Imani: imezimwa'}</div>
+            <div class="muted" style="font-size:13px;font-weight:600">${esc(g.name)} · Miaka ${ageYears(c.birth)}${c.grade && c.grade !== GRADES[0] ? ' · ' + esc(c.grade) : ''} · ${faithOn(c) ? esc((RELIGIONS[c.religion] || RELIGIONS.values).name) : 'Imani: imezimwa'}</div>
           </div>
         </div>
         <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">

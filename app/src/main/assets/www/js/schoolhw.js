@@ -82,13 +82,13 @@ function attachmentsHTML(files) {
   if (!files || !files.length) return '';
   return `<div class="att-list">${files.map((f, i) => {
     const ic = /^image/.test(f.mime) ? 'image' : /^audio/.test(f.mime) ? 'volume' : /^video/.test(f.mime) ? 'camera' : 'file';
-    return `<button class="chip" data-att="${i}">${icon(ic, 18)} ${esc(f.label || (ic === 'file' ? 'PDF' : ic === 'volume' ? 'Sauti' : ic === 'camera' ? 'Video' : 'Picha'))}</button>`;
+    return `<button class="chip" data-att="${i}">${icon(ic, 18)} ${esc(f.label || (ic === 'file' ? 'Document' : ic === 'volume' ? 'Sauti' : ic === 'camera' ? 'Video' : 'Picha'))}</button>`;
   }).join('')}</div>`;
 }
 function bindAttachments(root, files) {
   $$('[data-att]', root).forEach(b => b.onclick = () => {
     const f = files[+b.dataset.att]; const url = Net.fileUrl(f.file);
-    if (/pdf/.test(f.mime)) return Net.openExternal(url);
+    if (/^application\//.test(f.mime)) return Net.openExternal(url);
     const media = /^image/.test(f.mime) ? `<img src="${url}" style="width:100%;border-radius:16px">`
       : /^audio/.test(f.mime) ? `<audio controls autoplay src="${url}" style="width:100%"></audio>`
       : `<video controls autoplay playsinline src="${url}" style="width:100%;border-radius:16px;max-height:60vh"></video>`;
@@ -153,17 +153,17 @@ HK.screens.hwQuiz = (el, p) => {
       const res = hw.detail ? hw.detail[i] : null;
       const mark = res === true ? `<span class="chip-tag teal">${icon('check', 14)} Sahihi</span>` : res === false ? `<span class="chip-tag coral">${icon('x', 14)} Si sahihi</span>` : '';
       let body = '';
-      if (qn.type === 'mcq') body = `<div class="g-opts" style="padding:8px 0 0;grid-template-columns:1fr">${(qn.options || []).map((o, k) => `<button class="g-opt ${+a === k ? 'sel' : ''}" data-q="${i}" data-v="${k}" style="font-size:17px;min-height:54px" ${done ? 'disabled' : ''}>${esc(o)}</button>`).join('')}</div>`;
+      if (qn.type === 'mcq') body = `<div class="g-opts" style="padding:8px 0 0;grid-template-columns:1fr">${(qn.options || []).map((o, k) => `<button class="g-opt ${a != null && a !== '' && +a === k ? 'sel' : ''}" data-q="${i}" data-v="${k}" style="font-size:17px;min-height:54px" ${done ? 'disabled' : ''}>${esc(o)}</button>`).join('')}</div>`;
       else if (qn.type === 'match') {
         const rights = (qn.pairs || []).map(x => x[1]);
-        body = (qn.pairs || []).map((pr, k) => `<div class="row" style="margin-top:8px"><b class="grow">${esc(pr[0])}</b><select class="field" data-m="${i}" data-k="${k}" style="width:55%" ${done ? 'disabled' : ''}><option value="">Choose</option>${rights.map((r, j) => `<option value="${j}" ${a && +a[k] === j ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></div>`).join('');
+        body = (qn.pairs || []).map((pr, k) => `<div class="row" style="margin-top:8px"><b class="grow">${esc(pr[0])}</b><select class="field" data-m="${i}" data-k="${k}" style="width:55%" ${done ? 'disabled' : ''}><option value="">Choose</option>${rights.map((r, j) => `<option value="${j}" ${a?.[k] != null && a[k] !== '' && +a[k] === j ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></div>`).join('');
       } else body = `<input class="field" data-t="${i}" style="margin-top:8px" ${qn.type === 'math' ? 'inputmode="decimal"' : ''} value="${esc(a ?? '')}" placeholder="Jibu lako" ${done ? 'disabled' : ''}>`;
       return `<div class="card"><div class="row" style="align-items:flex-start"><b class="grow" style="font-size:17px">${i + 1}. ${esc(qn.q)}</b><button class="icon-btn" data-say="${i}" style="width:38px;height:38px">${icon('volume', 18)}</button></div>${body}<div style="margin-top:8px">${mark}</div></div>`;
     };
     el.innerHTML = `
       <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><div class="grow"><h1 style="font-size:18px">${esc(hw.title)}</h1><div class="sub">${esc(hw.subject)}${hw.teacher ? ' · Mwl. ' + esc(hw.teacher) : ''}</div></div></div>
       <div class="scroll">
-        ${hw.status === 'approved' ? `<div class="trophy-hero" style="margin:0 0 14px"><div class="big">${hw.score}/${hw.max_score}</div><div class="earned" style="margin:8px 0 0">${starsHTML(hw.stars || 0, 3, 32)}</div>${hw.feedback ? `<p style="color:#fff;margin-top:8px">${esc(hw.feedback)}</p>` : ''}</div>` : ''}
+        ${hw.status === 'approved' ? `<div class="trophy-hero" style="margin:0 0 14px"><div class="big">${hw.score}/${hw.max_score}</div><div class="earned" style="margin:8px 0 0">${starsHTML(hw.stars || 0, 3, 32)}</div>${hw.feedback ? `<p style="color:inherit;margin-top:8px">${esc(hw.feedback)}</p>` : ''}</div>` : ''}
         ${hw.instructions ? `<div class="card"><p>${esc(hw.instructions)}</p>${attachmentsHTML(hw.files)}</div>` : attachmentsHTML(hw.files)}
         ${hw.questions.map(qHTML).join('')}
         ${done ? '' : `<button class="btn block" id="send">${icon('send', 20)} Tuma majibu</button>`}
@@ -176,7 +176,11 @@ HK.screens.hwQuiz = (el, p) => {
     $$('[data-m]', el).forEach(s => s.onchange = () => { const i = +s.dataset.m; answers[i] = answers[i] || []; answers[i][+s.dataset.k] = s.value === '' ? null : +s.value; });
     const send = $('#send', el);
     if (send) send.onclick = () => {
-      const empty = hw.questions.filter((_, i) => answers[i] === undefined || answers[i] === '').length;
+      const empty = hw.questions.filter((q, i) => {
+        const answer = answers[i];
+        if (q.type === 'match') return (q.pairs || []).some((_, j) => answer?.[j] == null || answer[j] === '');
+        return answer == null || String(answer).trim() === '';
+      }).length;
       confirmBox(el, "Send answers?", empty ? `Maswali ${empty} hayajajibiwa.` : 'Majibu yatasahihishwa papo hapo.', "Send", async () => {
         try {
           hw.answers = answers;

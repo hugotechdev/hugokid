@@ -5,6 +5,8 @@ const RACE_CARS = [
   { name: 'Twiga', color: '#FFC20E', dark: '#D29E00', cost: 60 },
   { name: 'Kifaru', color: '#1EA7F0', dark: '#1381BD', cost: 150 },
   { name: 'Tai', color: '#7B61FF', dark: '#5A43D6', cost: 300 },
+  { name: 'Coastal Rally', color: '#008F85', dark: '#00655F', score: 80 },
+  { name: 'Golden Champion', color: '#DC9C16', dark: '#996402', score: 100 },
 ];
 const RACE_LOCATIONS = [
   { name: 'Serengeti', c: 'var(--sun)', cd: 'var(--sun-d)', ground: '#9BC85A', ground2: '#8AB84B', deco: 'acacia', scene: 'race-serengeti' },
@@ -16,15 +18,46 @@ const RACE_THEMES = [...RACE_LOCATIONS, ...RACE_LOCATIONS.map(theme => ({
 }))];
 const RACE_EPISODES = RACE_THEMES.length * 3;
 
+function racingResult(garage, won, correct, answered) {
+  const score = answered ? Math.floor(100 * correct / answered) : 0;
+  const prizes = RACE_CARS.filter((car, i) => {
+    if (!won || !car.score || score < car.score || garage.cars.includes(i)) return false;
+    garage.cars.push(i);
+    return true;
+  });
+  const feedback = prizes.length ? 'You won ' + prizes.map(car => car.name).join(' and ') + '! Choose your new car in the Car Shop.'
+    : !won ? 'Well done! Try the race again and aim for the finish line.'
+    : score < 80 ? 'Well done! Keep practising. Aim for 80/100 to win a car.'
+    : score < 100 ? 'Well done! Aim for 100/100 to earn the Golden Champion.' : 'Well done! A perfect score!';
+  return { score, feedback };
+}
+
 function raceData(c) {
   c.racing = Object.assign({ unlocked: 1, best: {}, cars: [0], car: 0 }, c.racing || {});
   if (c.racing.unlocked === 9 && c.racing.best[9]) c.racing.unlocked = 10;
   return c.racing;
 }
 
+const raceSprites = new Map();
+function raceSprite(color) {
+  if (raceSprites.has(color)) return raceSprites.get(color);
+  const index = RACE_CARS.findIndex(car => car.color === color);
+  if (index < 0 || typeof Image === 'undefined') return null;
+  const image = new Image();
+  image.src = 'img/life/car-' + index + '.webp';
+  raceSprites.set(color, image);
+  return image;
+}
+
 function drawCar(ctx, x, y, w, h, color, dark, glow) {
   ctx.save();
   ctx.translate(x, y);
+  const sprite = raceSprite(color);
+  if (sprite?.naturalWidth) {
+    ctx.drawImage(sprite, -w / 2, -h / 2, w, h);
+    ctx.restore();
+    return;
+  }
   if (glow) { ctx.shadowColor = 'rgba(255,255,255,.9)'; ctx.shadowBlur = 18; }
 
   ctx.fillStyle = '#1B2233';
@@ -71,6 +104,7 @@ HK.screens.raceMenu = (el) => {
     <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Car Racing</h1>
       <span class="hud-pill" style="background:#fff">${icon('coin', 18)} <span id="coins">${c.coins || 0}</span></span></div>
     <div class="scroll">
+      <button class="btn small" id="shop-link">Car Shop</button>
       ${RACE_THEMES.map((t, ti) => `
         <section class="race-region scene-${t.scene}"><h2>${t.name}</h2>
         <div class="levels">${[1, 2, 3].map(n => {
@@ -80,11 +114,12 @@ HK.screens.raceMenu = (el) => {
             <span class="lv-stars">${[1, 2, 3].map(s => `<svg width="14" height="14" viewBox="0 0 24 24" class="${s <= b ? 'on' : ''}"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6L3.4 9.5l6-.8z"/></svg>`).join('')}</span>
           </button>`;
         }).join('')}</div></section>`).join('')}
-      <div class="section-title">Garage</div>
+      <div class="section-title" id="car-shop">Car Shop</div><p class="muted">Buy a car with coins, or finish a race with a quiz score of 80 or higher to win one.</p>
       <div class="garage" id="garage"></div>
     </div>`;
   $('#bk', el).onclick = () => HK.back();
 
+  $('#shop-link', el).onclick = () => $('#car-shop', el).scrollIntoView({ block: 'start' });
   $$('.level', el).forEach(b => b.onclick = () => {
     const lv = +b.dataset.lv;
     if (lv > raceData(Store.active()).unlocked) { Sfx.bad(); toast("Finish the level " + (lv - 1) + ' first'); return; }
@@ -98,14 +133,10 @@ HK.screens.raceMenu = (el) => {
     const g = $('#garage', el);
     g.innerHTML = RACE_CARS.map((car, i) => {
       const own = r.cars.includes(i);
-      return `<button class="car-card ${r.car === i ? 'on' : ''}" data-i="${i}"><canvas width="240" height="172"></canvas>
+      return `<button class="car-card ${r.car === i ? 'on' : ''}" data-i="${i}"><img class="shop-car" src="img/life/car-${i}.webp" alt="">
         <div class="c-name">${car.name}</div>
-        <div class="c-price">${r.car === i ? 'Selected' : own ? "Choose" : icon('coin', 14) + ' ' + car.cost}</div></button>`;
+        <div class="c-price">${r.car === i ? 'Selected' : own ? "Choose" : car.score ? car.score + '/100 reward' : icon('coin', 14) + ' ' + car.cost}</div></button>`;
     }).join('');
-    $$('.car-card canvas', g).forEach((cv, i) => {
-      const x = cv.getContext('2d'); const car = RACE_CARS[i];
-      x.save(); x.translate(120, 86); x.rotate(-Math.PI / 2); drawCar(x, 0, 0, 74, 132, car.color, car.dark); x.restore();
-    });
     $$('.car-card', g).forEach(b => b.onclick = () => {
       const i = +b.dataset.i; const cc2 = Store.active(); const r2 = raceData(cc2); const car = RACE_CARS[i];
       if (r2.cars.includes(i)) { r2.car = i; Store.saveChild(cc2); Sfx.tap(); drawGarage(); return; }
@@ -119,6 +150,7 @@ HK.screens.raceMenu = (el) => {
         garage.cars.push(i); garage.car = i; Store.saveChild(current);
         Sfx.win(); confetti(el); $('#coins', el).textContent = current.coins; drawGarage();
       };
+      if (car.score) return toast('Finish a race with a quiz score of ' + car.score + ' or higher to earn this car.');
       const missing = car.cost - (cc2.coins || 0);
       if (missing > 0) return tokenChallenge(el, missing, buy, {
         title: 'Not enough coins',
@@ -209,8 +241,8 @@ HK.screens.racePlay = (el, p) => {
   const S = {
     dist: 0, boost: 0, slow: 0, lane: 1, x: 0,
     hearts: CFG.hearts, coins: 0, inv: 0, objs: [], decos: [],
-    nextRow: 600, nextGate: 2400, noSpawnUntil: 0, gate: null,
-    paused: false, over: false, time: 0, saveAcc: 0, warned: false, correct: 0, shake: 0,
+    nextRow: 600, nextGate: LENGTH / 6, noSpawnUntil: 0, gate: null,
+    paused: false, over: false, time: 0, saveAcc: 0, warned: false, correct: 0, answered: 0, shake: 0,
   };
   resize();
   window.addEventListener('resize', resize);
@@ -230,9 +262,8 @@ HK.screens.racePlay = (el, p) => {
     const blocks = Math.random() < CFG.double ? 2 : 1;
     for (let i = 0; i < blocks; i++) {
       const type = Math.random() < 0.7 ? 'car' : 'rock';
-      const cols = [['#5C6B8A', '#45526D'], ['#E8EEF7', '#B9C4D6'], ['#2E8B6E', '#226A54'], ['#C48A3A', '#9A6A28'], ['#9D4EDD', '#7B35B5']];
-      const col = cols[Math.floor(Math.random() * cols.length)];
-      S.objs.push({ type, lane: lanes[i], y: -120, color: col[0], dark: col[1], vy: type === 'car' ? 0.35 : 0 });
+      const traffic = RACE_CARS[Math.floor(Math.random() * RACE_CARS.length)];
+      S.objs.push({ type, lane: lanes[i], y: -120, color: traffic.color, dark: traffic.dark, vy: type === 'car' ? 0.35 : 0 });
     }
     const free = lanes[blocks];
     const n = Math.random() < 0.5 ? 3 : 1;
@@ -391,8 +422,8 @@ HK.screens.racePlay = (el, p) => {
 
     S.x += (laneX(S.lane) - S.x) * Math.min(1, dt * 14);
 
-    if (S.dist >= S.nextGate && S.dist < LENGTH - 1400 && !S.gate) {
-      spawnGate(); S.noSpawnUntil = S.dist + 900; S.nextGate = S.dist + 2600 + Math.random() * 800;
+    if (S.dist >= S.nextGate && S.answered < 5 && !S.gate) {
+      spawnGate(); S.noSpawnUntil = S.dist + 900; S.nextGate += LENGTH / 6;
     }
     if (S.dist >= S.nextRow && S.dist < LENGTH - 500) {
       if (S.dist > S.noSpawnUntil && (!S.gate || S.gate.done) && (S.dist < S.nextGate - 1100 || S.nextGate > LENGTH - 1400)) spawnRow();
@@ -425,6 +456,7 @@ HK.screens.racePlay = (el, p) => {
       S.gate.y += dy;
       if (!S.gate.done && S.gate.y >= playerY() - 10) {
         S.gate.done = true;
+        S.answered++;
         const ok = S.gate.q.opts[S.lane].ok;
         if (ok) {
           S.correct++; S.coins += 5; S.boost = 1.6; Sfx.good(); celebrateMascot(el); msg("Congratulations! +5", '#FFE07A');
@@ -445,7 +477,7 @@ HK.screens.racePlay = (el, p) => {
       if (left <= 60 && !S.warned) { S.warned = true; toast("1 minute of games left"); speak("One minute left"); }
       if (left <= 0) { S.over = true; HK.go('timeUp', {}, { replace: true }); return; }
     }
-    if (S.dist >= LENGTH) finish(true);
+    if (S.dist >= LENGTH && S.answered === 5) finish(true);
   }
 
   function render() {
@@ -513,6 +545,7 @@ HK.screens.racePlay = (el, p) => {
     $('#q', el).classList.add('hidden-q');
     const cc = Store.active(); const r = raceData(cc);
     cc.coins = (cc.coins || 0) + S.coins;
+    const { score, feedback } = racingResult(r, won, S.correct, S.answered);
     let stars = 0;
     if (won) {
       stars = CFG.hearts > 9 ? 3 : Math.max(1, S.hearts);
@@ -520,15 +553,15 @@ HK.screens.racePlay = (el, p) => {
       if (stars > prev) { cc.stars = (cc.stars || 0) + (stars - prev); r.best[level] = stars; }
       if (level >= r.unlocked && level < RACE_EPISODES) r.unlocked = level + 1;
       Sfx.win(); confetti(el);
-      speak(level === RACE_EPISODES ? "Congratulations champion! You finished all the races!" : "Congratulations! You finished level " + level);
-    } else { Sfx.bad(); speak("Oops, try again. You can do it!"); }
+    }
+    speak(feedback);
     Store.saveChild(cc);
     const leftNow = HK.gameLeft(cc);
     modal(el, {
       iconName: won ? 'trophy' : 'repeat', iconColor: won ? 'var(--sun)' : 'var(--coral)',
-      title: won ? (level === RACE_EPISODES ? "Racing Champion!" : 'You finished!') : 'Try again',
+      title: won ? (level === RACE_EPISODES ? "Racing Champion!" : 'You finished!') : 'Well done!',
       html: `${won ? `<div class="earned">${starsHTML(stars, 3, 44)}</div>` : ''}
-        <p>Coins ${S.coins}${S.correct ? ' · Correct answers ' + S.correct : ''}</p>`,
+        <p>Coins +${S.coins} · Correct answers ${S.correct}/${S.answered}</p>${S.answered ? '<b>Quiz score ' + score + '/100</b>' : ''}<p>${esc(feedback)}</p>`,
       buttons: [
         ...(won && level < RACE_EPISODES && leftNow > 0 ? [{ label: "Next level", icon: 'chevR', onClick: () => HK.go('racePlay', { level: level + 1 }, { replace: true }) }] : []),
         ...(leftNow > 0 ? [{ label: "Play again", cls: won ? 'sun' : '', icon: 'repeat', onClick: () => HK.go('racePlay', { level }, { replace: true }) }] : []),

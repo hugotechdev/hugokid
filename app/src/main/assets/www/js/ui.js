@@ -105,6 +105,7 @@ function mascot(name, size = 88, cls = '') {
 }
 
 const GAME_SCENES = {
+  jungle: 'runner', rescue: 'serengeti', farm: 'village', bridge: 'roboti', ocean: 'lugha',
   racing: 'town', runner: 'runner', pilot: 'pilot', penalty: 'penalty',
   bubbles: 'bubbles', village: 'village', kitchen: 'kitchen', balloons: 'namba',
   letters: 'herufi', memory: 'ziwa', robot: 'roboti', market: 'soko',

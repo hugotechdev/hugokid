@@ -106,17 +106,17 @@ HK.screens.superHome = (el) => {
       body.innerHTML = `<div class="stat-grid">
           ${statCard('School', s.schools, 'build', 'var(--blue)')}${statCard('Teachers', s.teachers, 'user', 'var(--teal)')}${statCard('Parents', s.parents, 'users', 'var(--coral)')}
           ${statCard('Students', s.children, 'star', 'var(--sun-d)')}${statCard('Homework', s.homework, 'file', '#7B61FF')}${statCard('Revenue (TSh)', paid.toLocaleString(), 'coin', 'var(--navy)')}</div>
-        <div class="section-title">Schools</div>
+        <div class="section-title">Schools</div><input class="field" id="school-search" aria-label="Search schools" placeholder="Search school name or phone"><div id="school-bulk"></div>
         <div class="card table-card"><table><tr><th>School</th><th>Location</th><th>Students</th><th>Status</th><th></th></tr>
-          ${s.list.map(x => `<tr><td>${esc(x.name)}<br><span class="muted">${x.type === 'tutor' ? 'Tutor' : 'School'} · ${esc(x.phone || '')}</span></td><td>${esc(x.region || '')} ${esc(x.district || '')}</td><td>${x.students}</td>
+          ${s.list.map(x => `<tr data-search="${esc(x.name + ' ' + (x.phone || ''))}"><td><input type="checkbox" data-customer-school="${x.id}" aria-label="Select ${esc(x.name)}"> ${esc(x.name)}<br><span class="muted">${x.type === 'tutor' ? 'Tutor' : 'School'} · ${esc(x.phone || '')}</span></td><td>${esc(x.region || '')} ${esc(x.district || '')}</td><td>${x.students}</td>
             <td><span class="chip-tag ${x.status === 'active' ? 'teal' : 'coral'}">${accessLabels[x.status] || 'Unknown'}</span></td>
             <td><button class="btn small ghost" data-inv="${x.id}" data-n="${esc(x.name)}">Invoice</button> <button class="btn small ${x.status === 'active' ? 'coral' : ''}" data-st="${x.id}" data-v="${x.status === 'active' ? 'blocked' : 'active'}">${x.status === 'active' ? 'Suspend' : 'Activate'}</button></td></tr>`).join('')}</table></div>
         <div class="section-title">Users</div>
         <div class="card"><div class="form-row"><div class="seg" style="margin:0;flex:2" id="ur">${[['parent', 'Parents'], ['teacher', 'Teachers'], ['school_admin', 'School admins'], ['children', 'Children']].map(([k, n], i) => `<button data-r="${k}" class="${i ? '' : 'on'}">${n}</button>`).join('')}</div>
-          <input class="field" id="uq" placeholder="Search name, phone or email"></div><div id="ul" style="margin-top:10px"></div></div>
+          <input class="field" id="uq" aria-label="Search users" placeholder="Search name, phone or email"></div><div id="ul" style="margin-top:10px"></div></div>
         <div class="section-title">Invoices</div>
-        ${b.invoices.map(i => `<div class="item" style="cursor:default"><div class="grow"><div class="i-title">${esc(i.school || i.parent || '')} · ${esc(i.plan)} · ${esc(i.period)}</div><div class="i-sub">TSh ${Number(i.amount).toLocaleString()}${i.reference ? ' · ' + esc(i.method || '') + ' ' + esc(i.reference) : ''}</div></div>
-          <span class="chip-tag ${st[i.status][0]}">${st[i.status][1]}</span>${i.status !== 'paid' ? `<button class="btn small" data-paid="${i.id}" >Confirm payment & activate</button>` : ''}</div>`).join('') || '<p class="muted">No invoices yet.</p>'}
+        ${b.invoices.map(i => `<div class="item admin-invoice"><div class="grow"><div class="i-title">${esc(i.school || i.parent || '')} · ${esc(i.plan)} · ${esc(i.period)}</div><div class="i-sub">TSh ${Number(i.amount).toLocaleString()}${i.reference ? ' · ' + esc(i.method || '') + ' ' + esc(i.reference) : ''}</div></div>
+           ${i.phone ? `<button class="btn small ghost" data-share="${i.id}">WhatsApp</button>` : ''}<span class="chip-tag ${st[i.status][0]}">${st[i.status][1]}</span>${i.status !== 'paid' ? `<button class="btn small" data-paid="${i.id}" >Confirm payment & activate</button>` : ''}</div>`).join('') || '<p class="muted">No invoices yet.</p>'}
         <div class="stat-grid three" style="margin-top:14px">
           <div class="card"><h3>Pricing</h3><label class="label">Per student per term (school)</label><input class="field" id="p1" type="number" value="${b.plans.school_student_term}">
             <label class="label">Parent per month</label><input class="field" id="p2" type="number" value="${b.plans.parent_month}">
@@ -137,6 +137,33 @@ HK.screens.superHome = (el) => {
             <button class="btn" id="publish-apk" style="margin-top:10px">Publish APK</button>
             <p id="apk-status" role="status" class="muted" style="margin-top:8px"></p></div>
           <div class="card"><h3>Account</h3><button class="btn block ghost" id="pw">${icon('key', 18)} Change password</button></div></div>`;
+      const bulk = (tools, scope, kind) => {
+        tools.innerHTML = '<div class="chips"><button class="chip" data-action="active">Activate selected</button><button class="chip" data-action="blocked">Suspend selected</button><button class="chip" data-action="message">Message selected</button></div>';
+        $$('[data-action]', tools).forEach(button => button.onclick = () => {
+          const ids = $$('[data-customer-' + kind + ']:checked', scope).map(input => +input.getAttribute('data-customer-' + kind));
+          if (!ids.length) return toast('Select customers first.');
+          const action = button.dataset.action;
+          modal(el, { title: button.textContent + ' (' + ids.length + ')', html: action === 'message' ? '<textarea id="notice" class="field" maxlength="2000" placeholder="Write a notification"></textarea>' : '',
+            buttons: [{ label: action === 'message' ? 'Send message' : 'Confirm', keepOpen: true, onClick: async o => {
+              const submit = o.querySelector('.btn'); submit.disabled = true;
+              try { await Net.post('/api/admin/customers/action', { kind, ids, action, message: o.querySelector('#notice')?.value }); o.remove(); HK.render(); }
+              catch (error) { toast(error.message); } finally { submit.disabled = false; }
+            } }, { label: 'Cancel', cls: 'ghost' }] });
+        });
+      };
+      bulk($('#school-bulk', body), body, 'school');
+      $('#school-search', body).oninput = e => $$('tr[data-search]', body).forEach(row => {
+        row.hidden = !row.dataset.search.toLowerCase().includes(e.target.value.trim().toLowerCase());
+        if (row.hidden) row.querySelector('input').checked = false;
+      });
+      $$('[data-share]', body).forEach(button => button.onclick = () => {
+        const invoice = b.invoices.find(item => item.id === +button.dataset.share);
+        let phone = String(invoice.phone).replace(/\D/g, '').replace(/^00/, '');
+        if (/^0\d{9}$/.test(phone)) phone = '255' + phone.slice(1);
+        if (!/^[1-9]\d{7,14}$/.test(phone)) return toast('Check the customer phone number.');
+        const text = ['HUGO KID invoice #' + invoice.id, invoice.school || invoice.parent, invoice.plan, invoice.period, 'TSh ' + Number(invoice.amount).toLocaleString(), st[invoice.status][1], b.plans.pay_info].filter(Boolean).join('\n');
+        Net.openExternal('https://wa.me/' + phone + '?text=' + encodeURIComponent(text));
+      });
       $$('[data-st]', body).forEach(x => x.onclick = async () => { try { await Net.post(`/api/admin/schools/${x.dataset.st}/status`, { status: x.dataset.v }); HK.render(); }
         catch (error) { toast(error.message); } });
       $$('[data-paid]', body).forEach(x => x.onclick = () => confirmBox(el,
@@ -191,23 +218,28 @@ HK.screens.superHome = (el) => {
         }
       };
       $('#pw', body).onclick = () => HK.go('changePass');
-      let ur = 'parent';
+      let ur = 'parent', searchId = 0;
       const loadUsers = async () => {
+        const requestId = ++searchId;
         const qq = encodeURIComponent($('#uq', body).value || '');
         const box = $('#ul', body); box.innerHTML = '<p class="muted">Loading…</p>';
         try {
           if (ur === 'children') {
             const list = await Net.get('/api/admin/children?q=' + qq);
+            if (requestId !== searchId) return;
             box.innerHTML = `<div class="table-card" style="padding:0"><table><tr><th>Child</th><th>School / class</th><th>Parent</th></tr>${list.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.school || '-')} ${c.level ? '· ' + esc(c.level + (c.stream ? ' ' + c.stream : '')) : ''}</td><td>${esc(c.parent || '-')} ${esc(c.phone || '')}</td></tr>`).join('')}</table></div>`;
             return;
           }
-          const list = await Net.get(`/api/admin/users?role=${ur}&q=${qq}`);
-          box.innerHTML = `<div class="table-card" style="padding:0"><table><tr><th>Name</th><th>Contact</th><th>${ur === 'parent' ? 'Children' : 'School'}</th><th>Access</th><th></th></tr>${list.map(x => `<tr><td>${esc(x.name)}</td><td>${esc(x.phone || '')} ${esc(x.email || '')}</td><td>${esc(ur === 'parent' ? (x.children || []).join(', ') : (x.school || ''))}</td>
+          const role = ur;
+          const list = await Net.get(`/api/admin/users?role=${role}&q=${qq}`);
+          if (requestId !== searchId) return;
+          box.innerHTML = `<div class="table-card" style="padding:0"><div id="parent-bulk"></div><table><tr><th>Name</th><th>Contact</th><th>${ur === 'parent' ? 'Children' : 'School'}</th><th>Access</th><th></th></tr>${list.map(x => `<tr><td>${ur === 'parent' ? `<input type="checkbox" data-customer-parent="${x.id}" aria-label="Select ${esc(x.name)}">` : ''} ${esc(x.name)}</td><td>${esc(x.phone || '')} ${esc(x.email || '')}</td><td>${esc(ur === 'parent' ? (x.children || []).join(', ') : (x.school || ''))}</td>
             <td>${accessLabels[x.school_status || x.access_status] || 'Unknown'}
               ${x.matches?.length ? `<details><summary>Possible duplicate</summary>
                 ${x.matches.map(match => `<p>Same ${esc(match.field)}: ${match.accounts.map(account => esc(account.name) + ' (#' + account.id + ', ' + esc(account.role) + ')').join(', ')}</p>`).join('')}
               </details>` : ''}</td>
             <td>${ur === 'parent' ? `<button class="btn small ${x.access_status === 'active' ? 'coral' : ''}" data-parent-access="${x.id}" data-status="${x.access_status === 'active' ? 'blocked' : 'active'}">${x.access_status === 'active' ? 'Suspend' : 'Activate'}</button> ` : ''}<button class="btn small ghost" data-rst="${x.id}">Password</button>${ur === 'parent' ? ` <button class="btn small ghost" data-pinv="${x.id}" data-n="${esc(x.name)}">Invoice</button>` : ''}</td></tr>`).join('')}</table></div>`;
+          if (ur === 'parent') bulk($('#parent-bulk', box), box, 'parent');
           $$('[data-parent-access]', box).forEach(btn => btn.onclick = async () => {
             try {
               await Net.post(`/api/admin/parents/${btn.dataset.parentAccess}/status`, { status: btn.dataset.status });
@@ -218,11 +250,36 @@ HK.screens.superHome = (el) => {
           $$('[data-pinv]', box).forEach(btn => btn.onclick = () => modal(el, { title: 'Invoice: ' + btn.dataset.n, html: '<input class="field" id="ia" type="number" placeholder="Amount (TSh)"><input class="field" id="ip" placeholder="Period (e.g. December)" style="margin-top:8px"><div style="height:14px"></div>', buttons: [
             { label: 'Send invoice', onClick: async o => { try { await Net.post('/api/admin/invoices', { parent_id: +btn.dataset.pinv, amount: +$('#ia', o).value, period: $('#ip', o).value, plan: 'HUGO KID Parent' }); toast("Invoice sent"); HK.render(); } catch (e) { toast(e.message); } } },
             { label: 'Cancel', cls: 'ghost' }] }));
-        } catch (e) { box.innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
+        } catch (e) { if (requestId === searchId) box.innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
       };
       $$('#ur button', body).forEach(btn => btn.onclick = () => { ur = btn.dataset.r; $$('#ur button', body).forEach(x => x.classList.toggle('on', x === btn)); loadUsers(); });
-      let tmr; $('#uq', body).oninput = () => { clearTimeout(tmr); tmr = setTimeout(loadUsers, 300); };
+      let tmr; $('#uq', body).oninput = () => { searchId++; clearTimeout(tmr); tmr = setTimeout(loadUsers, 300); };
       loadUsers();
     } catch (e) { body.innerHTML = errBox(e); }
   })();
 };
+
+function bindCustomerNotices(el) {
+  const button = $('#customer-notices', el);
+  if (!button) return;
+  if (Net.online() && !Net.accessScreen()) Net.connect();
+  const load = () => Net.get('/api/customer/notices');
+  const refresh = () => load().then(rows => {
+    button.textContent = rows.some(r => !r.seen) ? 'Notifications •' : 'Notifications';
+  }).catch(() => {});
+  refresh();
+  const onNotice = () => {
+    if (!button.isConnected) return;
+    refresh();
+    toast('New message from HUGO TECH');
+  };
+  button.addEventListener('customer-notice', onNotice);
+  button.onclick = async () => {
+    try {
+      const rows = await load();
+      modal(el, { title: 'Notifications', html: rows.map(r => `<div class="card"><small>${esc(new Date(r.created).toLocaleDateString())}</small><p>${esc(r.body)}</p></div>`).join('') || '<p>No messages yet.</p>', buttons: [{ label: 'Close' }] });
+      if (rows.length) await Net.post('/api/customer/notices/read', { through: rows[0].id });
+      refresh();
+    } catch (error) { toast(error.message); }
+  };
+}

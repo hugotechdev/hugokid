@@ -20,7 +20,8 @@ HK.screens.schoolHome = (el) => {
   if (!u) return HK.boot();
   const admin = isAdmin();
   const body = dash(el, u.school ? u.school.name : 'Shule', (admin ? (u.school && u.school.type === 'tutor' ? 'Mwalimu binafsi' : 'Mkuu wa shule') : 'Mwalimu') + ' · ' + u.name, loading, false,
-    `<button class="icon-btn" id="out" title="Toka">${icon('logout', 20)}</button>`);
+    `${admin ? '<button class="chip" id="customer-notices">Notifications</button>' : ''}<button class="icon-btn" id="out" title="Toka">${icon('logout', 20)}</button>`);
+  bindCustomerNotices(el);
   $('#out', el).onclick = () => confirmBox(el, "Sign out of the account?", '', "Exit", () => { Net.logout(); HK.go('welcome', {}, { reset: true }); });
   HK.setBack(() => true);
   Net.connect();
@@ -176,7 +177,7 @@ HK.screens.tClass = (el, p) => {
         body.dataset.students = JSON.stringify(list);
       }
       if (tab === 'at') {
-        const day = p.day || new Date().toISOString().slice(0, 10);
+        const day = p.day || Store.today();
         const r = await Net.get(`/api/classes/${c.id}/attendance?day=${day}`);
         html = `<div class="form-row" style="margin-bottom:12px"><input class="field" type="date" id="day" value="${day}"><button class="btn small ghost" id="all">${icon('check', 16)} Wote wapo</button></div>
           ${r.students.map(s => `<div class="item" style="cursor:default"><div class="grow"><div class="i-title">${esc(s.name)}</div></div>
@@ -286,7 +287,7 @@ HK.screens.tHwNew = (el, p) => {
       $$('[data-rmq]', body).forEach(b => b.onclick = () => { keep(); st.questions.splice(+b.dataset.rmq, 1); draw(); });
       $$('[data-rma]', body).forEach(b => b.onclick = () => { keep(); st.attachments.splice(+b.dataset.rma, 1); draw(); });
       $$('[data-rmp]', body).forEach(b => b.onclick = () => { keep(); st.pages.splice(+b.dataset.rmp, 1); draw(); });
-      $('#addfile', body).onclick = () => pickFile('application/pdf,image/*,audio/*', async f => {
+      $('#addfile', body).onclick = () => pickFile('application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,audio/*', async f => {
         keep();
         const w = modal(el, { iconName: 'file', title: 'Inapakia...', buttons: [] });
         try { const r = await Net.upload(f, f.name || 'Faili'); st.attachments.push({ file: r.file, mime: r.mime, label: f.name || 'Faili' }); w.remove(); draw(); } catch (e) { w.remove(); toast(e.message); }

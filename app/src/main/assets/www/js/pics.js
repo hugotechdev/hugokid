@@ -86,8 +86,10 @@ function pic(word, size = 56) {
   k = PIC_ALIAS[k] || k;
   if (PIC_COLORS[k]) return `<span class="pic" style="--pic:${size}px"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="24" fill="${PIC_COLORS[k]}" stroke="#D5DCE8" stroke-width="2"/>${_shine(24, 24, 5, 7)}</svg></span>`;
   if (PIC_NUMS[k]) return `<span class="pic" style="--pic:${size}px"><svg viewBox="0 0 64 64">${_numDots(PIC_NUMS[k])}</svg></span>`;
+  if (['mama','baba','kaka','dada','bibi','babu','gari'].includes(k)) return `<img width="${size}" height="${size}" style="object-fit:cover;border-radius:20%" src="img/life/${k}.webp" alt="">`;
   if (PICS[k]) return `<span class="pic" style="--pic:${size}px"><svg viewBox="0 0 64 64">${PICS[k]}</svg></span>`;
-  const an = typeof ANIMALS !== 'undefined' && ANIMALS[k.charAt(0).toUpperCase() + k.slice(1)];
+  const id = typeof ANIMAL_NAMES !== 'undefined' && ANIMAL_KEYS.get(k);
+  const an = id && ANIMALS[id];
   if (an) return `<span class="pic" style="--pic:${size}px">${an()}</span>`;
   return '';
 }

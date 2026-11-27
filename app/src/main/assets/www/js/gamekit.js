@@ -122,6 +122,7 @@ const GK = {
   },
 
   quiz(kit, { total = 8, make, render, cols = 2 }) {
+    kit.body.classList.add('g-quiz-body');
     if ((kit.child.needs || []).includes('attention')) total = Math.min(total, 5);
     let i = 0, locked = false, demo = kit.first;
     const marks = [];
@@ -131,7 +132,7 @@ const GK = {
       kit.hint = q.text || q.say || '';
       kit.body.innerHTML = `
         <div class="g-progress">${Array.from({ length: total }, (_, k) => `<i class="${marks[k] || ''}"></i>`).join('')}</div>
-        <div class="g-q"><span>${q.html || esc(q.text)}</span>${q.say ? `<button class="icon-btn say" id="say">${icon('volume', 22)}</button>` : ''}</div>
+        <div class="g-q"><span>${q.html || esc(q.text)}</span>${q.say ? `<button class="icon-btn say" id="say" aria-label="Repeat question">${icon('volume', 22)}</button>` : ''}</div>
         ${render ? render(q) : ''}
         <div class="g-opts" style="grid-template-columns:repeat(${q.cols || cols},1fr)">${q.opts.map((o, k) => `<button class="g-opt" data-k="${k}" style="${o.style || ''}">${o.html || esc(o.label)}</button>`).join('')}</div>`;
       if (q.say) { $('#say', kit.body).onclick = () => speak(q.say); if (!demo) setTimeout(() => { if (!kit.ended && !kit.paused) speak(q.say); }, 250); }

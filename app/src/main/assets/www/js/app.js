@@ -20,7 +20,8 @@ const HK = window.HK = {
   render() {
     if (this._cleanup) { try { this._cleanup(); } catch (e) {} this._cleanup = null; }
     this._onBack = null;
-    let cur = this.stack.at(-1);
+    let cur = this.stack[this.stack.length - 1];
+    if (!cur) return;
     if (Net.role() === 'child' && !Net.accessScreen() && (ADULT_SCREENS.includes(cur.name) || ['pin','pickChild','devices'].includes(cur.name))) {
       cur = { name: 'home', params: {} }; this.stack = [cur];
     }
@@ -38,6 +39,7 @@ const HK = window.HK = {
     const fn = this.screens[cur.name];
     if (!fn) { el.innerHTML = '<div class="center-col">Screen not found: ' + esc(cur.name) + '</div>'; return; }
     const out = fn(el, cur.params || {});
+    if (el.parentNode !== root) return;
     if (typeof out === 'function') this._cleanup = out;
     const dash = el.classList.contains('dash-screen');
     document.body.classList.toggle('is-dash', dash);
@@ -57,7 +59,8 @@ const HK = window.HK = {
   setBack(fn) { this._onBack = fn; },
 
   back() {
-    const overlay = $$('.overlay').at(-1);
+    const overlays = $$('.overlay');
+    const overlay = overlays[overlays.length - 1];
     if (overlay) {
       if (overlay.onGameBack) overlay.onGameBack();
       else overlay.remove();

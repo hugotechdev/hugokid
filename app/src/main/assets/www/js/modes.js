@@ -72,16 +72,6 @@ setInterval(() => {
   modal(null, { iconName: 'run', iconColor: 'var(--teal)', title: 'Pumzika kidogo', text: b.t, buttons: [{ label: 'Nimemaliza', icon: 'check', onClick: () => { const cc = Store.active(); cc.stars = (cc.stars || 0) + 1; Store.saveChild(cc); toast("1 star for practice"); } }] });
 }, 60000);
 
-const ANIMALS = {
-  Tembo: c => `<svg viewBox="0 0 120 120"><ellipse cx="34" cy="52" rx="22" ry="28" fill="#A9B3C6"/><ellipse cx="86" cy="52" rx="22" ry="28" fill="#A9B3C6"/><circle cx="60" cy="54" r="32" fill="#C3CBD9"/><path d="M60 70q-6 22 6 36" stroke="#C3CBD9" stroke-width="14" fill="none" stroke-linecap="round"/><circle cx="48" cy="48" r="5" fill="#0D2461"/><circle cx="72" cy="48" r="5" fill="#0D2461"/><circle cx="49" cy="46" r="1.6" fill="#fff"/><circle cx="73" cy="46" r="1.6" fill="#fff"/></svg>`,
-  Simba: c => `<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="46" fill="#D9822B"/><circle cx="60" cy="62" r="32" fill="#F6C56B"/><circle cx="34" cy="34" r="9" fill="#F6C56B"/><circle cx="86" cy="34" r="9" fill="#F6C56B"/><circle cx="48" cy="56" r="5" fill="#0D2461"/><circle cx="72" cy="56" r="5" fill="#0D2461"/><path d="M54 70h12l-6 7z" fill="#7A3E12"/><path d="M50 80q10 8 20 0" stroke="#7A3E12" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
-  Twiga: c => `<svg viewBox="0 0 120 120"><rect x="52" y="34" width="16" height="70" rx="8" fill="#F4C04E"/><ellipse cx="62" cy="30" rx="22" ry="16" fill="#F4C04E"/><path d="M50 16v-8M62 14v-8" stroke="#A86A1E" stroke-width="4" stroke-linecap="round"/><circle cx="56" cy="28" r="4" fill="#0D2461"/><circle cx="70" cy="28" r="4" fill="#0D2461"/><circle cx="58" cy="56" r="4" fill="#C47A2C"/><circle cx="63" cy="74" r="5" fill="#C47A2C"/><circle cx="57" cy="92" r="4" fill="#C47A2C"/><circle cx="76" cy="36" r="3" fill="#C47A2C"/></svg>`,
-  Paka: c => `<svg viewBox="0 0 120 120"><path d="M28 50L32 16l22 18zM92 50L88 16 66 34z" fill="#9AA3B5"/><circle cx="60" cy="64" r="36" fill="#B6BECD"/><circle cx="46" cy="58" r="5" fill="#0D2461"/><circle cx="74" cy="58" r="5" fill="#0D2461"/><path d="M56 70h8l-4 5z" fill="#F65B4F"/><path d="M40 72H20M40 78H22M80 72h20M80 78h18" stroke="#6E7890" stroke-width="2" stroke-linecap="round"/></svg>`,
-  Mbwa: c => `<svg viewBox="0 0 120 120"><ellipse cx="28" cy="56" rx="12" ry="24" fill="#8A5A2B"/><ellipse cx="92" cy="56" rx="12" ry="24" fill="#8A5A2B"/><circle cx="60" cy="60" r="34" fill="#C48A50"/><ellipse cx="60" cy="76" rx="16" ry="12" fill="#E8C49A"/><circle cx="47" cy="54" r="5" fill="#0D2461"/><circle cx="73" cy="54" r="5" fill="#0D2461"/><ellipse cx="60" cy="70" rx="6" ry="4.5" fill="#0D2461"/></svg>`,
-  Samaki: c => `<svg viewBox="0 0 120 120"><path d="M92 60l22-20v40z" fill="#FF8A3D"/><ellipse cx="56" cy="60" rx="40" ry="26" fill="#FFB020"/><path d="M48 40q8 20 0 40" stroke="#FF8A3D" stroke-width="5" fill="none"/><circle cx="32" cy="54" r="5" fill="#0D2461"/></svg>`,
-  Ndege: c => `<svg viewBox="0 0 120 120"><circle cx="58" cy="64" r="32" fill="#1EA7F0"/><path d="M50 62q20-4 30 14-20 4-30-14z" fill="#1585C2"/><circle cx="46" cy="52" r="5" fill="#0D2461"/><path d="M24 58l-14 6 14 4z" fill="#FFC20E"/><path d="M50 96v12M66 96v12" stroke="#FFC20E" stroke-width="4" stroke-linecap="round"/></svg>`,
-  Kuku: c => `<svg viewBox="0 0 120 120"><ellipse cx="62" cy="70" rx="34" ry="30" fill="#fff" stroke="#E3E9F5" stroke-width="3"/><circle cx="44" cy="44" r="18" fill="#fff" stroke="#E3E9F5" stroke-width="3"/><path d="M38 26q4-8 8 0 4-8 8 2" fill="#F65B4F"/><path d="M26 44l-10 4 10 4z" fill="#FFC20E"/><circle cx="40" cy="42" r="3.5" fill="#0D2461"/><path d="M54 98v12M70 98v12" stroke="#FFC20E" stroke-width="4" stroke-linecap="round"/></svg>`,
-};
 const COLORS_SW = [['Nyekundu', '#F65B4F'], ['Bluu', '#1EA7F0'], ['Njano', '#FFC20E'], ['Kijani', '#0FB394'], ['Zambarau', '#7B61FF'], ['Chungwa', '#FF8A3D'], ['Nyeusi', '#20232B'], ['Nyeupe', '#FFFFFF']];
 
 function learned(kind, item) {
@@ -99,6 +89,10 @@ HK.screens.tapGame = (el, p) => {
   const kind = p.kind || 'animals';
   const total = 6; let i = 0, first = 0, missed = false;
   const t0 = Date.now();
+  let answerTimer, speechTimer;
+  const animalIds = kind === 'animals' ? (ANIMAL_GROUPS[p.habitat] || ANIMAL_GROUPS.familiar).animals.map(([id]) => id) : [];
+  const seenAnimals = new Set(c.learned?.animals || []);
+  const targets = shuffle(animalIds.slice()).sort((a, b) => Number(seenAnimals.has(a)) - Number(seenAnimals.has(b))).slice(0, total);
   const make = () => {
     if (kind === 'colors') {
       const opts = shuffle(COLORS_SW.slice(0, 6)).slice(0, 3); const a = pick(opts);
@@ -112,8 +106,13 @@ HK.screens.tapGame = (el, p) => {
       const opts = shuffle(SHAPES.slice(0, 6)).slice(0, 3); const a = pick(opts);
       return { say: 'Tap the ' + T(a[0]).toLowerCase(), item: a[0], opts: opts.map((s, k) => ({ html: shapeSvg(s, SHAPE_COLS[k], 96), ok: s === a })) };
     }
-    const names = shuffle(Object.keys(ANIMALS)).slice(0, 3); const a = pick(names);
-    return { say: 'Tap the ' + T(a).toLowerCase(), item: a, opts: names.map(n => ({ html: ANIMALS[n](), ok: n === a, name: n })) };
+    const id = targets[i];
+    const others = shuffle(animalIds.filter(other => other !== id)).slice(0, 2);
+    return {
+      say: 'Tap the ' + ANIMAL_NAMES.get(id).toLowerCase(),
+      item: id,
+      opts: shuffle([id, ...others]).map(name => ({ html: ANIMALS[name](), ok: name === id, name })),
+    };
   };
   const draw = () => {
     if (i >= total) {
@@ -127,24 +126,29 @@ HK.screens.tapGame = (el, p) => {
     const q = make(); missed = false;
     el.innerHTML = `
       <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><div class="grow"></div>
-        <button class="icon-btn" id="say" style="width:64px;height:64px;background:var(--blue);color:#fff">${icon('volume', 34)}</button><div class="grow"></div>
+        <button class="icon-btn" id="say" aria-label="Repeat question" style="width:64px;height:64px;background:var(--blue-d);color:#fff">${icon('volume', 34)}</button><div class="grow"></div>
         <div class="g-progress" style="padding:0">${Array.from({ length: total }, (_, k) => `<i class="${k < i ? 'done' : ''}" style="width:12px"></i>`).join('')}</div></div>
       <div class="tap-grid">${q.opts.map((o, k) => `<button class="tap-opt" data-k="${k}">${o.html}</button>`).join('')}</div>`;
     $('#bk', el).onclick = () => HK.back();
     $('#say', el).onclick = () => speak(q.say);
-    setTimeout(() => speak(q.say), 250);
+    speechTimer = setTimeout(() => speak(q.say), 250);
     $$('.tap-opt', el).forEach(b => b.onclick = () => {
       const o = q.opts[+b.dataset.k];
       if (o.ok) {
+        if (o.name) playAnimal(b, o.name);
         if (!missed) first++;
         b.classList.add('ok'); Sfx.good(); learned(kind, q.item);
-        speak(pick(['Well done!', 'Very good!', 'You did it!']) + (o.name ? ' This is the ' + T(o.name).toLowerCase() + '.' : ''));
-        i++; setTimeout(draw, 1300);
+        speak(pick(['Well done!', 'Very good!', 'You did it!']) + (o.name ? ' This is the ' + ANIMAL_NAMES.get(o.name).toLowerCase() + '.' : ''));
+        i++; $$('.tap-opt', el).forEach(choice => choice.disabled = true); answerTimer = setTimeout(draw, o.name ? 2200 : 1300);
       } else { missed = true; b.classList.add('no'); Sfx.bad(); vibrate(80); speak('Try again. ' + q.say); }
     });
   };
   draw();
-  return () => HK.addLearnTime(c, Math.round((Date.now() - t0) / 1000));
+  return () => {
+    clearTimeout(speechTimer);
+    clearTimeout(answerTimer);
+    HK.addLearnTime(c, Math.round((Date.now() - t0) / 1000));
+  };
 };
 
 const ABC_EN = [['A', 'Apple'], ['B', 'Ball'], ['C', 'Cat'], ['D', 'Dog'], ['E', 'Egg'], ['F', 'Fish'], ['G', 'Goat'], ['H', 'Hat'], ['I', 'Insect'], ['J', 'Jug'], ['K', 'Kite'], ['L', 'Lion'], ['M', 'Mango'], ['N', 'Nest'], ['O', 'Orange'], ['P', 'Pen'], ['Q', 'Queen'], ['R', 'Rabbit'], ['S', 'Sun'], ['T', 'Tree'], ['U', 'Umbrella'], ['V', 'Van'], ['W', 'Water'], ['X', 'Box'], ['Y', 'Yam'], ['Z', 'Zebra']];

@@ -472,7 +472,7 @@ HK.screens.g_kitchen = (el, p) => {
   const rotations = [...RECIPES.slice(offset), ...RECIPES.slice(0, offset)];
   const list = rotations.slice(0, 3 + Math.floor((kit.level - 1) / 6));
   let ri = 0, perfect = 0, pot = {}, tries = 0;
-  let recipeTimer;
+
   const draw = () => {
     if (ri >= list.length) return kit.finish({ stars: perfect === list.length ? 3 : perfect >= Math.ceil(list.length * 2 / 3) ? 2 : 1, text: `${perfect} of ${list.length} recipes on the first try` });
     let cooked = false;
@@ -483,8 +483,7 @@ HK.screens.g_kitchen = (el, p) => {
       <div class="g-progress">${list.map((_, k) => `<i class="${k < ri ? 'done' : ''}"></i>`).join('')}</div>
       <div class="card" style="margin:0 16px 10px"><div class="row"><b style="font-size:19px" class="grow">${esc(rc.name)}</b><button class="icon-btn" id="say" style="width:40px;height:40px">${icon('volume', 20)}</button></div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${Object.entries(want).map(([k, n]) => `<span class="chip-tag recipe-item ${(pot[k] || 0) === n ? 'teal' : ''}">${pic(k, 22)}${INGR[k][0]}${kit.g ? ' × ' + n : ''}</span>`).join('')}</div></div>
-      <div style="display:flex;justify-content:center;margin:2px 0 10px"><svg width="150" height="84" viewBox="0 0 150 84"><ellipse cx="75" cy="18" rx="64" ry="12" fill="#3A4D80"/><path d="M11 18h128l-10 52a14 14 0 0 1-14 12H35a14 14 0 0 1-14-12z" fill="#5C6B8A"/><path d="M0 26h12M138 26h12" stroke="#3A4D80" stroke-width="7" stroke-linecap="round"/>
-        <text x="75" y="58" text-anchor="middle" font-weight="900" font-size="18" fill="#fff" font-family="Outfit,Roboto">${Object.values(pot).reduce((a, b) => a + b, 0)}</text></svg></div>
+      <div class="cook-pot"><img src="img/life/white-pot.webp" alt="White cooking pot"><span>${Object.values(pot).reduce((a,b) => a+b,0)}</span></div>
       <div class="ingredients">${shelf.map(k => `<button class="ing" data-k="${k}">${pot[k] ? `<span class="cnt">${pot[k]}</span>` : ''}<span class="dot2" style="--ingredient:${INGR[k][1]}" aria-hidden="true">${pic(k, 40)}</span>${INGR[k][0]}</button>`).join('')}</div>
       <div class="btn-row" style="padding:0 16px 16px"><button class="btn ghost" id="empty">${icon('repeat', 20)} Empty pot</button><button class="btn coral" id="cook" style="flex:2">${icon('pot', 20)} Cook</button></div>`;
     const sayIt = () => speak('Let’s make ' + T(rc.name) + '. We need ' + Object.entries(want).map(([k, n]) => (kit.g ? n + ' ' : '') + T(INGR[k][0])).join(', '));
@@ -496,7 +495,38 @@ HK.screens.g_kitchen = (el, p) => {
       if (cooked || kit.ended) return;
       const keys = new Set([...Object.keys(pot), ...Object.keys(want)]);
       const ok = [...keys].every(k => (pot[k] || 0) === (want[k] || 0));
-      if (ok) { cooked = true; if (!tries) perfect++; kit.addCoins(tries ? 2 : 4); Sfx.win(); speak('Well done! You made ' + T(rc.name)); ri++; pot = {}; tries = 0; recipeTimer = setTimeout(draw, 900); }
+      if (ok) {
+        cooked = true;
+        if (!tries) perfect++;
+        kit.addCoins(tries ? 2 : 4);
+        const serve = () => {
+          Sfx.win();
+          speak('Well done! You made ' + T(rc.name));
+          kit.body.innerHTML = `<div class="card meal-result">
+            <img class="meal" src="img/life/meal-${RECIPES.indexOf(rc)}.webp" alt="${esc(rc.name)}">
+            <picture><source media="(prefers-reduced-motion: reduce)" srcset="img/life/mama.webp"><img class="mum" src="img/life/mum-clap.webp" alt="Mum clapping"></picture>
+            <h2>${esc(rc.name)} is ready!</h2><p>Look what you made!</p>
+            <button class="btn" id="serve">Serve and continue</button></div>`;
+          $('#serve', kit.body).onclick = () => { ri++; pot = {}; tries = 0; draw(); };
+        };
+        if (rc.name === 'Chapati') {
+          kit.body.innerHTML = '<div class="card meal-result"><h2>Roll the dough</h2><p>Swipe across the dough or tap it three times to make a round chapati.</p><button class="dough" aria-label="Roll dough"></button></div>';
+          const dough = $('.dough', kit.body);
+          let rolls = 0;
+          const roll = () => {
+            if (!dough.isConnected) return;
+            rolls++;
+            dough.style.transform = 'scale(' + (1 + rolls * .12) + ')';
+            if (rolls === 3) serve();
+          };
+          dough.onclick = roll;
+          let start;
+          dough.onpointerdown = e => { start = e.clientX; dough.setPointerCapture(e.pointerId); };
+          dough.onpointerup = e => {
+            if (Math.abs(e.clientX - start) > 24) { dough.onclick = () => {}; roll(); setTimeout(() => { dough.onclick = roll; }, 0); }
+          };
+        } else serve();
+      }
       else {
         tries++; Sfx.bad();
         const extra = Object.keys(pot).find(k => !want[k]);
@@ -506,5 +536,5 @@ HK.screens.g_kitchen = (el, p) => {
     };
   };
   draw();
-  return () => { clearTimeout(recipeTimer); kit.cleanup(); };
+  return () => kit.cleanup();
 };

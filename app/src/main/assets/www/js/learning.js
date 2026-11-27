@@ -33,7 +33,7 @@ HK.nativeRoute = (route, app) => {
 };
 HK.onResume = () => {
   checkConnectedAccess();
-  if (HK.stack.at(-1)?.name === 'learningMode') HK.render();
+  if (HK.stack[HK.stack.length - 1]?.name === 'learningMode') HK.render();
 };
 
 HK.screens.learningMode = (el) => {
@@ -55,20 +55,20 @@ HK.screens.learningMode = (el) => {
   el.innerHTML = `
     <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Learning Mode</h1></div>
     <div class="scroll">
-      <div class="card" style="background:${st.on ? 'var(--teal)' : '#fff'};color:${st.on ? '#fff' : 'var(--navy)'}">
-        <div class="row"><div class="grow"><h3>${st.on ? 'Imewashwa' : 'Imezimwa'}${st.paused ? ' (imesimamishwa kwa muda)' : ''}</h3>
-          <p style="color:inherit;opacity:.9">The child will see only HUGO KID and the apps you allowed. Other apps will close.</p></div></div>
+      <div class="card" style="background:${st.on ? 'var(--teal-d)' : '#fff'};color:${st.on ? '#fff' : 'var(--navy)'}">
+        <div class="row"><div class="grow"><h3>${st.on ? 'On' : 'Off'}${st.paused ? ' (paused for parent)' : ''}</h3>
+          <p style="color:inherit;opacity:.9">${st.managed ? 'This managed device locks to the allowed learning apps.' : 'HUGO KID returns your child to learning when another app opens.'}</p></div></div>
         <div style="height:12px"></div>
         ${!st.on && !ready ? '<p>Allow usage access and display over other apps below, then return here to turn on Learning Mode.</p>' : ''}
         <button class="btn block ${st.on ? 'ghost' : ''}" id="toggle" ${!ready && !st.on ? 'disabled' : ''}>${st.on ? 'Zima Learning Mode' : 'Washa Learning Mode'}</button>
-        ${st.on ? `<div style="height:10px"></div><button class="btn block ghost small" id="pause">${icon('clock', 18)} Nitumie simu dakika 30</button>` : ''}
+        ${st.on ? `<div style="height:10px"></div><button class="btn block ghost small" id="pause">${icon('clock', 18)} ${st.paused ? 'Resume protection now' : 'Pause for 30 minutes'}</button>` : ''}
       </div>
 
       <div class="section-title">Setup steps (one time only)</div>
       ${step(st.usageAccess, "1. Usage access permission", 'Kujua programu inayotumika', 'p1')}
       ${step(st.overlay, "2. Display over other apps", "Return to HUGO KID when time runs out", 'p2')}
       ${step(st.home, '3. HUGO KID iwe Home', st.on ? "Choose HUGO KID as the Home app" : "Turn on Learning Mode first", 'p3')}
-      ${step(st.admin, '4. Zuia kufutwa', "Child can't uninstall HUGO KID", 'p4')}
+      ${step(st.admin, '4. App removal protection', st.managed ? 'Protected while Learning Mode is on' : 'Enable device administrator protection', 'p4')}
 
       <div class="section-title">Programu anazoruhusiwa</div>
       <p class="muted" style="font-weight:700;font-size:13px;margin:0 2px 10px">Tap an app to allow it, then choose its daily time.</p>
@@ -93,7 +93,7 @@ HK.screens.learningMode = (el) => {
       setTimeout(() => { HK.render(); if (!LM.state().home) modal(el, { iconName: 'home', title: "Last step", text: "Choose HUGO KID as this phone's Home app, so when the child presses Home they return to HUGO KID.", buttons: [{ label: "Open settings", onClick: () => HugoNative.openHomeSettings() }, { label: 'Baadaye', cls: 'ghost' }] }); }, 400);
     } else { toast("Learning Mode is off"); setTimeout(() => HK.render(), 300); }
   };
-  const pz = $('#pause', el); if (pz) pz.onclick = () => { HugoNative.pauseGuard(30); toast("Protection paused for 30 minutes"); HK.render(); };
+  const pz = $('#pause', el); if (pz) pz.onclick = () => { HugoNative.pauseGuard(st.paused ? 0 : 30); toast(st.paused ? "Protection resumed" : "Protection paused for 30 minutes"); HK.render(); };
   const bind = (id, fn) => { const b = $('#' + id, el); if (b) b.onclick = fn; };
   bind('p1', () => HugoNative.openUsageAccess());
   bind('p2', () => HugoNative.openOverlay());

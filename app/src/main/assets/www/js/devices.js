@@ -54,7 +54,7 @@ async function syncDevice(request=false){
   if(token!==Net.token())return;
   Store.set('remoteUntil',d.until);
   if(Store.settings().bedtime!==d.bedtime)Store.saveSettings({...Store.settings(),bedtime:d.bedtime});
-  if(HK.stack.at(-1)?.name==='sleep'&&!HK.isBedtime()) HK.toChild();
+  if(HK.stack[HK.stack.length - 1]?.name==='sleep'&&!HK.isBedtime()) HK.toChild();
 }
 function bindNightControls(el){
   const button=$('#par',el);
@@ -81,7 +81,7 @@ function bindNightControls(el){
   };
 }
 function enforceNight(){
-  const screen=HK.stack.at(-1)?.name;
+  const screen=HK.stack[HK.stack.length - 1]?.name;
   if(!screen||Net.accessScreen()||!['parent','child'].includes(Net.role())||!Store.active())return;
   if(ADULT_SCREENS.includes(screen)||['pin','devices','terms','pickChild','welcome','acctAuth','deviceLink','sleep'].includes(screen))return;
   if(HK.isBedtime())HK.go('sleep',{}, {reset:true});

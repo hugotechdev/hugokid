@@ -40,11 +40,11 @@ const Net = {
     if (this.token() !== token) return;
     const prior = this.acct();
     this.acceptSession(token, user);
-    const screen = HK.stack.at(-1)?.name;
+    const screen = HK.stack[HK.stack.length - 1]?.name;
     const gate = this.accessScreen();
     if (gate) this.closeWs();
     if (HK.startingAccess || !screen) return;
-    if (gate && !HK.allowsAccess(screen, HK.stack.at(-1).params)) return routeByRole();
+    if (gate && !HK.allowsAccess(screen, HK.stack[HK.stack.length - 1].params)) return routeByRole();
     if (screen === 'accountAccess' && (!gate || prior.user.access_status !== user.access_status)) routeByRole();
     if (screen === 'accessCheck' && gate !== 'accessCheck') routeByRole();
   },
@@ -97,7 +97,10 @@ const Net = {
 
   async upload(blob, label = '', childId) {
     const qs = new URLSearchParams({ label }); if (childId) qs.set('child_id', childId);
-    const r = await fetch(this.base() + '/api/upload?' + qs, { method: 'POST', headers: { authorization: 'Bearer ' + this.token(), 'content-type': blob.type || 'application/octet-stream' }, body: blob });
+    const ext = label.split('.').pop().toLowerCase();
+    const documents = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+    const type = !blob.type || blob.type === 'application/octet-stream' ? documents[ext] || 'application/octet-stream' : blob.type;
+    const r = await fetch(this.base() + '/api/upload?' + qs, { method: 'POST', headers: { authorization: 'Bearer ' + this.token(), 'content-type': type }, body: blob });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || 'Kupakia kumeshindikana');
     return j;
@@ -118,7 +121,7 @@ const Net = {
     let ws;
     try { ws = new WebSocket(u); } catch (e) { return; }
     this.ws = ws;
-    ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } this.handlers.forEach(h => { try { h(m); } catch (x) {} }); };
+    ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } if (m.t === 'customer_notice') document.getElementById('customer-notices')?.dispatchEvent(new Event('customer-notice')); this.handlers.forEach(h => { try { h(m); } catch (x) {} }); };
     ws.onclose = () => {
       if (this.ws !== ws) return;
       this.ws = null;

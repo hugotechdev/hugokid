@@ -39,6 +39,7 @@ function greetOnce(c, text) {
 }
 
 HK.screens.home = (el) => {
+  if (window.HugoNative?.pauseGuard && LM.state().paused) HugoNative.pauseGuard(0);
   const c = Store.active();
   if (!c) { HK.boot(); return; }
   if (HK.isBedtime()) { HK.go('sleep', {}, { replace: true }); return; }
@@ -53,13 +54,13 @@ HK.screens.home = (el) => {
 function homeToddler(el, c) {
   const art = {
     colors: `<svg viewBox="0 0 100 100" width="96" height="96"><circle cx="34" cy="38" r="20" fill="#F65B4F"/><circle cx="66" cy="38" r="20" fill="#FFC20E"/><circle cx="34" cy="68" r="20" fill="#1EA7F0"/><circle cx="66" cy="68" r="20" fill="#0FB394"/></svg>`,
-    animals: `<div style="width:104px;height:104px">${mascot('tembo', 104)}</div>`,
+    animals: '<img class="home-animal" src="img/life/tembo.webp" alt="">',
     numbers: `${mascot('pundamilia', 98)}`,
     shapes: `<svg viewBox="0 0 100 100" width="96" height="96"><circle cx="30" cy="34" r="18" fill="#fff"/><path d="M70 14l20 36H50z" fill="#FFE27A"/><rect x="18" y="58" width="30" height="30" rx="4" fill="#FFE27A"/><path d="M72 56l6 13 14 1-11 9 4 14-13-8-13 8 4-14-11-9 14-1z" fill="#fff"/></svg>`,
   };
   const tile = (go, p, say, label, cls, pic) => `<button class="tile big-t ${cls}" data-go="${go}" data-p='${p}' data-say="${esc(say)}">${pic}<div class="t-name">${label}</div></button>`;
   el.innerHTML = `
-    <div class="scroll" style="padding:0">
+    <div class="scroll child-home-scroll">
       <div class="hero home-hero home-hero-small" style="padding:14px 16px">
         <div class="row">
           <button id="me" class="av" aria-label="Wasifu wangu" style="border:0;padding:3px">${kidAvatar(c, 64)}</button>
@@ -67,15 +68,15 @@ function homeToddler(el, c) {
           <button class="lock" id="par" aria-label="Mzazi">${icon('lock', 18)}</button>
         </div>
       </div>
-      ${saladHomeCard(c)}
-      <div style="padding:16px"><div class="tiles">
+      <div class="home-actions"><div class="tiles">
         ${tile('tapGame', '{"kind":"colors"}', 'Rangi', 'Rangi', 'coral', art.colors)}
-        ${tile('tapGame', '{"kind":"animals"}', 'Wanyama', 'Wanyama', 'sun', art.animals)}
+        ${tile('animalGuide', '{}', 'Animals', 'Animals', 'sun', art.animals)}
         ${tile('tapGame', '{"kind":"numbers"}', 'Namba', 'Namba', 'blue', art.numbers)}
         ${tile('tapGame', '{"kind":"shapes"}', 'Maumbo', 'Maumbo', 'teal', art.shapes)}
         ${tile('games', '{}', 'Michezo', 'Michezo', 'navy wide', mascot('simba', 92))}
         <button class="tile white wide hidden" id="hwtile" data-go="hwList" data-say="Kazi ya mwalimu"><span class="badge hidden" id="hwbadge"></span>${mascot('tembo', 90)}<div class="t-name">Tasks</div></button>
       </div></div>
+      ${saladHomeCard(c)}
     </div>`;
   kidNav(el, 'home');
   bindTiles(el, c);
@@ -97,7 +98,7 @@ function homeStandard(el, c, mode) {
   const goal = mode === 'beginner' ? 10 : 15, gp = Math.min(1, learnMin / goal);
   const R = 26, C = 2 * Math.PI * R;
   const ms = missions(c);
-  const T = (go, p, cls, art, name, sub, say, extra = '') => `<button class="tile ${cls}" data-go="${go}" data-p='${p}' data-say="${esc(say || name)}">${extra}${art}<div></div><div><div class="t-name">${name}</div><div class="t-sub" ${go === 'hwList' ? 'id="hwsub"' : ''}>${sub}</div></div></button>`;
+  const T = (go, p, cls, art, name, sub, say, extra = '') => `<button class="tile home-action-tile ${cls}" data-go="${go}" data-p='${p}' data-say="${esc(say || name)}">${extra}${art}<div class="tile-copy"><div class="t-name">${name}</div><div class="t-sub" ${go === 'hwList' ? 'id="hwsub"' : ''}>${sub}</div></div></button>`;
   const wide = (go, p, cls, lead, name, sub, style = '') => `<button class="tile ${cls} wide" style="${style}" data-go="${go}" data-p='${p}' data-say="${esc(name)}"><span>${lead}</span><div class="grow"><div class="t-name">${name}</div><div class="t-sub">${sub}</div></div>${icon('chevR', 26)}</button>`;
 
   let tiles = '';
@@ -118,7 +119,7 @@ function homeStandard(el, c, mode) {
   } else {
     tiles = T('lessons', '{}', 'blue', ART.lessons, 'Masomo', "Languages, math, science")
       + T('hwList', '{}', 'sun', ART.homework, 'Homework', 'Kazi za shule', '', '<span class="badge hidden" id="hwbadge"></span>')
-      + wide('aiStudio', '{}', 'navy', mascot('nuru', 58), 'Studio ya AI', "Projects: stories, games, pictures, video", 'background:linear-gradient(135deg,#7B61FF,#1EA7F0)')
+      + wide('aiStudio', '{}', 'navy', mascot('nuru', 58), 'Studio ya AI', "Projects: stories, games, pictures, video")
       + T('games', '{}', 'coral', ART.games, 'Changamoto', left > 0 ? 'Michezo na coding' : 'Ya kujifunza')
       + T('myReport', '{}', 'teal', `<svg class="art" viewBox="0 0 110 110"><rect x="20" y="58" width="14" height="30" rx="4" fill="#fff"/><rect x="44" y="40" width="14" height="48" rx="4" fill="#fff"/><rect x="68" y="24" width="14" height="64" rx="4" fill="#FFE27A"/></svg>`, 'Maendeleo', 'Ripoti yangu')
       + (faithOn(c) ? wide('faith', '{}', 'teal', `<div class="t-ic">${icon('sunrise', 30)}</div>`, rel.tile, rel.name) : '')
@@ -126,9 +127,8 @@ function homeStandard(el, c, mode) {
   }
 
   el.innerHTML = `
-    <div class="scroll" style="padding:0">
+    <div class="scroll child-home-scroll">
       <div class="hero home-hero">
-        <div class="home-guide">${mascot('nuru', 94, 'mascot-peek')}</div>
         <div class="row">
           <button id="me" class="av" aria-label="Wasifu wangu" style="border:0;padding:3px">${kidAvatar(c, 58)}</button>
           <div><div class="hi">${greet},</div><div class="nm">${esc(c.name)}</div></div>
@@ -145,6 +145,14 @@ function homeStandard(el, c, mode) {
         </div>
       </div>
 
+      <div class="home-actions">
+        <div class="tiles">${tiles}
+          ${Net.online() && c.serverId && mode !== 'beginner' ? wide('together', '{}', 'white', `<div class="t-ic" style="background:var(--coral);color:#fff">${icon('users', 28)}</div>`, 'Pamoja', "Learn and play with friends") : ''}
+          ${wide('animalGuide', '{}', 'teal', '<img class="guide-thumb" src="img/life/tembo.webp" alt="">', 'Animal Guide', 'Explore 60 animals')}
+          ${wide('raceMenu', '{}', 'navy', `<div class="t-ic">${icon('car', 30)}</div>`, 'Mbio za Magari', 'Episode ' + Math.min(RACE_EPISODES, raceData(c).unlocked) + ' of ' + RACE_EPISODES)}
+        </div>
+        ${childAppsStrip()}
+      </div>
       ${saladHomeCard(c)}
       ${mode === 'beginner' ? `
       <div class="goal">
@@ -158,13 +166,6 @@ function homeStandard(el, c, mode) {
       </div>`}
 
       <div id="ann"></div>
-      <div style="padding:16px 16px 0">
-        <div class="tiles">${tiles}
-          ${Net.online() && c.serverId && mode !== 'beginner' ? wide('together', '{}', 'white', `<div class="t-ic" style="background:var(--coral);color:#fff">${icon('users', 28)}</div>`, 'Pamoja', "Learn and play with friends") : ''}
-          ${wide('raceMenu', '{}', 'navy', `<div class="t-ic">${icon('car', 30)}</div>`, 'Mbio za Magari', 'Episode ' + Math.min(RACE_EPISODES, raceData(c).unlocked) + ' of ' + RACE_EPISODES)}
-        </div>
-        ${childAppsStrip()}
-      </div>
     </div>`;
   bindChildApps(el);
   kidNav(el, 'home');

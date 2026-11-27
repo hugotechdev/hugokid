@@ -9,6 +9,11 @@ const GAMES = [
   { id: 'village', name: "Build Your Village", icon: 'build', color: '#7B61FF', kind: 'fun' },
   { id: 'kitchen', name: "Cooking with Mum", icon: 'pot', color: '#E0476B', kind: 'fun' },
   { id: 'bubbles', name: "Colour Bubbles", icon: 'bubbles', color: '#14B8C9', kind: 'fun' },
+  { id: 'jungle', name: "Nuru’s Jungle Quest", icon: 'run', color: '#137D72', kind: 'learn' },
+  { id: 'rescue', name: "Wildlife Rescue", icon: 'heart', color: '#137D72', kind: 'learn' },
+  { id: 'farm', name: "My Little Farm", icon: 'sunrise', color: '#137D72', kind: 'learn' },
+  { id: 'bridge', name: "Build a Bridge", icon: 'build', color: '#137D72', kind: 'learn' },
+  { id: 'ocean', name: "Ocean Explorer", icon: 'flag', color: '#137D72', kind: 'learn' },
   // Learning
   { id: 'balloons', name: "Number Balloons", icon: 'balloon', color: '#F65B4F', kind: 'learn' },
   { id: 'letters', name: "Missing Letters", icon: 'letters', color: '#1EA7F0', kind: 'learn' },
@@ -21,8 +26,8 @@ const GAMES = [
 ];
 
 const GAMES_FOR = {
-  toddler: ['racing', 'runner', 'pilot', 'bubbles', 'balloons', 'memory', 'shapes', 'kitchen'],
-  beginner: ['racing', 'runner', 'pilot', 'bubbles', 'balloons', 'memory', 'shapes', 'kitchen', 'letters', 'market', 'robot', 'penalty', 'speak', 'village'],
+  toddler: ['rescue', 'farm', 'racing', 'runner', 'pilot', 'bubbles', 'balloons', 'memory', 'shapes', 'kitchen'],
+  beginner: ['jungle', 'rescue', 'farm', 'bridge', 'ocean', 'racing', 'runner', 'pilot', 'bubbles', 'balloons', 'memory', 'shapes', 'kitchen', 'letters', 'market', 'robot', 'penalty', 'speak', 'village'],
 };
 function gamesFor(c) { const allow = GAMES_FOR[kidMode(c)]; return GAMES.filter(g => (!allow || allow.includes(g.id)) && (g.id !== 'faith' || faithOn(c))); }
 

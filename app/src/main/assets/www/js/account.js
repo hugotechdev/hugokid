@@ -112,11 +112,15 @@ HK.screens.acctAuth = (el, p) => {
 };
 
 HK.screens.accessCheck = el => {
-  el.innerHTML = `<div class="topbar"><h1>Verify account</h1></div>
+  if (HK.startingAccess) {
+    el.innerHTML = '<div class="center-col opening-avatar" role="status" aria-label="Opening HUGO KID">' + mascot('nuru', 145) + '</div>';
+    return;
+  }
+  el.innerHTML = `<div class="topbar"><h1>Account access</h1></div>
     <div class="scroll" style="max-width:600px;width:100%;margin:auto"><div class="card">
-      <h2>${HK.startingAccess ? 'Checking access' : 'Connect to the internet'}</h2>
+      <h2>Connect to the internet</h2>
       <p>HUGO KID must verify your account on this device before you can learn and play offline.</p>
-      <button class="btn block" id="verify-access" ${HK.startingAccess ? 'disabled' : ''}>${HK.startingAccess ? 'Checking your account…' : 'Check access'}</button>
+      <button class="btn block" id="verify-access">Check access</button>
       <button class="btn block ghost" id="verify-signout" style="margin-top:10px">Sign out</button>
       <div id="device-controls"></div>
       <p id="verify-note" role="status"></p>
@@ -221,12 +225,14 @@ HK.screens.accountAccess = el => {
         <h2>${pending ? 'Awaiting approval' : 'Access suspended'}</h2>
         <p>${pending ? 'HUGO TECH will activate your account after checking payment.' : 'Contact HUGO TECH to review your account status.'}</p>
         ${user.role === 'child' ? '<p>Ask your parent to check billing on their phone.</p>' : user.role === 'teacher' ? '<p>Ask your school administrator to check the school’s billing status.</p>' : '<button class="btn block" id="access-billing">View invoices and submit payment</button>'}
+        ${['parent','school_admin'].includes(user.role) ? '<button class="btn block ghost" id="customer-notices">Notifications</button>' : ''}
         <button class="btn block ghost" id="access-refresh" style="margin-top:10px">Check access again</button>
         <button class="btn block ghost" id="access-signout" style="margin-top:10px">Sign out</button>
         <div id="device-controls"></div>
         <p id="access-note" role="status"></p>
       </div>
     </div>`;
+  bindCustomerNotices(el);
   const billing = $('#access-billing', el);
   if (billing) billing.onclick = () => HK.go('billing');
   $('#access-refresh', el).onclick = async () => {
