@@ -37,9 +37,6 @@ HK.screens.welcome = (el) => {
 HK.screens.acctAuth = (el, p) => {
   let tab = p.tab || 'login';
   let kind = p.kind === 'school' ? 'school' : p.kind === 'parent' ? 'parent' : 'any';
-  let schoolType = 'school';
-  const levels = ['Awali - Baby Class', 'Awali - Middle Class', 'Awali - Pre-Unit', 'Darasa la 1', 'Darasa la 2', 'Darasa la 3', 'Darasa la 4', 'Darasa la 5', 'Darasa la 6', 'Darasa la 7'];
-  const picked = new Set(levels);
   const draw = () => {
     el.innerHTML = `
       <div class="topbar"><button class="icon-btn" id="bk" aria-label="Back">${icon('back')}</button><h1>${kind === 'school' ? 'School accounts' : kind === 'parent' ? 'Parent account' : 'Sign in'}</h1></div>
@@ -52,15 +49,14 @@ HK.screens.acctAuth = (el, p) => {
           <button class="btn small ghost" id="forgot-password" style="margin-top:14px">Forgot password?</button>
           <p class="muted" style="font-size:13px;margin-top:14px">Enter your phone number or email and your password.</p>`
         : `
-          ${kind === 'any' ? `<label class="label">You are registering as</label><div class="chips" id="kind"><button class="chip on" data-k="parent">Parent</button><button class="chip" data-k="school">School / Teacher</button></div>` : ''}
-          ${kind === 'school' ? `
-            <label class="label">Aina</label>
-            <div class="chips" id="stype"><button class="chip ${schoolType === 'school' ? 'on' : ''}" data-s="school">School</button><button class="chip ${schoolType === 'tutor' ? 'on' : ''}" data-s="tutor">Private tutor / Tuition</button></div>
-            ${schoolType === 'school' ? `<label class="label">School name</label><input class="field" id="sname" placeholder="Mfano: Shule ya Msingi Upendo">` : ''}
-            <div class="row" style="gap:10px"><div class="grow"><label class="label">Mkoa</label><input class="field" id="region" placeholder="Dar es Salaam"></div><div class="grow"><label class="label">Wilaya</label><input class="field" id="district" placeholder="Kinondoni"></div></div>
-            <label class="label">Madarasa mnayofundisha</label>
-            <div class="chips" id="lv">${levels.map(l => `<button class="chip ${picked.has(l) ? 'on' : ''}" data-l="${esc(l)}" style="padding:8px 12px;font-size:13px">${esc(l.replace('Awali - ', ''))}</button>`).join('')}</div>` : ''}
-          <label class="label">${kind === 'school' && schoolType === 'school' ? "Name of head teacher / administrator" : 'Jina lako kamili'}</label><input class="field" id="name">
+          <label for="registration-kind" class="label">Account type</label>
+          <select id="registration-kind" class="field">
+            <option value="parent" ${kind !== 'school' ? 'selected' : ''}>Parent or guardian</option>
+            <option value="school" ${kind === 'school' ? 'selected' : ''}>School administrator</option>
+            <option value="tutor">Private tutor or tuition centre</option>
+          </select>
+          <p class="muted">Teachers at a registered school sign in with the account provided by their school.</p>
+          <label for="name" class="label">Full name</label><input class="field" id="name" maxlength="100" autocomplete="name">
           <label class="label">Phone number</label><input class="field" id="phone" inputmode="tel" placeholder="07xx xxx xxx">
           <label class="label">Email (optional)</label><input class="field" id="email" type="email">
           <label class="label">Password (6+ characters)</label><input class="field" id="pass" type="password" autocomplete="new-password">
@@ -68,14 +64,11 @@ HK.screens.acctAuth = (el, p) => {
             <input type="checkbox" id="ok" style="width:22px;height:22px;flex:none;accent-color:var(--teal)">
             <span style="font-weight:600;font-size:13px">Nimesoma na ninakubali <a href="#" id="tlink" style="color:var(--blue)">Terms and Privacy Policy</a>.</span></label>
           <p class="muted">Keep the password you choose here. You’ll use it to sign in after approval.</p>
-          <button class="btn block" id="go">${icon('check', 20)} Create account</button><button class="link-btn" id="sign-in-instead">Already registered? Sign in</button>`}
+          <button class="btn block" id="go">${icon('check', 20)} Continue registration</button><button class="link-btn" id="sign-in-instead">Already registered? Sign in</button>`}
 
       </div>`;
     $('#bk', el).onclick = () => HK.back() || routeByRole();
     $$('.seg button', el).forEach(b => b.onclick = () => { tab = b.dataset.t; draw(); });
-    $$('#kind .chip', el).forEach(b => b.onclick = () => { kind = b.dataset.k; draw(); tab = 'register'; });
-    $$('#stype .chip', el).forEach(b => b.onclick = () => { schoolType = b.dataset.s; draw(); });
-    $$('#lv .chip', el).forEach(b => b.onclick = () => { const l = b.dataset.l; picked.has(l) ? picked.delete(l) : picked.add(l); b.classList.toggle('on'); });
     const tl = $('#tlink', el); if (tl) tl.onclick = e => { e.preventDefault(); HK.go('terms', { mode: 'view' }); };
     const signIn=$('#sign-in-instead',el); if(signIn) signIn.onclick=()=>{ tab='login'; draw(); };
     $('#go', el).onclick = submit;
@@ -92,10 +85,9 @@ HK.screens.acctAuth = (el, p) => {
         r = await Net.post('/api/login', { login: $('#login', el).value, password: $('#pass', el).value });
       } else {
         if (!$('#ok', el).checked) throw new Error("Accept the terms first");
-        const k = kind === 'any' ? 'parent' : kind === 'school' ? schoolType : 'parent';
+        const k = $('#registration-kind', el).value;
         r = await Net.post('/api/register', {
           kind: k, name: $('#name', el).value, phone: $('#phone', el).value, email: $('#email', el).value, password: $('#pass', el).value, terms: TERMS_VERSION,
-          school: k === 'parent' ? undefined : { name: $('#sname', el) ? $('#sname', el).value : '', region: $('#region', el).value, district: $('#district', el).value, levels: [...picked] },
         });
       }
       if (!el.isConnected) return;
@@ -236,6 +228,23 @@ HK.screens.accountAccess = el => {
       </div>
     </div>`;
   bindCustomerNotices(el);
+  if (pending && ['parent', 'school_admin'].includes(user.role)) {
+    Net.get('/api/billing').then(({ invoices }) => {
+      if (!el.isConnected) return;
+      const heading = $('h2', el);
+      const message = heading.nextElementSibling;
+      if (!invoices.length) {
+        heading.textContent = 'Waiting for invoice';
+        message.textContent = 'Your registration is complete. Your invoice will appear here when pricing is available.';
+      } else if (invoices.some(invoice => invoice.status === 'pending')) {
+        heading.textContent = 'Awaiting verification';
+        message.textContent = 'HUGO TECH is reviewing your payment.';
+      } else if (invoices.some(invoice => invoice.status === 'unpaid')) {
+        heading.textContent = 'Payment required';
+        message.textContent = 'Open your invoice to see how to pay and submit proof of payment.';
+      }
+    }).catch(() => {});
+  }
   const billing = $('#access-billing', el);
   if (billing) billing.onclick = () => HK.go('billing');
   $('#access-refresh', el).onclick = async event => {

@@ -1,6 +1,6 @@
 
 
-const ADULT_SCREENS = ['parentHome', 'childForm', 'aiSettings', 'aiLog', 'learningMode', 'hwNew', 'hwReview', 'parentResults', 'parentSub', 'friends', 'changePass', 'forgotPassword', 'resetPassword', 'accountAccess', 'accessCheck', 'billing'];
+const ADULT_SCREENS = ['registration', 'parentHome', 'childForm', 'aiSettings', 'aiLog', 'learningMode', 'hwNew', 'hwReview', 'parentResults', 'parentSub', 'friends', 'changePass', 'forgotPassword', 'resetPassword', 'accountAccess', 'accessCheck', 'billing'];
 
 const HK = window.HK = {
   screens: {},
@@ -51,7 +51,7 @@ const HK = window.HK = {
     if (['welcome', 'acctAuth', 'forgotPassword', 'resetPassword', 'accessCheck', 'deviceLink'].includes(name)) return true;
     if (name === 'terms' && params?.mode === 'view') return true;
     const gate = Net.accessScreen();
-    if (name === 'accountAccess') return gate === 'accountAccess';
+    if (name === 'accountAccess' || name === 'registration') return gate === name;
     if (name === 'changePass' || name === 'billing') return !!Net.token();
     return !gate && !this.startingAccess;
   },
@@ -131,10 +131,15 @@ const HK = window.HK = {
     const par = Store.parent() || { created: Date.now(), settings: {}, terms: { v: TERMS_VERSION, at: Date.now() } };
     if (!Store.parent()) Store.saveParent(par);
     if (!termsAccepted()) return this.go('terms', { mode: 'accept', update: !!par.pinHash }, { reset: true });
-    if (!par.pinHash) return this.go('pin', { mode: 'create' }, { reset: true });
-    if (this.parentEntryToken && this.parentEntryToken === Net.token()) {
+    if (!par.pinHash || (this.parentEntryToken && this.parentEntryToken === Net.token())) {
       this.parentEntryToken = null;
-      return this.go('parentHome', {}, { reset: true });
+      this.go('parentHome', {}, { reset: true });
+      const entry = this.stack[this.stack.length - 1];
+      const token = Net.token();
+      SchoolSync.pullChildren().then(added => {
+        if (added && Net.token() === token && entry === this.stack[this.stack.length - 1]) this.render();
+      }).catch(() => {});
+      return;
     }
     const kids = Store.children();
     if (!kids.length) return this.go('childForm', { first: true }, { reset: true });
@@ -144,6 +149,9 @@ const HK = window.HK = {
   },
 
   toChild() {
+    if (Net.role() === 'parent' && !Store.parent()?.pinHash) {
+      return this.go('pin', { mode: 'create', forChildMode: true });
+    }
     const kids = Store.children();
     if (!kids.length) return this.go('childForm', { first: true }, { reset: true });
     if (kids.length > 1) return this.go('pickChild', {}, { reset: true });
@@ -153,6 +161,7 @@ const HK = window.HK = {
 
   askParent(next = 'parentHome', params = {}) {
     if (Net.role() === 'child') return toast('Open the parent account on the parent phone.');
+    if (!Store.parent()?.pinHash) return this.go('acctAuth', { kind: 'parent' });
     this.go('pin', { mode: 'verify', next, nextParams: params });
   },
 };

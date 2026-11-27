@@ -110,13 +110,14 @@ HK.screens.superHome = (el) => {
         <div class="section-title">Schools</div><input class="field" id="school-search" aria-label="Search schools" placeholder="Search school name or phone"><div id="school-bulk"></div>
         <div class="card table-card"><table><tr><th>School</th><th>Location</th><th>Students</th><th>Status</th><th></th></tr>
           ${s.list.map(x => `<tr data-search="${esc(x.name + ' ' + (x.phone || ''))}"><td><input type="checkbox" data-customer-school="${x.id}" aria-label="Select ${esc(x.name)}"> ${esc(x.name)}<br><span class="muted">${x.type === 'tutor' ? 'Tutor' : 'School'} · ${esc(x.phone || '')}</span></td><td>${esc(x.region || '')} ${esc(x.district || '')}</td><td>${x.students}</td>
-            <td><span class="chip-tag ${x.status === 'active' ? 'teal' : 'coral'}">${accessLabels[x.status] || 'Unknown'}</span></td>
-            <td><button class="btn small ghost" data-inv="${x.id}" data-n="${esc(x.name)}">Invoice</button> <button class="btn small ${x.status === 'active' ? 'coral' : ''}" data-st="${x.id}" data-v="${x.status === 'active' ? 'blocked' : 'active'}">${accessAction(x.status)}</button></td></tr>`).join('')}</table></div>
+            <td><span class="chip-tag ${x.status === 'active' ? 'teal' : 'coral'}">${x.registration_pending ? 'Registration incomplete' : accessLabels[x.status] || 'Unknown'}</span></td>
+            <td>${x.registration_pending ? '' : `<button class="btn small ghost" data-inv="${x.id}" data-n="${esc(x.name)}">Invoice</button> <button class="btn small ${x.status === 'active' ? 'coral' : ''}" data-st="${x.id}" data-v="${x.status === 'active' ? 'blocked' : 'active'}">${accessAction(x.status)}</button>`}</td></tr>`).join('')}</table></div>
         <div class="section-title">Users</div>
         <div class="card"><div class="form-row"><div class="seg" style="margin:0;flex:2" id="ur">${[['parent', 'Parents'], ['teacher', 'Teachers'], ['school_admin', 'School admins'], ['children', 'Children']].map(([k, n], i) => `<button data-r="${k}" class="${i ? '' : 'on'}">${n}</button>`).join('')}</div>
           <input class="field" id="uq" aria-label="Search users" placeholder="Search name, phone or email"></div><div id="ul" style="margin-top:10px"></div></div>
         <div class="section-title">Invoices</div>
-        ${b.invoices.map(i => `<div class="item admin-invoice"><div class="grow"><div class="i-title">${esc(i.school || i.parent || '')} · ${esc(i.plan)} · ${esc(i.period)}</div><div class="i-sub">TSh ${Number(i.amount).toLocaleString()}${i.reference ? ' · ' + esc(i.method || '') + ' ' + esc(i.reference) : ''}</div></div>
+        ${b.invoices.map(i => `<div class="item admin-invoice"><div class="grow"><div class="i-title">${esc(i.school || i.parent || '')} · ${esc(i.plan)} · ${esc(i.period)}</div><div class="i-sub">TSh ${Number(i.amount).toLocaleString()}</div>${invoicePaymentDetails(i)}</div>
+           ${i.has_receipt ? `<button class="btn small ghost" data-receipt="${i.id}">View receipt</button>` : ''}
            ${i.phone ? `<button class="btn small ghost" data-share="${i.id}">WhatsApp</button>` : ''}<span class="chip-tag ${st[i.status][0]}">${st[i.status][1]}</span>${i.status !== 'paid' ? `<button class="btn small" data-paid="${i.id}" >Confirm payment & activate</button>` : ''}</div>`).join('') || '<p class="muted">No invoices yet.</p>'}
         <div class="stat-grid three" style="margin-top:14px">
           <div class="card"><h3>Pricing</h3><label class="label">Per student per term (school)</label><input class="field" id="p1" type="number" value="${b.plans.school_student_term}">
@@ -167,8 +168,9 @@ HK.screens.superHome = (el) => {
       });
       $$('[data-st]', body).forEach(x => x.onclick = async () => { try { await Net.post(`/api/admin/schools/${x.dataset.st}/status`, { status: x.dataset.v }); HK.render(); }
         catch (error) { toast(error.message); } });
+      bindReceiptButtons(el, body);
       $$('[data-paid]', body).forEach(x => x.onclick = () => confirmBox(el,
-        'Confirm payment?', 'Confirm only after verifying the amount and transaction reference. This activates account access.', 'Confirm and activate',
+        'Confirm payment?', 'Confirm only after verifying the amount and the receipt or transaction reference. This activates account access.', 'Confirm and activate',
         async () => {
           try { await Net.post(`/api/admin/invoices/${x.dataset.paid}/status`, { status: 'paid' }); HK.render(); }
           catch (error) { toast(error.message); }
@@ -235,11 +237,11 @@ HK.screens.superHome = (el) => {
           const list = await Net.get(`/api/admin/users?role=${role}&q=${qq}`);
           if (requestId !== searchId) return;
           box.innerHTML = `<div class="table-card" style="padding:0"><div id="parent-bulk"></div><table><tr><th>Name</th><th>Contact</th><th>${ur === 'parent' ? 'Children' : 'School'}</th><th>Access</th><th></th></tr>${list.map(x => `<tr><td>${ur === 'parent' ? `<input type="checkbox" data-customer-parent="${x.id}" aria-label="Select ${esc(x.name)}">` : ''} ${esc(x.name)}</td><td>${esc(x.phone || '')} ${esc(x.email || '')}</td><td>${esc(ur === 'parent' ? (x.children || []).join(', ') : (x.school || ''))}</td>
-            <td>${accessLabels[x.school_status || x.access_status] || 'Unknown'}
+            <td>${x.registration_pending ? 'Registration incomplete' : accessLabels[x.school_status || x.access_status] || 'Unknown'}
               ${x.matches?.length ? `<details><summary>Possible duplicate</summary>
                 ${x.matches.map(match => `<p>Same ${esc(match.field)}: ${match.accounts.map(account => esc(account.name) + ' (#' + account.id + ', ' + esc(account.role) + ')').join(', ')}</p>`).join('')}
               </details>` : ''}</td>
-            <td>${ur === 'parent' ? `<button class="btn small ${x.access_status === 'active' ? 'coral' : ''}" data-parent-access="${x.id}" data-status="${x.access_status === 'active' ? 'blocked' : 'active'}">${accessAction(x.access_status)}</button> ` : ''}${x.role === 'teacher' || (!x.email && (x.school_status || x.access_status) === 'active') ? `<button class="btn small ghost" data-rst="${x.id}">Recover password</button>` : ''}${ur === 'parent' ? ` <button class="btn small ghost" data-pinv="${x.id}" data-n="${esc(x.name)}">Invoice</button>` : ''}</td></tr>`).join('')}</table></div>`;
+            <td>${ur === 'parent' && !x.registration_pending ? `<button class="btn small ${x.access_status === 'active' ? 'coral' : ''}" data-parent-access="${x.id}" data-status="${x.access_status === 'active' ? 'blocked' : 'active'}">${accessAction(x.access_status)}</button> ` : ''}${x.role === 'teacher' || (!x.email && (x.school_status || x.access_status) === 'active') ? `<button class="btn small ghost" data-rst="${x.id}">Recover password</button>` : ''}${ur === 'parent' && !x.registration_pending ? ` <button class="btn small ghost" data-pinv="${x.id}" data-n="${esc(x.name)}">Invoice</button>` : ''}</td></tr>`).join('')}</table></div>`;
           if (ur === 'parent') bulk($('#parent-bulk', box), box, 'parent');
           $$('[data-parent-access]', box).forEach(btn => btn.onclick = async () => {
             try {

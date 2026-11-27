@@ -465,13 +465,97 @@ HK.screens.thread = (el, p) => {
   return Net.on(m => { if (m.t === 'message' && m.child_id === p.childId) draw(); });
 };
 
+function invoicePaymentDetails(invoice) {
+  const entries = [
+    ['Payment type', invoice.method],
+    ['Bank or network', invoice.provider],
+    ['Account holder', invoice.account_name],
+    ['Transaction reference', invoice.reference],
+  ];
+  return entries.filter(([, value]) => value).map(([label, value]) =>
+    `<div class="i-sub">${label} · ${esc(value)}</div>`).join('');
+}
+
+function bindReceiptButtons(root, scope = root) {
+  $$('[data-receipt]', scope).forEach(button => button.onclick = async () => {
+    button.disabled = true;
+    try {
+      const { image } = await Net.get(`/api/billing/${button.dataset.receipt}/receipt`);
+      if (!root.isConnected) return;
+      const dialog = modal(root, {
+        title: 'Payment receipt',
+        html: '<img alt="Payment receipt" style="display:block;width:100%;height:auto;margin-bottom:12px">',
+        buttons: [{ label: 'Close', cls: 'ghost' }],
+      });
+      $('img', dialog).src = image;
+    } catch (error) { toast(error.message); }
+    finally { button.disabled = false; }
+  });
+}
+
+function showPaymentForm(el, invoiceId) {
+  modal(el, {
+    title: 'Submit payment',
+    text: 'Attach a receipt image or enter the transaction reference. You can provide both.',
+    html: `<div style="margin-bottom:16px;text-align:left">
+      <label for="pay-type" class="label">Payment type</label>
+      <select id="pay-type" class="field"><option value="">Choose payment type</option><option>Mobile money</option><option>Bank transfer</option><option>Other</option></select>
+      <label for="pay-provider" class="label">Bank, mobile network or provider</label>
+      <input id="pay-provider" class="field" maxlength="100" placeholder="e.g. CRDB or M-Pesa">
+      <label for="pay-account" class="label">Account holder name</label>
+      <input id="pay-account" class="field" maxlength="120" placeholder="Name on the account used to pay">
+      <label for="pay-reference" class="label">Transaction reference</label>
+      <input id="pay-reference" class="field" maxlength="60" placeholder="Transaction number">
+      <label for="pay-receipt" class="label">Receipt image</label>
+      <input id="pay-receipt" class="field" type="file" accept="image/*">
+      <p id="pay-error" role="alert" style="margin:8px 0 0;color:var(--coral-d)"></p>
+    </div>`,
+    buttons: [{
+      label: 'Submit payment', keepOpen: true, onClick: async dialog => {
+        const button = $('.btn-row .btn', dialog);
+        const error = $('#pay-error', dialog);
+        const payment_type = $('#pay-type', dialog).value;
+        const provider = $('#pay-provider', dialog).value.trim();
+        const account_name = $('#pay-account', dialog).value.trim();
+        const reference = $('#pay-reference', dialog).value.trim();
+        const image = $('#pay-receipt', dialog).files[0];
+        if (button.disabled) return;
+        error.textContent = '';
+        if (!payment_type || !provider || !account_name) {
+          error.textContent = 'Enter the payment type, provider and account holder name.';
+          return;
+        }
+        if (!reference && !image) {
+          error.textContent = 'Attach a receipt image or enter the transaction reference.';
+          return;
+        }
+        button.disabled = true;
+        try {
+          const receipt = image ? (await fileToImageData(image, 2000)).data : undefined;
+          if (!dialog.isConnected) return;
+          await Net.post(`/api/billing/${invoiceId}/pay`, { payment_type, provider, account_name, reference, receipt });
+          if (!dialog.isConnected) return;
+          dialog.remove();
+          toast('Payment submitted for verification.');
+          HK.render();
+        } catch (failure) { error.textContent = failure.message; }
+        finally { button.disabled = false; }
+      },
+    }, { label: 'Cancel', cls: 'ghost' }],
+  });
+}
+
 HK.screens.billing = (el) => {
   const body = dash(el, 'Billing', '', loading);
   Net.get('/api/billing').then(b => {
-    const st = { unpaid: ['coral', 'Haijalipwa'], pending: ['sun', 'Awaiting verification'], paid: ['teal', 'Imelipwa'] };
+    const st = { unpaid: ['coral', 'Unpaid'], pending: ['sun', 'Awaiting verification'], paid: ['teal', 'Paid'] };
     body.innerHTML = `${b.plans.pay_info ? `<div class="card"><h3>How to pay</h3><p>${esc(b.plans.pay_info)}</p></div>` : ''}
-      ${b.invoices.length ? b.invoices.map(i => `<div class="card"><div class="row"><div class="grow"><h3 style="margin:0">${esc(i.plan)} · ${esc(i.period)}</h3><p>TSh ${Number(i.amount).toLocaleString()}</p></div><span class="chip-tag ${st[i.status][0]}">${st[i.status][1]}</span></div>
-        ${i.status === 'unpaid' ? `<div class="form-row" style="margin-top:10px"><input class="field" placeholder="Namba ya muamala (mf. M-Pesa)" data-ref="${i.id}"><button class="btn small" data-pay="${i.id}">Tuma</button></div>` : i.reference ? `<p class="muted" style="font-size:12px">Muamala: ${esc(i.reference)}</p>` : ''}</div>`).join('') : '<div class="empty">Hakuna ankara kwa sasa.</div>'}`;
-    $$('[data-pay]', body).forEach(btn => btn.onclick = async () => { try { await Net.post(`/api/billing/${btn.dataset.pay}/pay`, { reference: $(`[data-ref="${btn.dataset.pay}"]`, body).value }); toast("Sent. HUGO TECH will confirm"); HK.render(); } catch (e) { toast(e.message); } });
-  }).catch(e => { body.innerHTML = errBox(e); });
+      ${b.invoices.length ? b.invoices.map(i => `<div class="card">
+        <div class="row"><div class="grow"><h3 style="margin:0">${esc(i.plan)} · ${esc(i.period)}</h3><p>TSh ${Number(i.amount).toLocaleString()}</p></div><span class="chip-tag ${st[i.status][0]}">${st[i.status][1]}</span></div>
+        ${i.status === 'unpaid' ? `<button class="btn small" style="margin-top:10px" data-pay="${i.id}">Submit payment</button>` : invoicePaymentDetails(i)}
+        ${i.has_receipt && i.status !== 'unpaid' ? `<button class="btn small ghost" style="margin-top:10px" data-receipt="${i.id}">View receipt</button>` : ''}
+      </div>`).join('') : '<div class="empty">No invoices yet.</div>'}`;
+    $$('[data-pay]', body).forEach(button => button.onclick = () => showPaymentForm(el, button.dataset.pay));
+    bindReceiptButtons(el, body);
+  }).catch(error => { body.innerHTML = errBox(error); });
 };

@@ -26,6 +26,7 @@ const Net = {
     const account = this.acct();
     if (!account?.token || !account.user) return 'welcome';
     if (account.user.must_change) return 'changePass';
+    if (account.user.registration_pending && account.user.access_status === 'pending') return 'registration';
     if (['pending', 'blocked'].includes(account.user.access_status)) return 'accountAccess';
     if (account.verified !== true || account.user.access_status !== 'active') return 'accessCheck';
     return null;

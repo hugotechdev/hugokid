@@ -45,7 +45,6 @@ HK.screens.terms = (el, p) => {
     par.terms = { v: TERMS_VERSION, at: Date.now() };
     Store.saveParent(par);
     Sfx.good();
-    if (p.update) HK.boot();
-    else HK.go('pin', { mode: 'create' }, { replace: true });
+    HK.startParent();
   };
 };

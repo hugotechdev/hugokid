@@ -106,3 +106,9 @@ body.is-adult .set-chips .chip.on { background: #fff; color: var(--adult-primary
 .admin-invoice > .grow { min-width: min(100%, 12rem); overflow-wrap: anywhere; }
 #ur { flex-wrap: wrap; }
 #ur button { flex-basis: 5rem; }
+
+.registration-form { max-width: 640px; margin: 12px auto; }
+.registration-child, .registration-levels { min-width: 0; margin: 12px 0; }
+.registration-child button { margin-top: 12px; }
+.registration-levels label { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+.registration-actions { margin-top: 14px; }

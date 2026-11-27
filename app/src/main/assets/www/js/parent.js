@@ -39,8 +39,8 @@ HK.screens.pin = (el, p) => {
       } },
       { label: 'Ghairi', cls: 'ghost' }] });
   };
-  if (mode === 'create') HK.setBack(exitSetup);
-  $('#bk', el).onclick = () => mode === 'create' ? exitSetup() : HK.back();
+  if (mode === 'create' && !p.forChildMode) HK.setBack(exitSetup);
+  $('#bk', el).onclick = () => mode === 'create' && !p.forChildMode ? exitSetup() : HK.back();
 
   const dots = $$('.pin-dots i', el);
   const draw = () => {
@@ -80,7 +80,8 @@ HK.screens.pin = (el, p) => {
       par.pinHash = h;
       Store.saveParent(par);
       Sfx.good();
-      if (mode === 'create') routeByRole();
+      if (p.forChildMode) HK.toChild();
+      else if (mode === 'create') routeByRole();
       else { toast("PIN changed"); HK.back(); }
     }
   };
@@ -180,6 +181,7 @@ HK.screens.childForm = (el, p) => {
     if (Net.online() && Net.role() === 'parent') SchoolSync.pushChildren().catch(() => {});
     Sfx.good();
     if (editing) return HK.back();
+    if (!p.first && !Store.parent()?.pinHash && !another) return HK.back();
     if (another) {
       toast(c.name + ' ameongezwa');
       return HK.go('childForm', { first: p.first }, { replace: true });
@@ -191,7 +193,7 @@ HK.screens.childForm = (el, p) => {
   };
   $('#save', el).onclick = () => save(false);
   const more = $('#more', el); if (more) more.onclick = () => save(true);
-  const pl = $('#place', el); if (pl) pl.onclick = () => { Store.setActive(c.id); HK.go('placement'); };
+  const pl = $('#place', el); if (pl) pl.onclick = () => { Store.setActive(c.id); if (!Store.parent()?.pinHash) return HK.go('pin', { mode: 'create', forChildMode: true }); HK.go('placement'); };
   const del = $('#del', el);
   if (del) del.onclick = () => confirmBox(el, 'Futa ' + c.name + '?', "Their stars, coins and progress will be deleted.", "Yes, delete", () => {
     Store.removeChild(c.id);
@@ -207,7 +209,7 @@ HK.screens.parentHome = (el, p) => {
     <div class="topbar">
       <img src="img/mark.png" style="width:34px;height:34px;object-fit:contain">
       <div class="grow" style="min-width:0"><h1 style="font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Parent</h1></div>
-      <button class="chip" id="customer-notices">Notifications</button><button class="btn small" id="tochild">${icon('home', 18)} Kwa mtoto</button>
+      <button class="chip" id="customer-notices">Notifications</button><button class="btn small" id="tochild">${icon('home', 18)} Switch to child mode</button>
     </div>
     <div class="seg">
       <button data-t="kids">Watoto</button>
@@ -219,7 +221,7 @@ HK.screens.parentHome = (el, p) => {
 
   bindCustomerNotices(el);
   $('#tochild', el).onclick = () => HK.toChild();
-  HK.setBack(() => { HK.toChild(); return true; });
+  HK.setBack(() => { if (Store.parent()?.pinHash) HK.toChild(); return true; });
 
   const tabs = $$('.seg button', el);
   const show = (t) => {
