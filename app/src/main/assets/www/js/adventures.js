@@ -61,7 +61,7 @@ for (const [id, rule] of Object.entries(questRules)) {
         q.say = q.text;
         return q;
       },
-      render: q => `<div class="quest-scene"><img src="img/life/quest-${q.scene}.webp" alt="">${id === 'jungle' ? mascot('nuru', 64, 'quest-runner') : ''}</div>`,
+      render: q => `<div class="quest-scene"><img src="img/life/quest-${q.scene}.webp" width="414" height="414" alt="${id === 'rescue' ? 'Paw prints on a dirt path' : ''}">${id === 'jungle' ? mascot('nuru', 64, 'quest-runner') : ''}</div>`,
     });
     return () => kit.cleanup();
   };

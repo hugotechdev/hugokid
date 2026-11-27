@@ -38,28 +38,44 @@ function raceData(c) {
   return c.racing;
 }
 
+// Clip the original sprites to the bodywork so the studio backdrop never shows.
+const RACE_CAR_ART = [
+  [147, 302, 'M73 0C108 0 121 10 132 32C138 44 137 83 134 114L146 124V131L133 126L132 179L136 230C137 256 132 267 126 272C112 285 34 286 19 272C11 263 10 247 9 230L14 171L13 126L0 131V123L13 116C10 95 7 56 10 41C14 16 42 0 73 0Z'],
+  [147, 298, 'M73 0C100 0 122 8 132 32C139 46 138 64 134 88L133 109L146 116V123L134 120L134 184L139 226C141 250 135 265 124 272C106 283 39 283 21 273C13 267 8 252 8 230L11 190L13 118L0 123V117L12 109L11 91C8 70 6 51 12 36C20 13 45 0 73 0Z'],
+  [145, 301, 'M71 0C91 0 112 2 124 15C137 30 138 55 134 79L132 109L145 117V123L133 119L137 183L138 228C138 251 132 267 124 275C108 288 39 290 23 276C15 269 10 253 8 231L10 182L11 119L0 124V117L11 110L10 70C6 50 8 29 18 15C29 4 52 0 71 0Z'],
+  [145, 304, 'M71 0C100 0 120 9 133 31C140 45 141 68 133 91L133 102L144 108V118L132 112L129 176L131 193L131 215L136 231L137 247L141 251V264L128 267C121 286 30 287 17 268L5 264V252L8 248L7 221L12 176L10 111L0 118V110L10 103L9 89C2 72 0 52 7 33C16 12 46 0 71 0Z'],
+  [148, 308, 'M74 0C100 0 121 11 130 31C137 47 134 86 131 108L142 116V123L132 120L132 179L135 222C138 247 137 266 130 277C117 300 37 300 19 282C9 272 8 254 9 229L12 177L12 120L0 124V117L12 110C8 83 7 55 11 36C17 14 44 0 74 0Z'],
+  [150, 310, 'M74 0C101 0 126 11 136 33C142 48 140 67 137 91L136 109L148 116V124L137 120L136 191L142 229C143 252 135 270 128 276C112 292 42 293 24 276C13 267 7 252 8 230L13 185L13 119L0 125V117L14 109L13 90C8 68 6 49 12 35C22 13 47 0 74 0Z'],
+];
 const raceSprites = new Map();
+function raceCarImage(index) {
+  return 'img/life/car-' + index + '.webp';
+}
+
 function raceSprite(color) {
   if (raceSprites.has(color)) return raceSprites.get(color);
   const index = RACE_CARS.findIndex(car => car.color === color);
   if (index < 0 || typeof Image === 'undefined') return null;
   const image = new Image();
-  image.src = 'img/life/car-' + index + '.webp';
-  raceSprites.set(color, image);
-  return image;
+  image.src = raceCarImage(index);
+  const [width, height, outline] = RACE_CAR_ART[index];
+  const sprite = { image, width, height, clip: new Path2D(outline) };
+  raceSprites.set(color, sprite);
+  return sprite;
 }
 
 function drawCar(ctx, x, y, w, h, color, dark, glow) {
   ctx.save();
   ctx.translate(x, y);
   const sprite = raceSprite(color);
-  if (sprite?.naturalWidth) {
-    ctx.drawImage(sprite, -w / 2, -h / 2, w, h);
+  if (sprite?.image.naturalWidth) {
+    ctx.translate(-w / 2, -h / 2);
+    ctx.scale(w / sprite.width, h / sprite.height);
+    ctx.clip(sprite.clip);
+    ctx.drawImage(sprite.image, 0, 0, sprite.width, sprite.height);
     ctx.restore();
     return;
   }
-  if (glow) { ctx.shadowColor = 'rgba(255,255,255,.9)'; ctx.shadowBlur = 18; }
-
   ctx.fillStyle = '#1B2233';
   const ww = w * 0.16, wh = h * 0.2;
   [[-w / 2 - ww * 0.35, -h * 0.32], [w / 2 - ww * 0.65, -h * 0.32], [-w / 2 - ww * 0.35, h * 0.14], [w / 2 - ww * 0.65, h * 0.14]]
@@ -133,7 +149,12 @@ HK.screens.raceMenu = (el) => {
     const g = $('#garage', el);
     g.innerHTML = RACE_CARS.map((car, i) => {
       const own = r.cars.includes(i);
-      return `<button class="car-card ${r.car === i ? 'on' : ''}" data-i="${i}"><img class="shop-car" src="img/life/car-${i}.webp" alt="">
+      const [width, height, outline] = RACE_CAR_ART[i];
+      return `<button class="car-card ${r.car === i ? 'on' : ''}" data-i="${i}">
+        <svg class="shop-car" viewBox="0 0 ${width} ${height}" aria-hidden="true">
+          <defs><clipPath id="race-shop-car-${i}"><path d="${outline}"/></clipPath></defs>
+          <image href="${raceCarImage(i)}" width="${width}" height="${height}" clip-path="url(#race-shop-car-${i})"/>
+        </svg>
         <div class="c-name">${car.name}</div>
         <div class="c-price">${r.car === i ? 'Selected' : own ? "Choose" : car.score ? car.score + '/100 reward' : icon('coin', 14) + ' ' + car.cost}</div></button>`;
     }).join('');
