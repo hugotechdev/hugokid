@@ -3,11 +3,13 @@
 const STAFF = ['school_admin', 'teacher', 'superadmin'];
 
 function routeByRole() {
+  const gate = Net.accessScreen();
+  if (gate) return HK.go(gate, gate === 'changePass' ? { forced: true } : {}, { reset: true });
   const u = Net.user();
-  if (u && u.must_change) return HK.go('changePass', { forced: true }, { reset: true });
-  if (u && u.role === 'superadmin') return HK.go('superHome', {}, { reset: true });
-  if (u && STAFF.includes(u.role)) return HK.go('schoolHome', {}, { reset: true });
-  HK.boot();
+  if (u.role === 'child') return HK.go('home', {}, {reset:true});
+  if (u.role === 'superadmin') return HK.go('superHome', {}, { reset: true });
+  if (STAFF.includes(u.role)) return HK.go('schoolHome', {}, { reset: true });
+  HK.startParent();
 }
 
 HK.screens.welcome = (el) => {
@@ -18,12 +20,16 @@ HK.screens.welcome = (el) => {
       <img class="word" src="img/logo-word.png" alt="HUGO KID - Learn, Play, Grow">
     </div>
     <div class="actions">
-      <button class="btn block blue" id="parent">I'm a parent</button>
+      <p>Sign in or create an account while connected to the internet. Once approved, you can learn and play offline.</p>
+      <button class="btn block blue" id="parent">Create a parent account</button>
       <button class="btn block navy" id="school">School or teacher</button>
-      <button class="link-btn" id="login">Una akaunti? <b>Ingia</b></button>
+      <button class="btn block ghost" id="link-device">Child sign-in with a link code</button>
+      <button class="link-btn" id="login">Already have an account? <b>Sign in</b></button>
+      ${IS_WEB ? '<a class="btn block ghost" href="/download">Download for Android</a>' : ''}
     </div>
   </div>`;
-  $('#parent', el).onclick = () => { Sfx.tap(); HK.go('terms', { mode: 'accept' }); };
+  $('#link-device', el).onclick = () => HK.go('deviceLink');
+  $('#parent', el).onclick = () => { Sfx.tap(); HK.go('acctAuth', { kind: 'parent', tab: 'register' }); };
   $('#school', el).onclick = () => { Sfx.tap(); HK.go('acctAuth', { kind: 'school', tab: 'register' }); };
   $('#login', el).onclick = () => { Sfx.tap(); HK.go('acctAuth', { kind: 'any', tab: 'login' }); };
 };
@@ -36,15 +42,13 @@ HK.screens.acctAuth = (el, p) => {
   const picked = new Set(levels);
   const draw = () => {
     el.innerHTML = `
-      <div class="topbar">${p.skip ? '' : `<button class="icon-btn" id="bk">${icon('back')}</button>`}<h1>${kind === 'school' ? 'Shule na walimu' : kind === 'parent' ? 'Akaunti ya mzazi' : 'Ingia'}</h1>
-        ${p.skip ? `<button class="btn small ghost" id="skip">Baadaye</button>` : ''}</div>
-      ${p.skip ? `<div class="card" style="margin:0 16px 12px;max-width:600px;align-self:center"><p>An online account connects your child with their school and teacher, and keeps a backup of their progress. You can open it later in Settings.</p></div>` : ''}
+      <div class="topbar"><button class="icon-btn" id="bk" aria-label="Back">${icon('back')}</button><h1>${kind === 'school' ? 'School accounts' : kind === 'parent' ? 'Parent account' : 'Sign in'}</h1></div>
       <div class="scroll" style="max-width:600px;margin:0 auto;width:100%">
-        <div class="seg" style="margin:4px 0 14px"><button data-t="login" class="${tab === 'login' ? 'on' : ''}">Ingia</button><button data-t="register" class="${tab === 'register' ? 'on' : ''}">Jisajili</button></div>
+        <div class="seg" style="margin:4px 0 14px"><button data-t="login" class="${tab === 'login' ? 'on' : ''}">Sign in</button><button data-t="register" class="${tab === 'register' ? 'on' : ''}">Create account</button></div>
         ${tab === 'login' ? `
           <label class="label">Phone or email</label><input class="field" id="login" autocomplete="username" placeholder="07xx xxx xxx">
           <label class="label">Password</label><input class="field" id="pass" type="password" autocomplete="current-password">
-          <div style="height:18px"></div><button class="btn block" id="go">${icon('key', 20)} Ingia</button>
+          <div style="height:18px"></div><button class="btn block" id="go">${icon('key', 20)} Sign in</button>
           <button class="btn small ghost" id="forgot-password" style="margin-top:14px">Forgot password?</button>
           <p class="muted" style="font-size:13px;margin-top:14px">Teachers get a temporary password from the head teacher.</p>`
         : `
@@ -63,16 +67,16 @@ HK.screens.acctAuth = (el, p) => {
           <label class="card row" style="cursor:pointer;gap:12px;align-items:flex-start;margin-top:16px">
             <input type="checkbox" id="ok" style="width:22px;height:22px;flex:none;accent-color:var(--teal)">
             <span style="font-weight:600;font-size:13px">Nimesoma na ninakubali <a href="#" id="tlink" style="color:var(--blue)">Terms and Privacy Policy</a>.</span></label>
-          <button class="btn block" id="go">${icon('check', 20)} Jisajili</button>`}
+          <button class="btn block" id="go">${icon('check', 20)} Create account</button><button class="link-btn" id="sign-in-instead">Already registered? Sign in</button>`}
 
       </div>`;
-    const bk = $('#bk', el); if (bk) bk.onclick = () => HK.back();
-    const sk = $('#skip', el); if (sk) sk.onclick = () => HK.go(p.next || 'childForm', p.nextParams || { first: true }, { reset: true });
+    $('#bk', el).onclick = () => HK.back() || routeByRole();
     $$('.seg button', el).forEach(b => b.onclick = () => { tab = b.dataset.t; draw(); });
     $$('#kind .chip', el).forEach(b => b.onclick = () => { kind = b.dataset.k; draw(); tab = 'register'; });
     $$('#stype .chip', el).forEach(b => b.onclick = () => { schoolType = b.dataset.s; draw(); });
     $$('#lv .chip', el).forEach(b => b.onclick = () => { const l = b.dataset.l; picked.has(l) ? picked.delete(l) : picked.add(l); b.classList.toggle('on'); });
     const tl = $('#tlink', el); if (tl) tl.onclick = e => { e.preventDefault(); HK.go('terms', { mode: 'view' }); };
+    const signIn=$('#sign-in-instead',el); if(signIn) signIn.onclick=()=>{ tab='login'; draw(); };
     $('#go', el).onclick = submit;
     const forgot = $('#forgot-password', el);
     if (forgot) forgot.onclick = () => HK.go('forgotPassword', {
@@ -93,21 +97,39 @@ HK.screens.acctAuth = (el, p) => {
           school: k === 'parent' ? undefined : { name: $('#sname', el) ? $('#sname', el).value : '', region: $('#region', el).value, district: $('#district', el).value, levels: [...picked] },
         });
       }
-      Net.setAcct(r);
+      if (!el.isConnected) return;
+      Net.acceptSession(r.token, r.user);
       Sfx.good();
-      if (r.user.role === 'parent') {
-        const par = Store.parent() || { created: Date.now(), settings: {} };
-        par.terms = par.terms || { v: TERMS_VERSION, at: Date.now() };
-        Store.saveParent(par);
+      if (r.user.role === 'parent' && !Net.accessScreen()) {
         await SchoolSync.pullChildren().catch(() => {});
-        await SchoolSync.pushChildren().catch(() => {});
-        if (p.next && !(p.next === 'childForm' && Store.children().length)) return HK.go(p.next, p.nextParams || {}, { reset: true });
-        return HK.boot();
+        if (Net.token() !== r.token) return;
+        SchoolSync.maybePush();
       }
       routeByRole();
     } catch (e) { toast(e.message); b.disabled = false; }
   };
   draw();
+};
+
+HK.screens.accessCheck = el => {
+  el.innerHTML = `<div class="topbar"><h1>Verify account</h1></div>
+    <div class="scroll" style="max-width:600px;width:100%;margin:auto"><div class="card">
+      <h2>${HK.startingAccess ? 'Checking access' : 'Connect to the internet'}</h2>
+      <p>HUGO KID must verify your account on this device before you can learn and play offline.</p>
+      <button class="btn block" id="verify-access" ${HK.startingAccess ? 'disabled' : ''}>${HK.startingAccess ? 'Checking your account…' : 'Check access'}</button>
+      <button class="btn block ghost" id="verify-signout" style="margin-top:10px">Sign out</button>
+      <div id="device-controls"></div>
+      <p id="verify-note" role="status"></p>
+    </div></div>`;
+  $('#verify-access', el).onclick = async () => {
+    const button = $('#verify-access', el);
+    button.disabled = true;
+    try { await Net.refreshAccess(); if (el.isConnected) routeByRole(); }
+    catch (error) { $('#verify-note', el).textContent = error.message; }
+    finally { button.disabled = false; }
+  };
+  $('#verify-signout', el).onclick = () => { Net.logout(); routeByRole(); };
+  bindLockedDeviceControls(el);
 };
 
 HK.screens.changePass = (el, p) => {
@@ -187,3 +209,53 @@ HK.screens.resetPassword = (el, { token }) => passwordRecoveryScreen(el, {
     toast('Password updated. Sign in with your new password.');
   },
 });
+
+
+HK.screens.accountAccess = el => {
+  const user = Net.user();
+  if (!user) return HK.go('acctAuth', {}, { reset: true });
+  const pending = user.access_status === 'pending';
+  el.innerHTML = `<div class="topbar"><h1>Account access</h1></div>
+    <div class="scroll" style="max-width:600px;width:100%;margin:auto">
+      <div class="card">
+        <h2>${pending ? 'Awaiting approval' : 'Access suspended'}</h2>
+        <p>${pending ? 'HUGO TECH will activate your account after checking payment.' : 'Contact HUGO TECH to review your account status.'}</p>
+        ${user.role === 'child' ? '<p>Ask your parent to check billing on their phone.</p>' : user.role === 'teacher' ? '<p>Ask your school administrator to check the school’s billing status.</p>' : '<button class="btn block" id="access-billing">View invoices and submit payment</button>'}
+        <button class="btn block ghost" id="access-refresh" style="margin-top:10px">Check access again</button>
+        <button class="btn block ghost" id="access-signout" style="margin-top:10px">Sign out</button>
+        <div id="device-controls"></div>
+        <p id="access-note" role="status"></p>
+      </div>
+    </div>`;
+  const billing = $('#access-billing', el);
+  if (billing) billing.onclick = () => HK.go('billing');
+  $('#access-refresh', el).onclick = async () => {
+    const note = $('#access-note', el);
+    try {
+      await Net.refreshAccess();
+      note.textContent = pending ? 'Your account is still awaiting approval.' : 'Your account is still suspended.';
+    } catch (error) { note.textContent = error.message; }
+  };
+  $('#access-signout', el).onclick = () => { Net.logout(); HK.go('acctAuth', {}, { reset: true }); };
+  bindLockedDeviceControls(el);
+};
+
+function bindLockedDeviceControls(el) {
+  if (!LM.state().on || !Store.parent()?.pinHash || Net.role() !== 'parent') return;
+  const controls = $('#device-controls', el);
+  controls.innerHTML = '<button class="btn block ghost" id="stop-device-guard" style="margin-top:10px">Turn off device Learning Mode</button>';
+  $('#stop-device-guard', el).onclick = () => modal(el, {
+    title: 'Confirm your parent PIN',
+    html: '<label class="label" for="device-pin">Parent PIN</label><input class="field" id="device-pin" type="password" inputmode="numeric" maxlength="4">',
+    buttons: [
+      { label: 'Turn off Learning Mode', keepOpen: true, onClick: async overlay => {
+        const pin = $('#device-pin', overlay).value;
+        if (!/^\d{4}$/.test(pin) || await hashPin(pin) !== Store.parent()?.pinHash) return toast('Incorrect PIN.');
+        HugoNative.setLearningMode(false);
+        overlay.remove();
+        controls.innerHTML = '';
+      } },
+      { label: 'Cancel', cls: 'ghost' },
+    ],
+  });
+}

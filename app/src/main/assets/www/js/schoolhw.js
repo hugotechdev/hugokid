@@ -12,19 +12,24 @@ function progressOf(c) {
 const SchoolSync = {
 
   async pushChildren() {
-    if (!(Net.online() && Net.role() === 'parent')) return;
+    if (Net.role() !== 'parent' || Net.accessScreen()) return;
+    const token = Net.token();
     for (const c of Store.children()) {
+      if (Net.token() !== token || Net.accessScreen()) return;
       const r = await Net.post('/api/children', { name: c.name, birth: c.birth, color: c.color, local_id: c.id });
+      if (Net.token() !== token || Net.accessScreen()) return;
       const cc = Store.child(c.id); if (!cc) continue;
       cc.serverId = r.id; cc.school = r.school; cc.className = r.class_name; Store.saveChild(cc);
       await Net.put(`/api/children/${r.id}/progress`, { progress: progressOf(cc) }).catch(() => {});
     }
-    Store.set('lastPush', Date.now());
+    if (Net.token() === token && !Net.accessScreen()) Store.set('lastPush', Date.now());
   },
 
   async pullChildren() {
-    if (!(Net.online() && Net.role() === 'parent')) return 0;
+    if (Net.role() !== 'parent' || Net.accessScreen()) return 0;
+    const token = Net.token();
     const list = await Net.get('/api/children');
+    if (Net.token() !== token || Net.accessScreen()) return 0;
     let added = 0;
     for (const s of list) {
       const local = Store.children().find(c => c.serverId === s.id || (s.local_id && c.id === s.local_id));
@@ -45,7 +50,7 @@ const SchoolSync = {
   },
 
   async pull(c) {
-    if (!(Net.online() && Net.role() === 'parent' && c && c.serverId)) return;
+    if (!(Net.online() && ['parent','child'].includes(Net.role()) && c && c.serverId)) return;
     const list = await Net.get(`/api/children/${c.serverId}/homework`);
     for (const h of list) {
       const id = 's' + h.id;

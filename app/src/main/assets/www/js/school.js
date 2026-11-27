@@ -465,9 +465,9 @@ HK.screens.thread = (el, p) => {
 };
 
 HK.screens.billing = (el) => {
-  const body = dash(el, 'Malipo', '', loading);
+  const body = dash(el, 'Billing', '', loading);
   Net.get('/api/billing').then(b => {
-    const st = { unpaid: ['coral', 'Haijalipwa'], pending: ['sun', 'Inathibitishwa'], paid: ['teal', 'Imelipwa'] };
+    const st = { unpaid: ['coral', 'Haijalipwa'], pending: ['sun', 'Awaiting verification'], paid: ['teal', 'Imelipwa'] };
     body.innerHTML = `${b.plans.pay_info ? `<div class="card"><h3>How to pay</h3><p>${esc(b.plans.pay_info)}</p></div>` : ''}
       ${b.invoices.length ? b.invoices.map(i => `<div class="card"><div class="row"><div class="grow"><h3 style="margin:0">${esc(i.plan)} · ${esc(i.period)}</h3><p>TSh ${Number(i.amount).toLocaleString()}</p></div><span class="chip-tag ${st[i.status][0]}">${st[i.status][1]}</span></div>
         ${i.status === 'unpaid' ? `<div class="form-row" style="margin-top:10px"><input class="field" placeholder="Namba ya muamala (mf. M-Pesa)" data-ref="${i.id}"><button class="btn small" data-pay="${i.id}">Tuma</button></div>` : i.reference ? `<p class="muted" style="font-size:12px">Muamala: ${esc(i.reference)}</p>` : ''}</div>`).join('') : '<div class="empty">Hakuna ankara kwa sasa.</div>'}`;

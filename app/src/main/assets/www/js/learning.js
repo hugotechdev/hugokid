@@ -15,11 +15,13 @@ const LM = {
 };
 
 HK.nativeRoute = (route, app) => {
+  if (Net.accessScreen() || HK.startingAccess) return;
   const c = Store.active();
   if (!c) return;
   const top = HK.stack[HK.stack.length - 1];
   if (!top || !['home', 'timeUp', 'sleep'].includes(top.name)) HK.go('home', {}, { reset: true });
   setTimeout(() => {
+    if (Net.accessScreen() || HK.startingAccess) return;
     if (route === 'appTimeUp') {
       speak('Muda wa ' + app + ' umekwisha kwa leo');
       modal(null, { iconName: 'clock', iconColor: 'var(--blue)', title: "Time's up", text: `Muda wa ${app} wa leo umekwisha. Twende tukasome au tucheze michezo ya kujifunza!`, buttons: [{ label: 'Sawa' }] });
@@ -29,7 +31,10 @@ HK.nativeRoute = (route, app) => {
     }
   }, 300);
 };
-HK.onResume = () => { const top = HK.stack[HK.stack.length - 1]; if (top && top.name === 'learningMode') HK.render(); };
+HK.onResume = () => {
+  checkConnectedAccess();
+  if (HK.stack.at(-1)?.name === 'learningMode') HK.render();
+};
 
 HK.screens.learningMode = (el) => {
   if (!LM.native()) {
@@ -44,7 +49,7 @@ HK.screens.learningMode = (el) => {
   const step = (ok, title, sub, id) => `<div class="item" style="cursor:default">
       <div class="i-ic" style="background:${ok ? 'var(--teal)' : 'var(--line)'};color:${ok ? '#fff' : 'var(--muted)'}">${icon(ok ? 'check' : 'lock', 24)}</div>
       <div class="grow"><div class="i-title" style="font-size:15px">${title}</div><div class="i-sub">${sub}</div></div>
-      ${ok ? '' : `<button class="btn small blue" id="${id}">Ruhusu</button>`}</div>`;
+      ${ok ? '<span class="chip-tag teal">✓ Allowed</span>' : id === 'p3' && !st.on ? '<span class="chip-tag">Set up later</span>' : `<button class="btn small blue" id="${id}">Ruhusu</button>`}</div>`;
   const ready = st.usageAccess && st.overlay;
 
   el.innerHTML = `
@@ -54,6 +59,7 @@ HK.screens.learningMode = (el) => {
         <div class="row"><div class="grow"><h3>${st.on ? 'Imewashwa' : 'Imezimwa'}${st.paused ? ' (imesimamishwa kwa muda)' : ''}</h3>
           <p style="color:inherit;opacity:.9">The child will see only HUGO KID and the apps you allowed. Other apps will close.</p></div></div>
         <div style="height:12px"></div>
+        ${!st.on && !ready ? '<p>Allow usage access and display over other apps below, then return here to turn on Learning Mode.</p>' : ''}
         <button class="btn block ${st.on ? 'ghost' : ''}" id="toggle" ${!ready && !st.on ? 'disabled' : ''}>${st.on ? 'Zima Learning Mode' : 'Washa Learning Mode'}</button>
         ${st.on ? `<div style="height:10px"></div><button class="btn block ghost small" id="pause">${icon('clock', 18)} Nitumie simu dakika 30</button>` : ''}
       </div>

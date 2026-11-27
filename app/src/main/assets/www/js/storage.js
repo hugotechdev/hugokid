@@ -1,11 +1,21 @@
 
 
 const Store = {
+  key(k) {
+    const parentKeys = ['parent', 'children', 'active', 'ai', 'lastPush'];
+    if (['remoteUntil','offlinePin','deviceSetup'].includes(k) || k.startsWith('night_') || parentKeys.includes(k) || /^(use_|lessons_|ailog_|creations_)/.test(k)) {
+      const user = this.get('acct', null)?.user;
+      if (user?.role === 'child') return 'hk_linked_' + user.id + '_' + k;
+      const owner = this.get('profileOwner', null);
+      if (user?.role === 'parent' && owner && user.id !== owner) return 'hk_parent_' + user.id + '_' + k;
+    }
+    return 'hk_' + k;
+  },
   get(k, d) {
-    try { const v = localStorage.getItem('hk_' + k); return v == null ? d : JSON.parse(v); }
+    try { const v = localStorage.getItem(this.key(k)); return v == null ? d : JSON.parse(v); }
     catch (e) { return d; }
   },
-  set(k, v) { localStorage.setItem('hk_' + k, JSON.stringify(v)); },
+  set(k, v) { localStorage.setItem(this.key(k), JSON.stringify(v)); },
 
   parent() { return this.get('parent', null); },
   saveParent(p) { this.set('parent', p); },

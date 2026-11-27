@@ -236,6 +236,6 @@ HK.screens.sleep = (el) => {
       <button class="btn ghost small" id="par">${icon('lock', 18)} Mzazi</button>
     </div>`;
   setTimeout(() => speak("Good night. It's time to sleep."), 300);
-  $('#par', el).onclick = () => HK.askParent();
+  bindNightControls(el);
   HK.setBack(() => true);
 };

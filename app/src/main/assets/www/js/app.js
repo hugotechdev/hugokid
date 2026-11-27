@@ -1,8 +1,8 @@
 
 
-const ADULT_SCREENS = ['parentHome', 'childForm', 'aiSettings', 'aiLog', 'learningMode', 'hwNew', 'hwReview', 'parentResults', 'parentSub', 'friends', 'changePass', 'forgotPassword', 'resetPassword'];
+const ADULT_SCREENS = ['parentHome', 'childForm', 'aiSettings', 'aiLog', 'learningMode', 'hwNew', 'hwReview', 'parentResults', 'parentSub', 'friends', 'changePass', 'forgotPassword', 'resetPassword', 'accountAccess', 'accessCheck', 'billing'];
 
-const HK = {
+const HK = window.HK = {
   screens: {},
   stack: [],
   _cleanup: null,
@@ -20,7 +20,15 @@ const HK = {
   render() {
     if (this._cleanup) { try { this._cleanup(); } catch (e) {} this._cleanup = null; }
     this._onBack = null;
-    const cur = this.stack[this.stack.length - 1];
+    let cur = this.stack.at(-1);
+    if (Net.role() === 'child' && !Net.accessScreen() && (ADULT_SCREENS.includes(cur.name) || ['pin','pickChild','devices'].includes(cur.name))) {
+      cur = { name: 'home', params: {} }; this.stack = [cur];
+    }
+    if (cur && !this.allowsAccess(cur.name, cur.params)) {
+      const name = this.startingAccess ? 'accessCheck' : Net.accessScreen();
+      cur = { name, params: name === 'changePass' ? { forced: true } : {} };
+      this.stack = [cur];
+    }
     const root = this.root();
     root.innerHTML = '';
     const el = document.createElement('div');
@@ -35,6 +43,15 @@ const HK = {
     document.body.classList.toggle('is-dash', dash);
 
     document.body.classList.toggle('is-adult', dash || ADULT_SCREENS.includes(cur.name));
+  },
+
+  allowsAccess(name, params) {
+    if (['welcome', 'acctAuth', 'forgotPassword', 'resetPassword', 'accessCheck', 'deviceLink'].includes(name)) return true;
+    if (name === 'terms' && params?.mode === 'view') return true;
+    const gate = Net.accessScreen();
+    if (name === 'accountAccess') return gate === 'accountAccess';
+    if (name === 'changePass' || name === 'billing') return !!Net.token();
+    return !gate && !this.startingAccess;
   },
 
   setBack(fn) { this._onBack = fn; },
@@ -80,6 +97,7 @@ const HK = {
     Store.saveUsage(childId, u);
   },
   isBedtime() {
+    if (Date.now() < Math.max(Store.get('night_' + Store.activeId(), 0), Net.role() === 'child' ? Store.get('remoteUntil',0) : 0)) return false;
     const bt = Store.settings().bedtime;
     if (!bt || bt === 'off') return false;
     const [h, m] = bt.split(':').map(Number);
@@ -88,17 +106,27 @@ const HK = {
     return mins >= h * 60 + m || mins < 5 * 60 + 30;
   },
 
-  /* ---------- kuanza ---------- */
-  boot() {
-    const reset = /^#reset-password=([a-f0-9]{64})$/.exec(location.hash);
-    if (IS_WEB && reset) {
-      history.replaceState(null, '', location.pathname + location.search);
-      return this.go('resetPassword', { token: reset[1] }, { reset: true });
+  async boot() {
+    if (!this.didBoot) {
+      this.didBoot = true;
+      const reset = /^#reset-password=([a-f0-9]{64})$/.exec(location.hash);
+      if (IS_WEB && reset) {
+        history.replaceState(null, '', location.pathname + location.search);
+        return this.go('resetPassword', { token: reset[1] }, { reset: true });
+      }
+      if (Net.token() && navigator.onLine !== false) {
+        this.startingAccess = true;
+        this.go('accessCheck', {}, { reset: true });
+        try { await Net.refreshAccess(); } catch {}
+        finally { this.startingAccess = false; }
+      }
     }
-    const nu = Net.user();
-    if (nu && (nu.must_change || STAFF.includes(nu.role))) return routeByRole();
-    const par = Store.parent();
-    if (!par) return this.go('welcome', {}, { reset: true });
+    if (!this.startingAccess) routeByRole();
+  },
+
+  startParent() {
+    const par = Store.parent() || { created: Date.now(), settings: {}, terms: { v: TERMS_VERSION, at: Date.now() } };
+    if (!Store.parent()) Store.saveParent(par);
     if (!termsAccepted()) return this.go('terms', { mode: 'accept', update: !!par.pinHash }, { reset: true });
     if (!par.pinHash) return this.go('pin', { mode: 'create' }, { reset: true });
     const kids = Store.children();
@@ -117,6 +145,7 @@ const HK = {
   },
 
   askParent(next = 'parentHome', params = {}) {
+    if (Net.role() === 'child') return toast('Open the parent account on the parent phone.');
     this.go('pin', { mode: 'verify', next, nextParams: params });
   },
 };

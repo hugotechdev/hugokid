@@ -44,6 +44,7 @@ HK.screens.home = (el) => {
   if (HK.isBedtime()) { HK.go('sleep', {}, { replace: true }); return; }
   applyNeeds(c);
   if (Net.online() && Net.role() === 'parent') { SchoolSync.pull(c).then(() => homeworkBadge(el, c)).catch(() => {}); Net.connect(c.serverId); SchoolSync.maybePush(); }
+  if (Net.role()==='child') SchoolSync.pull(c).then(()=>homeworkBadge(el,c)).catch(()=>{});
   const mode = kidMode(c);
   if (mode === 'toddler') return homeToddler(el, c);
   return homeStandard(el, c, mode);

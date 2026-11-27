@@ -31,7 +31,7 @@ HK.screens.pin = (el, p) => {
   const fg = $('#forgot', el);
   if (fg) fg.onclick = () => {
     const u = Net.user();
-    if (!(u && u.role === 'parent')) return modal(el, { iconName: 'lock', title: 'Kurejesha PIN', text: "The PIN is recovered with the parent account password. If you didn't open an account, the only way is to clear HUGO KID data in the phone settings (progress on this phone will be lost, but what is in the account comes back).", buttons: [{ label: 'Sawa' }] });
+    if (u?.role !== 'parent') return;
     modal(el, { iconName: 'key', title: "Confirm it's you", html: `<p>Weka nenosiri la akaunti ya ${esc(u.phone || u.email)}</p><input class="field" id="apw" type="password"><div style="height:14px"></div>`, buttons: [
       { label: 'Endelea', keepOpen: true, onClick: async o => {
         try { await Net.post('/api/login', { login: u.phone || u.email, password: $('#apw', o).value }); o.remove(); HK.go('pin', { mode: 'change' }, { replace: true }); }
@@ -39,8 +39,8 @@ HK.screens.pin = (el, p) => {
       } },
       { label: 'Ghairi', cls: 'ghost' }] });
   };
-  if (mode === 'create') $('#bk', el).classList.add('hidden');
-  $('#bk', el).onclick = () => HK.back();
+  if (mode === 'create') HK.setBack(exitSetup);
+  $('#bk', el).onclick = () => mode === 'create' ? exitSetup() : HK.back();
 
   const dots = $$('.pin-dots i', el);
   const draw = () => {
@@ -58,8 +58,10 @@ HK.screens.pin = (el, p) => {
   };
 
   const done = async () => {
+    if (!el.isConnected || Net.accessScreen()) return;
     if (step === 'verify') {
       const h = await hashPin(pin);
+      if (!el.isConnected || Net.accessScreen()) return;
       if (h === (Store.parent() || {}).pinHash) {
         Sfx.good();
         HK.go(p.next || 'parentHome', p.nextParams || {}, { replace: true });
@@ -73,14 +75,12 @@ HK.screens.pin = (el, p) => {
     if (step === 'confirm') {
       if (pin !== first) { step = 'new'; first = ''; return fail('Hazikulingana, anza upya'); }
       const h = await hashPin(pin);
+      if (!el.isConnected || Net.accessScreen()) return;
       const par = Store.parent() || { created: Date.now(), settings: {} };
       par.pinHash = h;
       Store.saveParent(par);
       Sfx.good();
-      if (mode === 'create') {
-        if (Net.online()) HK.boot();
-        else HK.go('acctAuth', { kind: 'parent', tab: 'register', skip: true, next: 'childForm', nextParams: { first: true } }, { reset: true });
-      }
+      if (mode === 'create') routeByRole();
       else { toast("PIN changed"); HK.back(); }
     }
   };
@@ -110,7 +110,7 @@ HK.screens.childForm = (el, p) => {
 
   el.innerHTML = `
     <div class="topbar">
-      ${p.first ? '' : `<button class="icon-btn" id="bk">${icon('back')}</button>`}
+      <button class="icon-btn" id="bk">${icon('back')}</button>
       <h1>${editing ? 'Hariri wasifu' : (p.first ? 'Mtoto wako' : 'Ongeza mtoto')}</h1>
     </div>
     <div class="scroll">
@@ -146,7 +146,8 @@ HK.screens.childForm = (el, p) => {
       ${editing && Store.children().length > 1 ? `<div style="height:12px"></div><button class="btn block ghost" id="del">${icon('trash', 20)} Futa wasifu huu</button>` : ''}
     </div>`;
 
-  const bk = $('#bk', el); if (bk) bk.onclick = () => HK.back();
+  if(p.first) HK.setBack(exitSetup);
+  $('#bk',el).onclick=()=>p.first ? exitSetup() : HK.back();
 
   const birthFor = a => { const d = new Date(); d.setFullYear(d.getFullYear() - a); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
   const showMode = () => {
@@ -287,7 +288,7 @@ HK.screens.parentHome = (el, p) => {
           <span class="row" style="gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:var(--teal)"></i>Kujifunza</span>
           <span class="row" style="gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:var(--blue)"></i>Games</span>
         </div>
-        <div class="btn-row kid-actions">
+        <button class="btn small ghost" data-device="${c.id}">Child device &amp; extra time</button><div class="btn-row kid-actions">
           ${Store.activeId() === c.id ? '' : `<button class="btn small blue" data-use="${c.id}">${icon('user', 18)} Mpe simu</button>`}
           <button class="btn small ghost" data-edit="${c.id}">${icon('edit', 18)} Hariri</button>
           <button class="btn small sun" data-bonus="${c.id}">${icon('plus', 18)} Dakika 10</button>
@@ -297,6 +298,7 @@ HK.screens.parentHome = (el, p) => {
     }).join('') + `<button class="btn block blue" id="addkid">${icon('plus', 22)} Ongeza mtoto</button>`;
 
     $$('[data-use]', body).forEach(b => b.onclick = () => { Store.setActive(b.dataset.use); toast("Changed"); renderKids(body); });
+    $$('[data-device]',body).forEach(btn=>btn.onclick=()=>HK.go('devices',{id:btn.dataset.device}));
     $$('[data-edit]', body).forEach(b => b.onclick = () => HK.go('childForm', { id: b.dataset.edit }));
     $$('[data-bonus]', body).forEach(b => b.onclick = () => { HK.addBonus(b.dataset.bonus, 10); Sfx.good(); toast("10 minutes of games added today"); renderKids(body); });
     $('#addkid', body).onclick = () => HK.go('childForm', {});

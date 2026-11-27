@@ -22,17 +22,16 @@ function raceData(c) {
   return c.racing;
 }
 
-/* chora gari (juu-chini) */
 function drawCar(ctx, x, y, w, h, color, dark, glow) {
   ctx.save();
   ctx.translate(x, y);
   if (glow) { ctx.shadowColor = 'rgba(255,255,255,.9)'; ctx.shadowBlur = 18; }
-  // magurudumu
+
   ctx.fillStyle = '#1B2233';
   const ww = w * 0.16, wh = h * 0.2;
   [[-w / 2 - ww * 0.35, -h * 0.32], [w / 2 - ww * 0.65, -h * 0.32], [-w / 2 - ww * 0.35, h * 0.14], [w / 2 - ww * 0.65, h * 0.14]]
     .forEach(([a, b]) => { rr(ctx, a, b, ww, wh, 4); ctx.fill(); });
-  // bodi
+
   const paint = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
   paint.addColorStop(0, dark); paint.addColorStop(.28, color);
   paint.addColorStop(.55, color); paint.addColorStop(1, dark);
@@ -42,7 +41,7 @@ function drawCar(ctx, x, y, w, h, color, dark, glow) {
   ctx.shadowBlur = 0;
   ctx.fillStyle = dark;
   rr(ctx, -w / 2 + w * 0.12, -h * 0.05, w * 0.76, h * 0.42, w * 0.18); ctx.fill();
-  // kioo
+
   const windshield = ctx.createLinearGradient(0, -h * .3, 0, -h * .08);
   windshield.addColorStop(0, '#e1f6ff'); windshield.addColorStop(.42, '#89b9d0'); windshield.addColorStop(1, '#273a51');
   ctx.fillStyle = windshield;
@@ -51,10 +50,10 @@ function drawCar(ctx, x, y, w, h, color, dark, glow) {
   rr(ctx, -w * .25, h * .25, w * .5, h * .11, w * .08); ctx.fill();
   ctx.fillStyle = '#f4b3a5';
   ctx.fillRect(-w * .28, h * .42, w * .15, h * .035); ctx.fillRect(w * .13, h * .42, w * .15, h * .035);
-  // mstari
+
   ctx.fillStyle = 'rgba(255,255,255,.85)';
   rr(ctx, -w * 0.07, -h / 2 + 4, w * 0.14, h * 0.18, 3); ctx.fill();
-  // taa
+
   ctx.fillStyle = '#FFF3B0';
   ctx.beginPath(); ctx.arc(-w * 0.3, -h / 2 + 6, w * 0.08, 0, 7); ctx.arc(w * 0.3, -h / 2 + 6, w * 0.08, 0, 7); ctx.fill();
   ctx.restore();
@@ -171,6 +170,8 @@ HK.screens.racePlay = (el, p) => {
     adventurer: { speed: 380 + level * 16, gap: 400, hearts: 3, double: level >= 5 ? 0.25 : 0 },
     master: { speed: 460 + level * 22, gap: 320, hearts: 3, double: level >= 3 ? 0.4 : 0.15 },
   }[group];
+  const cruisingSpeed = CFG.speed * 0.88;
+  const answerSeconds = group === 'explorer' ? 3 : 2.5;
   const LENGTH = 9000 + level * 1400;
 
   el.classList.add('race-screen', 'scene-' + theme.scene);
@@ -188,23 +189,31 @@ HK.screens.racePlay = (el, p) => {
   let W = 0, H = 0, dpr = 1;
   const resize = () => {
     dpr = Math.min(2, window.devicePixelRatio || 1);
+    const layoutChanged = W !== el.clientWidth || H !== el.clientHeight;
     W = el.clientWidth; H = el.clientHeight;
     cv.width = W * dpr; cv.height = H * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (!layoutChanged) return;
+    S.x = laneX(S.lane);
+    if (S.gate && !S.gate.done) {
+      const box = $('#q', el);
+      S.gate.visibleFrom = box.offsetTop + box.offsetHeight + 30;
+      S.gate.y = Math.min(S.gate.y, S.gate.visibleFrom);
+    }
   };
-  resize();
-  window.addEventListener('resize', resize);
+
 
   const road = () => { const rw = Math.min(W * 0.8, 430); return { l: (W - rw) / 2, w: rw, lw: rw / 3 }; };
   const laneX = i => { const r = road(); return r.l + r.lw * (i + 0.5); };
 
   const S = {
-    dist: 0, speed: CFG.speed, boost: 0, slow: 0, lane: 1, x: 0,
+    dist: 0, boost: 0, slow: 0, lane: 1, x: 0,
     hearts: CFG.hearts, coins: 0, inv: 0, objs: [], decos: [],
     nextRow: 600, nextGate: 2400, noSpawnUntil: 0, gate: null,
-    paused: false, over: false, time: 0, saveAcc: 0, warned: false, correct: 0, shake: 0, msgT: 0,
+    paused: false, over: false, time: 0, saveAcc: 0, warned: false, correct: 0, shake: 0,
   };
-  S.x = laneX(1);
+  resize();
+  window.addEventListener('resize', resize);
 
   const playerY = () => H - Math.max(120, H * 0.18);
   const carW = () => Math.min(road().lw * 0.58, 64);
@@ -216,7 +225,6 @@ HK.screens.racePlay = (el, p) => {
     el.appendChild(m); setTimeout(() => m.remove(), 900);
   }
 
-  /* ----- kuweka vitu barabarani ----- */
   function spawnRow() {
     const lanes = [0, 1, 2].sort(() => Math.random() - 0.5);
     const blocks = Math.random() < CFG.double ? 2 : 1;
@@ -232,10 +240,11 @@ HK.screens.racePlay = (el, p) => {
   }
   function spawnGate() {
     const q = raceQuestion(group, level);
-    S.gate = { y: -140, q, done: false };
+    S.gate = { y: -140, q, done: false, visibleFrom: 0 };
     const box = $('#q', el);
     box.textContent = q.q;
     box.classList.remove('hidden-q');
+    S.gate.visibleFrom = box.offsetTop + box.offsetHeight + 30;
     speak(q.say);
   }
   function spawnDeco() {
@@ -247,7 +256,6 @@ HK.screens.racePlay = (el, p) => {
     S.decos.push({ x, y: -80, s: 0.7 + Math.random() * 0.6, side });
   }
 
-  /* ----- kuchora ----- */
   function drawDeco(d) {
     ctx.save(); ctx.translate(d.x, d.y); ctx.scale(d.s, d.s);
     if (theme.deco === 'acacia') {
@@ -269,7 +277,7 @@ HK.screens.racePlay = (el, p) => {
 
   function drawWorld() {
     const r = road();
-    // ardhi
+
     ctx.fillStyle = theme.ground;
     ctx.globalAlpha = .27; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = theme.ground2;
@@ -287,7 +295,7 @@ HK.screens.racePlay = (el, p) => {
       for (let y = -200 + (S.dist % 200); y < H; y += 200) { ctx.beginPath(); ctx.ellipse(r.l * 0.4, y, 22, 9, 0, 0, 7); ctx.ellipse(r.l + r.w + (W - r.l - r.w) * 0.6, y + 100, 26, 10, 0, 0, 7); ctx.fill(); }
     }
     S.decos.forEach(drawDeco);
-    // barabara
+
     const asphalt = ctx.createLinearGradient(r.l, 0, r.l + r.w, 0);
     asphalt.addColorStop(0, '#353d4a'); asphalt.addColorStop(.14, '#4b515a');
     asphalt.addColorStop(.56, '#545d66'); asphalt.addColorStop(1, '#373e49');
@@ -358,7 +366,6 @@ HK.screens.racePlay = (el, p) => {
     ctx.restore();
   }
 
-  /* ----- mantiki ----- */
   function hit(o) {
     const dy = Math.abs(o.y - playerY());
     const dx = Math.abs(laneX(o.lane) - S.x);
@@ -371,18 +378,24 @@ HK.screens.racePlay = (el, p) => {
     if (S.inv > 0) S.inv -= dt;
     if (S.boost > 0) S.boost -= dt;
     if (S.slow > 0) S.slow -= dt;
-    const v = S.speed * (S.boost > 0 ? 1.45 : 1) * (S.slow > 0 ? 0.45 : 1);
-    const dy = v * dt;
+    let v = cruisingSpeed * (S.boost > 0 ? 1.45 : 1) * (S.slow > 0 ? 0.45 : 1);
+    if (S.gate && !S.gate.done && S.gate.y >= S.gate.visibleFrom) {
+      const visibleDistance = Math.max(1, playerY() - 10 - S.gate.visibleFrom);
+      v = Math.min(v, visibleDistance / answerSeconds);
+    }
+    let dy = v * dt;
+    if (S.gate && !S.gate.done && S.gate.y < S.gate.visibleFrom) {
+      dy = Math.min(dy, S.gate.visibleFrom - S.gate.y);
+    }
     S.dist += dy;
 
     S.x += (laneX(S.lane) - S.x) * Math.min(1, dt * 14);
 
-    // kuweka vitu
     if (S.dist >= S.nextGate && S.dist < LENGTH - 1400 && !S.gate) {
       spawnGate(); S.noSpawnUntil = S.dist + 900; S.nextGate = S.dist + 2600 + Math.random() * 800;
     }
     if (S.dist >= S.nextRow && S.dist < LENGTH - 500) {
-      if (S.dist > S.noSpawnUntil && (S.gate || S.dist < S.nextGate - 1100 || S.nextGate > LENGTH - 1400)) spawnRow();
+      if (S.dist > S.noSpawnUntil && (!S.gate || S.gate.done) && (S.dist < S.nextGate - 1100 || S.nextGate > LENGTH - 1400)) spawnRow();
       S.nextRow = S.dist + CFG.gap * (0.8 + Math.random() * 0.5);
     }
     if (Math.random() < dt * 2.2) spawnDeco();
@@ -443,32 +456,38 @@ HK.screens.racePlay = (el, p) => {
     ctx.restore();
   }
 
-  let raf, last = performance.now();
+  let raf, disposed = false, last = performance.now();
   function loop(t) {
     const dt = Math.min(0.05, (t - last) / 1000); last = t;
     if (!S.paused && !S.over) {
       if (S.shake > 0) S.shake -= dt;
       update(dt);
     }
-    if (!S.over) render();
+    if (disposed || S.over) return;
+    render();
     raf = requestAnimationFrame(loop);
   }
 
-  /* ----- vidhibiti ----- */
   const move = d => { if (S.paused || S.over) return; const n = Math.max(0, Math.min(2, S.lane + d)); if (n !== S.lane) { S.lane = n; Sfx.tap(); } };
   let sx = null;
-  cv.addEventListener('pointerdown', e => { sx = e.clientX; });
+  cv.addEventListener('pointerdown', e => {
+    if (!e.isPrimary) return;
+    sx = e.clientX;
+    cv.setPointerCapture(e.pointerId);
+  });
+  cv.addEventListener('lostpointercapture', () => { sx = null; });
   cv.addEventListener('pointerup', e => {
-    if (sx == null) return;
+    if (!e.isPrimary || sx == null) return;
     const dx = e.clientX - sx; sx = null;
     if (Math.abs(dx) > 30) move(dx > 0 ? 1 : -1);
-    else move(e.clientX < W / 2 ? -1 : 1);
+    else move(e.clientX - cv.getBoundingClientRect().left < W / 2 ? -1 : 1);
   });
   const key = e => { if (e.key === 'ArrowLeft') move(-1); if (e.key === 'ArrowRight') move(1); };
   window.addEventListener('keydown', key);
 
   function pause() {
     if (S.over || S.paused) return;
+    sx = null;
     S.paused = true;
     const dialog = modal(el, {
       iconName: 'pause', iconColor: 'var(--blue)', title: 'Paused',
@@ -484,6 +503,8 @@ HK.screens.racePlay = (el, p) => {
   $('#pause', el).onclick = pause;
   HK.setBack(() => { if (S.over || S.paused) return false; pause(); return true; });
   HK._pauseHook = pause;
+  const onVisibilityChange = () => { if (document.hidden) pause(); };
+  document.addEventListener('visibilitychange', onVisibilityChange);
 
   function finish(won) {
     if (S.over) return;
@@ -519,6 +540,11 @@ HK.screens.racePlay = (el, p) => {
   S.paused = true;
   let n = 3, startTimer;
   const countdown = () => {
+    if (disposed) return;
+    if (document.hidden) {
+      startTimer = setTimeout(countdown, 250);
+      return;
+    }
     if (n === 0) { msg("Let's go!", '#FFE07A'); speak("Let's go!"); S.paused = false; last = performance.now(); return; }
     msg(String(n)); Sfx.tone(520, 0.12, 'square', 0.1); n--; startTimer = setTimeout(countdown, 750);
   };
@@ -527,8 +553,10 @@ HK.screens.racePlay = (el, p) => {
   raf = requestAnimationFrame(loop);
 
   return () => {
+    disposed = true;
     clearTimeout(startTimer);
     cancelAnimationFrame(raf);
+    document.removeEventListener('visibilitychange', onVisibilityChange);
     window.removeEventListener('resize', resize);
     window.removeEventListener('keydown', key);
     HK._pauseHook = null;

@@ -14,21 +14,80 @@ const Net = {
   role() { const u = this.user(); return u ? u.role : null; },
   online() { return !!this.token(); },
   setAcct(a) { Store.set('acct', a); },
-  logout() { const t = this.token(); if (t) this.api('POST', '/api/logout').catch(() => {}); Store.set('acct', null); this.closeWs(); },
+  logout() {
+    if (this.token()) this.post('/api/logout').catch(() => {});
+    this.clearSession();
+  },
+  clearSession() {
+    this.setAcct(null);
+    this.closeWs();
+  },
+  accessScreen() {
+    const account = this.acct();
+    if (!account?.token || !account.user) return 'welcome';
+    if (account.user.must_change) return 'changePass';
+    if (['pending', 'blocked'].includes(account.user.access_status)) return 'accountAccess';
+    if (account.verified !== true || account.user.access_status !== 'active') return 'accessCheck';
+    return null;
+  },
+  acceptSession(token, user) {
+    const prior = this.acct()?.user;
+    const owner = prior?.role === 'parent' ? prior.id : user.role === 'parent' ? user.id : null;
+    if (owner && !Store.get('profileOwner', null)) Store.set('profileOwner', owner);
+    this.setAcct({ token, user, verified: user.access_status === 'active' });
+  },
+  applyAccess(token, user) {
+    if (this.token() !== token) return;
+    const prior = this.acct();
+    this.acceptSession(token, user);
+    const screen = HK.stack.at(-1)?.name;
+    const gate = this.accessScreen();
+    if (gate) this.closeWs();
+    if (HK.startingAccess || !screen) return;
+    if (gate && !HK.allowsAccess(screen, HK.stack.at(-1).params)) return routeByRole();
+    if (screen === 'accountAccess' && (!gate || prior.user.access_status !== user.access_status)) routeByRole();
+    if (screen === 'accessCheck' && gate !== 'accessCheck') routeByRole();
+  },
+  refreshAccess() {
+    const token = this.token();
+    if (!token) return Promise.resolve();
+    if (this.accessRequest?.token === token) return this.accessRequest.promise;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const request = { token };
+    request.promise = this.api('GET', '/api/me', undefined, controller.signal)
+      .then(({ user }) => this.applyAccess(token, user))
+      .finally(() => {
+        clearTimeout(timeout);
+        if (this.accessRequest === request) this.accessRequest = null;
+      });
+    this.accessRequest = request;
+    return request.promise;
+  },
 
-  async api(method, path, body) {
+  async api(method, path, body, signal) {
+    const publicAuth = ['/api/login', '/api/register', '/api/password/forgot', '/api/password/reset'].includes(path);
+    const token = publicAuth ? null : this.token();
     let r;
     try {
       r = await fetch(this.base() + path, {
         method,
-        headers: { 'content-type': 'application/json', ...(this.token() ? { authorization: 'Bearer ' + this.token() } : {}) },
+        headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}) },
         body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal,
+        cache: 'no-store',
       });
     } catch (e) { throw new Error("No internet or the server is unavailable"); }
     const j = await r.json().catch(() => null);
-    if (j === null) throw new Error('Server haipatikani kwenye anwani hii: ' + this.base());
-    if (r.status === 401 && this.token()) { Store.set('acct', null); }
-    if (!r.ok) throw new Error(j.error || ('Hitilafu ' + r.status));
+    if (j === null) throw new Error('The HUGO KID server is unavailable.');
+    if (token && this.token() === token) {
+      if (r.status === 401) {
+        this.clearSession();
+        if (path !== '/api/logout' && !HK.startingAccess) HK.go('welcome', {}, { reset: true });
+      }
+      if (r.status === 403 && j.access_status) this.applyAccess(token, { ...this.user(), access_status: j.access_status });
+    }
+    if (!r.ok) throw new Error(j.error || ('Request failed: ' + r.status));
     return j;
   },
   get(p) { return this.api('GET', p); },
@@ -51,7 +110,7 @@ const Net = {
   /* ----- WebSocket ----- */
   ws: null, wsChild: null, handlers: new Set(), _retry: null,
   connect(childId) {
-    if (!this.online()) return;
+    if (!this.online() || this.accessScreen()) return;
     if (this.ws && this.wsChild === (childId || null) && this.ws.readyState <= 1) return;
     this.closeWs();
     this.wsChild = childId || null;
@@ -60,7 +119,14 @@ const Net = {
     try { ws = new WebSocket(u); } catch (e) { return; }
     this.ws = ws;
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } this.handlers.forEach(h => { try { h(m); } catch (x) {} }); };
-    ws.onclose = () => { if (this.ws === ws) { this.ws = null; clearTimeout(this._retry); this._retry = setTimeout(() => this.connect(this.wsChild), 5000); } };
+    ws.onclose = () => {
+      if (this.ws !== ws) return;
+      this.ws = null;
+      if (ws.readyState === 3 && navigator.onLine !== false) {
+        this.refreshAccess().catch(() => {});
+      }
+      this._retry = setTimeout(() => this.connect(this.wsChild), 5000);
+    };
   },
   closeWs() { clearTimeout(this._retry); const w = this.ws; this.ws = null; if (w) try { w.close(); } catch (e) {} },
   send(m) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(m)); },
@@ -81,3 +147,20 @@ function dataToBlob(d) {
   for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
   return new Blob([a], { type: mime });
 }
+
+function checkConnectedAccess() {
+  if (!document.hidden && navigator.onLine !== false) Net.refreshAccess().catch(() => {});
+}
+window.addEventListener('online', checkConnectedAccess);
+window.addEventListener('focus', checkConnectedAccess);
+window.addEventListener('storage', event => {
+  if (event.key !== 'hk_acct' || HK.startingAccess) return;
+  let previous;
+  try { previous = JSON.parse(event.oldValue); } catch {}
+  if (previous?.token !== Net.token() || previous?.user?.access_status !== Net.user()?.access_status || previous?.user?.must_change !== Net.user()?.must_change) {
+    Net.closeWs();
+    routeByRole();
+  }
+});
+document.addEventListener('visibilitychange', checkConnectedAccess);
+setInterval(checkConnectedAccess, 30_000);

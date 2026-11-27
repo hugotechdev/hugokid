@@ -1,13 +1,7 @@
 
 
 async function renderParentSchool(body) {
-  if (!(Net.online() && Net.role() === 'parent')) {
-    body.innerHTML = `<div class="card" style="text-align:center"><div style="display:flex;justify-content:center">${mascot('nuru', 80)}</div>
-      <h3 style="margin-top:8px">Link to school</h3><p>Open a parent account to receive the teacher's homework, scores, reports, attendance and teacher messages.</p>
-      <div style="height:14px"></div><button class="btn block blue" id="acct">${icon('user', 20)} Fungua akaunti au ingia</button></div>`;
-    $('#acct', body).onclick = () => HK.go('acctAuth', { kind: 'parent', tab: 'register', next: 'parentHome', nextParams: { tab: 'school' } });
-    return;
-  }
+  if (Net.role() !== 'parent' || Net.accessScreen()) return;
   body.innerHTML = '<div class="empty">Inapakia...</div>';
   try {
     await SchoolSync.pullChildren();
@@ -49,9 +43,9 @@ async function renderParentSchool(body) {
       ${anns.length ? `<div class="section-title">School announcements</div>${anns.slice(0, 5).map(a => `<div class="card"><h3>${esc(a.title)}</h3><p>${esc(a.body || '')}</p><p class="muted" style="font-size:12px">${esc(a.school || '')} · ${new Date(a.created).toLocaleDateString('sw-TZ')}</p></div>`).join('')}` : ''}
       <button class="btn block ghost small" id="delacct" style="margin-top:10px">${icon('trash', 16)} Futa akaunti ya mtandaoni</button>`;
     $('#delacct', body).onclick = () => confirmBox(body.closest('.screen'), "Delete account?", "Account details and progress backups will be deleted from the server. Data on this phone will remain. Children in schools will stay on the school list without a parent.", "Delete permanently", async () => {
-      try { await Net.del('/api/account'); Net.logout(); Store.children().forEach(c => { delete c.serverId; delete c.school; delete c.className; Store.saveChild(c); }); toast("Account deleted"); HK.render(); } catch (e) { toast(e.message); }
+      try { await Net.del('/api/account'); Store.children().forEach(c => { delete c.serverId; delete c.school; delete c.className; Store.saveChild(c); }); Net.clearSession(); routeByRole(); toast("Account deleted"); } catch (e) { toast(e.message); }
     });
-    $('#out', body).onclick = () => confirmBox(body.closest('.screen'), "Sign out of the account?", "This phone's data will remain.", "Exit", () => { Net.logout(); HK.render(); });
+    $('#out', body).onclick = () => confirmBox(body.closest('.screen'), "Sign out of the account?", "You will need the internet to sign in again.", "Sign out", () => { Net.logout(); routeByRole(); });
     $('#bill', body).onclick = () => HK.go('billing');
     $$('[data-link]', body).forEach(b => b.onclick = async () => {
       const c = Store.child(b.dataset.link), code = $(`[data-code="${c.id}"]`, body).value.trim();
@@ -100,48 +94,61 @@ HK.screens.parentSub = (el, p) => {
 };
 
 HK.screens.superHome = (el) => {
-  const body = dash(el, 'HUGO KID · Msimamizi mkuu', 'HUGO TECH', loading, false, `<button class="icon-btn" id="out">${icon('logout', 20)}</button>`);
+  const body = dash(el, 'HUGO KID · Admin', 'HUGO TECH', loading, false, `<button class="icon-btn" id="out">${icon('logout', 20)}</button>`);
   $('#out', el).onclick = () => { Net.logout(); HK.go('welcome', {}, { reset: true }); };
   HK.setBack(() => true);
   (async () => {
     try {
       const [s, b, aiCfg, ttsCfg] = await Promise.all([Net.get('/api/admin/stats'), Net.get('/api/billing'), Net.get('/api/admin/ai'), Net.get('/api/admin/tts')]);
       const paid = b.invoices.filter(i => i.status === 'paid').reduce((a, i) => a + i.amount, 0);
-      const st = { unpaid: ['coral', 'Haijalipwa'], pending: ['sun', 'Thibitisha'], paid: ['teal', 'Imelipwa'] };
+      const st = { unpaid: ['coral', 'Unpaid'], pending: ['sun', 'Awaiting verification'], paid: ['teal', 'Paid'] };
+      const accessLabels = { active: 'Active', pending: 'Awaiting payment', blocked: 'Suspended' };
       body.innerHTML = `<div class="stat-grid">
-          ${statCard('Shule', s.schools, 'build', 'var(--blue)')}${statCard('Walimu', s.teachers, 'user', 'var(--teal)')}${statCard('Wazazi', s.parents, 'users', 'var(--coral)')}
-          ${statCard('Wanafunzi', s.children, 'star', 'var(--sun-d)')}${statCard('Homework', s.homework, 'file', '#7B61FF')}${statCard('Mapato (TSh)', paid.toLocaleString(), 'coin', 'var(--navy)')}</div>
-        <div class="section-title">School</div>
-        <div class="card table-card"><table><tr><th>School</th><th>Eneo</th><th>Wanafunzi</th><th>Hali</th><th></th></tr>
-          ${s.list.map(x => `<tr><td>${esc(x.name)}<br><span class="muted">${x.type === 'tutor' ? 'Mwalimu binafsi' : 'Shule'} · ${esc(x.phone || '')}</span></td><td>${esc(x.region || '')} ${esc(x.district || '')}</td><td>${x.students}</td>
-            <td><span class="chip-tag ${x.status === 'active' ? 'teal' : 'coral'}">${x.status === 'active' ? 'Hai' : 'Imesimamishwa'}</span></td>
-            <td><button class="btn small ghost" data-inv="${x.id}" data-n="${esc(x.name)}">Ankara</button> <button class="btn small ${x.status === 'active' ? 'coral' : ''}" data-st="${x.id}" data-v="${x.status === 'active' ? 'blocked' : 'active'}">${x.status === 'active' ? 'Simamisha' : 'Rudisha'}</button></td></tr>`).join('')}</table></div>
-        <div class="section-title">Watumiaji</div>
-        <div class="card"><div class="form-row"><div class="seg" style="margin:0;flex:2" id="ur">${[['parent', 'Wazazi'], ['teacher', 'Walimu'], ['school_admin', 'Wakuu wa shule'], ['children', 'Watoto']].map(([k, n], i) => `<button data-r="${k}" class="${i ? '' : 'on'}">${n}</button>`).join('')}</div>
-          <input class="field" id="uq" placeholder="Tafuta jina au simu"></div><div id="ul" style="margin-top:10px"></div></div>
-        <div class="section-title">Ankara</div>
+          ${statCard('School', s.schools, 'build', 'var(--blue)')}${statCard('Teachers', s.teachers, 'user', 'var(--teal)')}${statCard('Parents', s.parents, 'users', 'var(--coral)')}
+          ${statCard('Students', s.children, 'star', 'var(--sun-d)')}${statCard('Homework', s.homework, 'file', '#7B61FF')}${statCard('Revenue (TSh)', paid.toLocaleString(), 'coin', 'var(--navy)')}</div>
+        <div class="section-title">Schools</div>
+        <div class="card table-card"><table><tr><th>School</th><th>Location</th><th>Students</th><th>Status</th><th></th></tr>
+          ${s.list.map(x => `<tr><td>${esc(x.name)}<br><span class="muted">${x.type === 'tutor' ? 'Tutor' : 'School'} · ${esc(x.phone || '')}</span></td><td>${esc(x.region || '')} ${esc(x.district || '')}</td><td>${x.students}</td>
+            <td><span class="chip-tag ${x.status === 'active' ? 'teal' : 'coral'}">${accessLabels[x.status] || 'Unknown'}</span></td>
+            <td><button class="btn small ghost" data-inv="${x.id}" data-n="${esc(x.name)}">Invoice</button> <button class="btn small ${x.status === 'active' ? 'coral' : ''}" data-st="${x.id}" data-v="${x.status === 'active' ? 'blocked' : 'active'}">${x.status === 'active' ? 'Suspend' : 'Activate'}</button></td></tr>`).join('')}</table></div>
+        <div class="section-title">Users</div>
+        <div class="card"><div class="form-row"><div class="seg" style="margin:0;flex:2" id="ur">${[['parent', 'Parents'], ['teacher', 'Teachers'], ['school_admin', 'School admins'], ['children', 'Children']].map(([k, n], i) => `<button data-r="${k}" class="${i ? '' : 'on'}">${n}</button>`).join('')}</div>
+          <input class="field" id="uq" placeholder="Search name, phone or email"></div><div id="ul" style="margin-top:10px"></div></div>
+        <div class="section-title">Invoices</div>
         ${b.invoices.map(i => `<div class="item" style="cursor:default"><div class="grow"><div class="i-title">${esc(i.school || i.parent || '')} · ${esc(i.plan)} · ${esc(i.period)}</div><div class="i-sub">TSh ${Number(i.amount).toLocaleString()}${i.reference ? ' · ' + esc(i.method || '') + ' ' + esc(i.reference) : ''}</div></div>
-          <span class="chip-tag ${st[i.status][0]}">${st[i.status][1]}</span>${i.status !== 'paid' ? `<button class="btn small" data-paid="${i.id}">Imelipwa</button>` : ''}</div>`).join('') || '<p class="muted">Hakuna ankara.</p>'}
+          <span class="chip-tag ${st[i.status][0]}">${st[i.status][1]}</span>${i.status !== 'paid' ? `<button class="btn small" data-paid="${i.id}" >Confirm payment & activate</button>` : ''}</div>`).join('') || '<p class="muted">No invoices yet.</p>'}
         <div class="stat-grid three" style="margin-top:14px">
-          <div class="card"><h3>Bei</h3><label class="label">Per student per term (school)</label><input class="field" id="p1" type="number" value="${b.plans.school_student_term}">
+          <div class="card"><h3>Pricing</h3><label class="label">Per student per term (school)</label><input class="field" id="p1" type="number" value="${b.plans.school_student_term}">
             <label class="label">Parent per month</label><input class="field" id="p2" type="number" value="${b.plans.parent_month}">
-            <label class="label">Payment instructions</label><textarea class="field" id="p3" placeholder="Mfano: M-Pesa Lipa Namba ...">${esc(b.plans.pay_info || '')}</textarea>
-            <button class="btn" id="saveplans" style="margin-top:10px">${icon('check', 18)} Hifadhi</button></div>
-          <div class="card"><h3>Server AI</h3><p style="font-size:13px">Inatumika kusahihisha, msaidizi wa mwalimu na ripoti za wazazi. ${aiCfg.has_key ? 'Imewekwa.' : 'Bado haijawekwa.'}</p>
+            <label class="label">Payment instructions</label><textarea class="field" id="p3" placeholder="Example: M-Pesa payment number">${esc(b.plans.pay_info || '')}</textarea>
+            <button class="btn" id="saveplans" style="margin-top:10px">${icon('check', 18)} Save</button></div>
+          <div class="card"><h3>Server AI</h3><p style="font-size:13px">Used to mark work and support teachers and parent reports. ${aiCfg.has_key ? 'Enabled.' : 'Setup needed.'}</p>
             <select class="field" id="ap">${['gemini', 'claude', 'openai'].map(x => `<option ${aiCfg.provider === x ? 'selected' : ''}>${x}</option>`).join('')}</select>
-            <input class="field" id="ak" type="password" placeholder="API key" style="margin-top:8px"><input class="field" id="am" placeholder="Model (si lazima)" value="${esc(aiCfg.model || '')}" style="margin-top:8px">
-            <button class="btn" id="saveai" style="margin-top:10px">${icon('check', 18)} Hifadhi</button></div>
-          <div class="card"><h3>Nuru's voice</h3><p style="font-size:13px">Imani is the English (Tanzania) narration voice. When Azure is unavailable, the app uses the device’s English voice. ${ttsCfg.has_key ? 'Imewekwa.' : 'Bado haijawekwa.'}</p>
-            <input class="field" id="tr" placeholder="Region (mf. westeurope)" value="${esc(ttsCfg.region || '')}">
+            <input class="field" id="ak" type="password" placeholder="API key" style="margin-top:8px"><input class="field" id="am" placeholder="Model (optional)" value="${esc(aiCfg.model || '')}" style="margin-top:8px">
+            <button class="btn" id="saveai" style="margin-top:10px">${icon('check', 18)} Save</button></div>
+          <div class="card"><h3>Nuru's voice</h3><p style="font-size:13px">Imani is the English (Tanzania) narration voice. When Azure is unavailable, the app uses the device’s English voice. ${ttsCfg.has_key ? 'Enabled.' : 'Setup needed.'}</p>
+            <input class="field" id="tr" placeholder="Region (e.g. westeurope)" value="${esc(ttsCfg.region || '')}">
             <input class="field" id="tk" type="password" placeholder="Speech key" style="margin-top:8px">
-            <div class="btn-row" style="margin-top:10px"><button class="btn" id="savetts">${icon('check', 18)} Hifadhi</button><button class="btn ghost" id="testtts">${icon('volume', 18)} Jaribu sauti</button></div></div>
-          <div class="card"><h3>Account</h3><button class="btn block ghost" id="pw">${icon('key', 18)} Badilisha nenosiri</button></div></div>`;
-      $$('[data-st]', body).forEach(x => x.onclick = async () => { await Net.post(`/api/admin/schools/${x.dataset.st}/status`, { status: x.dataset.v }); HK.render(); });
-      $$('[data-paid]', body).forEach(x => x.onclick = async () => { await Net.post(`/api/admin/invoices/${x.dataset.paid}/status`, { status: 'paid' }); HK.render(); });
+            <div class="btn-row" style="margin-top:10px"><button class="btn" id="savetts">${icon('check', 18)} Save</button><button class="btn ghost" id="testtts">${icon('volume', 18)} Test voice</button></div></div>
+          <div class="card"><h3>Android download</h3>
+            <p>Publish a signed HUGO KID APK using the same signing key as the previous public version.</p>
+            <label class="label" for="android-apk">Android APK</label>
+            <input class="field" type="file" accept=".apk,application/vnd.android.package-archive" id="android-apk">
+            <button class="btn" id="publish-apk" style="margin-top:10px">Publish APK</button>
+            <p id="apk-status" role="status" class="muted" style="margin-top:8px"></p></div>
+          <div class="card"><h3>Account</h3><button class="btn block ghost" id="pw">${icon('key', 18)} Change password</button></div></div>`;
+      $$('[data-st]', body).forEach(x => x.onclick = async () => { try { await Net.post(`/api/admin/schools/${x.dataset.st}/status`, { status: x.dataset.v }); HK.render(); }
+        catch (error) { toast(error.message); } });
+      $$('[data-paid]', body).forEach(x => x.onclick = () => confirmBox(el,
+        'Confirm payment?', 'Confirm only after verifying the amount and transaction reference. This activates account access.', 'Confirm and activate',
+        async () => {
+          try { await Net.post(`/api/admin/invoices/${x.dataset.paid}/status`, { status: 'paid' }); HK.render(); }
+          catch (error) { toast(error.message); }
+        }, 'teal'));
       $$('[data-inv]', body).forEach(x => x.onclick = () => {
-        modal(el, { title: 'Ankara: ' + x.dataset.n, html: '<input class="field" id="ia" type="number" placeholder="Kiasi (TSh)"><input class="field" id="ip" placeholder="Kipindi (mf. Muhula 1 2027)" style="margin-top:8px"><div style="height:14px"></div>', buttons: [
-          { label: 'Tuma ankara', onClick: async o => { try { await Net.post('/api/admin/invoices', { school_id: +x.dataset.inv, amount: +$('#ia', o).value, period: $('#ip', o).value, plan: 'HUGO KID Shule' }); toast("Invoice sent"); HK.render(); } catch (e) { toast(e.message); } } },
-          { label: 'Ghairi', cls: 'ghost' }] });
+        modal(el, { title: 'Invoice: ' + x.dataset.n, html: '<input class="field" id="ia" type="number" placeholder="Amount (TSh)"><input class="field" id="ip" placeholder="Period (e.g. Term 1)" style="margin-top:8px"><div style="height:14px"></div>', buttons: [
+          { label: 'Send invoice', onClick: async o => { try { await Net.post('/api/admin/invoices', { school_id: +x.dataset.inv, amount: +$('#ia', o).value, period: $('#ip', o).value, plan: 'HUGO KID School' }); toast("Invoice sent"); HK.render(); } catch (e) { toast(e.message); } } },
+          { label: 'Cancel', cls: 'ghost' }] });
       });
       $('#saveplans', body).onclick = async () => { await Net.put('/api/admin/plans', { school_student_term: +$('#p1', body).value, parent_month: +$('#p2', body).value, pay_info: $('#p3', body).value }); toast("Saved"); };
       $('#saveai', body).onclick = async () => { await Net.put('/api/admin/ai', { provider: $('#ap', body).value, key: $('#ak', body).value, model: $('#am', body).value }); toast("AI saved"); HK.render(); };
@@ -151,11 +158,43 @@ HK.screens.superHome = (el) => {
         if (!Voice.enabled) return toast("Enter the region and key first");
         speak('Hi! I’m Nuru. Tap one mango. Well done! Now add a second mango.');
       };
+      const apkStatus = $('#apk-status', body);
+      const apkButton = $('#publish-apk', body);
+      const showApkStatus = ({ available }) => {
+        apkStatus.textContent = available ? 'The APK is available on the download page.' : 'No APK has been published yet.';
+      };
+      Net.get('/api/android-download').then(status => {
+        if (!apkButton.disabled) showApkStatus(status);
+      }).catch(() => {});
+      apkButton.onclick = async () => {
+        const file = $('#android-apk', body).files[0];
+        if (!file || !/\.apk$/i.test(file.name) || file.size > 40 * 1024 * 1024) {
+          apkStatus.textContent = 'Choose an APK file of up to 40 MB.';
+          return;
+        }
+        apkButton.disabled = true;
+        apkStatus.textContent = 'Publishing…';
+        try {
+          const response = await fetch(Net.base() + '/api/admin/android-download', {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + Net.token(), 'Content-Type': 'application/vnd.android.package-archive' },
+            body: file,
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || 'Upload failed.');
+          showApkStatus(result);
+          $('#android-apk', body).value = '';
+        } catch (error) {
+          apkStatus.textContent = error.message;
+        } finally {
+          apkButton.disabled = false;
+        }
+      };
       $('#pw', body).onclick = () => HK.go('changePass');
       let ur = 'parent';
       const loadUsers = async () => {
         const qq = encodeURIComponent($('#uq', body).value || '');
-        const box = $('#ul', body); box.innerHTML = '<p class="muted">Inapakia...</p>';
+        const box = $('#ul', body); box.innerHTML = '<p class="muted">Loading…</p>';
         try {
           if (ur === 'children') {
             const list = await Net.get('/api/admin/children?q=' + qq);
@@ -163,12 +202,22 @@ HK.screens.superHome = (el) => {
             return;
           }
           const list = await Net.get(`/api/admin/users?role=${ur}&q=${qq}`);
-          box.innerHTML = `<div class="table-card" style="padding:0"><table><tr><th>Jina</th><th>Mawasiliano</th><th>${ur === 'parent' ? 'Watoto' : 'Shule'}</th><th></th></tr>${list.map(x => `<tr><td>${esc(x.name)}</td><td>${esc(x.phone || '')} ${esc(x.email || '')}</td><td>${esc(ur === 'parent' ? (x.children || []).join(', ') : (x.school || ''))}</td>
-            <td><button class="btn small ghost" data-rst="${x.id}">Password</button>${ur === 'parent' ? ` <button class="btn small ghost" data-pinv="${x.id}" data-n="${esc(x.name)}">Ankara</button>` : ''}</td></tr>`).join('')}</table></div>`;
-          $$('[data-rst]', box).forEach(btn => btn.onclick = async () => { const r = await Net.post(`/api/admin/users/${btn.dataset.rst}/reset`); modal(el, { iconName: 'key', title: "Temporary password", html: `<p>${esc(r.login)}</p><p style="font-size:22px;font-weight:700">${esc(r.password)}</p><div style="height:10px"></div>`, buttons: [{ label: 'Sawa' }] }); });
-          $$('[data-pinv]', box).forEach(btn => btn.onclick = () => modal(el, { title: 'Ankara: ' + btn.dataset.n, html: '<input class="field" id="ia" type="number" placeholder="Kiasi (TSh)"><input class="field" id="ip" placeholder="Kipindi (mf. Desemba 2026)" style="margin-top:8px"><div style="height:14px"></div>', buttons: [
-            { label: 'Tuma ankara', onClick: async o => { try { await Net.post('/api/admin/invoices', { parent_id: +btn.dataset.pinv, amount: +$('#ia', o).value, period: $('#ip', o).value, plan: 'HUGO KID Mzazi' }); toast("Invoice sent"); } catch (e) { toast(e.message); } } },
-            { label: 'Ghairi', cls: 'ghost' }] }));
+          box.innerHTML = `<div class="table-card" style="padding:0"><table><tr><th>Name</th><th>Contact</th><th>${ur === 'parent' ? 'Children' : 'School'}</th><th>Access</th><th></th></tr>${list.map(x => `<tr><td>${esc(x.name)}</td><td>${esc(x.phone || '')} ${esc(x.email || '')}</td><td>${esc(ur === 'parent' ? (x.children || []).join(', ') : (x.school || ''))}</td>
+            <td>${accessLabels[x.school_status || x.access_status] || 'Unknown'}
+              ${x.matches?.length ? `<details><summary>Possible duplicate</summary>
+                ${x.matches.map(match => `<p>Same ${esc(match.field)}: ${match.accounts.map(account => esc(account.name) + ' (#' + account.id + ', ' + esc(account.role) + ')').join(', ')}</p>`).join('')}
+              </details>` : ''}</td>
+            <td>${ur === 'parent' ? `<button class="btn small ${x.access_status === 'active' ? 'coral' : ''}" data-parent-access="${x.id}" data-status="${x.access_status === 'active' ? 'blocked' : 'active'}">${x.access_status === 'active' ? 'Suspend' : 'Activate'}</button> ` : ''}<button class="btn small ghost" data-rst="${x.id}">Password</button>${ur === 'parent' ? ` <button class="btn small ghost" data-pinv="${x.id}" data-n="${esc(x.name)}">Invoice</button>` : ''}</td></tr>`).join('')}</table></div>`;
+          $$('[data-parent-access]', box).forEach(btn => btn.onclick = async () => {
+            try {
+              await Net.post(`/api/admin/parents/${btn.dataset.parentAccess}/status`, { status: btn.dataset.status });
+              await loadUsers();
+            } catch (error) { toast(error.message); }
+          });
+          $$('[data-rst]', box).forEach(btn => btn.onclick = async () => { const r = await Net.post(`/api/admin/users/${btn.dataset.rst}/reset`); modal(el, { iconName: 'key', title: "Temporary password", html: `<p>${esc(r.login)}</p><p style="font-size:22px;font-weight:700">${esc(r.password)}</p><div style="height:10px"></div>`, buttons: [{ label: 'OK' }] }); });
+          $$('[data-pinv]', box).forEach(btn => btn.onclick = () => modal(el, { title: 'Invoice: ' + btn.dataset.n, html: '<input class="field" id="ia" type="number" placeholder="Amount (TSh)"><input class="field" id="ip" placeholder="Period (e.g. December)" style="margin-top:8px"><div style="height:14px"></div>', buttons: [
+            { label: 'Send invoice', onClick: async o => { try { await Net.post('/api/admin/invoices', { parent_id: +btn.dataset.pinv, amount: +$('#ia', o).value, period: $('#ip', o).value, plan: 'HUGO KID Parent' }); toast("Invoice sent"); HK.render(); } catch (e) { toast(e.message); } } },
+            { label: 'Cancel', cls: 'ghost' }] }));
         } catch (e) { box.innerHTML = `<p class="muted">${esc(e.message)}</p>`; }
       };
       $$('#ur button', body).forEach(btn => btn.onclick = () => { ur = btn.dataset.r; $$('#ur button', body).forEach(x => x.classList.toggle('on', x === btn)); loadUsers(); });
