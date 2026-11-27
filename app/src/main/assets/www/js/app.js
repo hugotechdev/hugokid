@@ -31,6 +31,7 @@ const HK = window.HK = {
       this.stack = [cur];
     }
     const root = this.root();
+    root.classList.toggle('is-welcome', cur.name === 'welcome');
     root.innerHTML = '';
     const el = document.createElement('div');
     el.className = 'screen';
