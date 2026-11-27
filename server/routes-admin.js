@@ -20,18 +20,52 @@ route('GET', '/api/admin/stats', u => {
 });
 route('POST', '/api/admin/schools/:id/status', (u, b, req, p) => {
   role(u, 'superadmin');
-  q.run('UPDATE schools SET status = ? WHERE id = ?', b.status === 'blocked' ? 'blocked' : 'active', +p.id);
+  if (!['blocked','active'].includes(b.status)) fail(400, 'Choose an access status.');
+  if (!q.run('UPDATE schools SET status = ? WHERE id = ?', b.status, +p.id).changes) fail(404, 'School not found.');
+  if (b.status === 'blocked') q.all('SELECT id FROM users WHERE school_id=?', +p.id).forEach(user => hub.closeUser(user.id));
   return { ok: true };
 });
+
+route('POST', '/api/admin/parents/:id/status', (u, b, req, p) => {
+  role(u, 'superadmin');
+  if (!['blocked','active'].includes(b.status)) fail(400, 'Choose an access status.');
+  const id = +p.id;
+  if (!q.run("UPDATE users SET access_status = ? WHERE id = ? AND role = 'parent'", b.status, id).changes) fail(404, 'Parent not found.');
+  if (b.status === 'blocked') hub.closeUser(id);
+  return { ok: true };
+});
+
+const contactPhone = value => String(value || '').replace(/\D/g, '').replace(/^(?:00255|255|0)(?=\d{9}$)/, '');
+function matchingAccounts() {
+  const indexes = { name: new Map(), phone: new Map(), email: new Map() };
+  for (const account of q.all("SELECT id, role, name, phone, email FROM users WHERE role <> 'superadmin'")) {
+    for (const [key, index] of Object.entries(indexes)) {
+      const value = key === 'phone' ? contactPhone(account[key]) : String(account[key] || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      if (!value) continue;
+      if (!index.has(value)) index.set(value, []);
+      index.get(value).push(account);
+    }
+  }
+  const matches = new Map();
+  for (const [key, index] of Object.entries(indexes)) for (const accounts of index.values()) {
+    if (accounts.length < 2) continue;
+    for (const account of accounts) {
+      if (!matches.has(account.id)) matches.set(account.id, []);
+      matches.get(account.id).push({ field: key, accounts: accounts.slice(0, 11).filter(other => other.id !== account.id).slice(0, 10).map(({id, name, role}) => ({id, name, role})) });
+    }
+  }
+  return matches;
+}
 
 route('GET', '/api/admin/users', (u, b, req) => {
   role(u, 'superadmin');
   const sp = new URL(req.url, 'http://x').searchParams;
   const r = ['teacher', 'parent', 'school_admin'].includes(sp.get('role')) ? sp.get('role') : 'parent';
   const s = '%' + (sp.get('q') || '').trim().toLowerCase() + '%';
-  return q.all(`SELECT us.id, us.name, us.phone, us.email, us.role, us.created, sc.name school FROM users us LEFT JOIN schools sc ON sc.id = us.school_id
+  const matches = matchingAccounts();
+  return q.all(`SELECT us.id, us.name, us.phone, us.email, us.role, us.created, us.access_status, us.school_id, sc.name school, sc.status school_status FROM users us LEFT JOIN schools sc ON sc.id = us.school_id
     WHERE us.role = ? AND (lower(us.name) LIKE ? OR us.phone LIKE ? OR lower(coalesce(us.email,'')) LIKE ?) ORDER BY us.created DESC LIMIT 300`, r, s, s, s)
-    .map(x => ({ ...x, children: x.role === 'parent' ? q.all('SELECT name FROM children WHERE parent_id = ?', x.id).map(c => c.name) : undefined }));
+    .map(x => ({ ...x, matches: matches.get(x.id) || [], children: x.role === 'parent' ? q.all('SELECT name FROM children WHERE parent_id = ?', x.id).map(c => c.name) : undefined }));
 });
 route('GET', '/api/admin/children', (u, b, req) => {
   role(u, 'superadmin');

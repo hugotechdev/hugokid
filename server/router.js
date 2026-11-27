@@ -55,14 +55,20 @@ const route = (method, pattern, fn) => {
 async function handle(req, res, body, method) {
   const url = new URL(req.url, 'http://x');
   const M = method || req.method;
+  const device = require('./child-devices').authorize(req,url.pathname,M,body || {});
+  if (device?.result) return device.result;
   const r = R.find(x => x.method === M && x.re.test(url.pathname));
   if (!r) throw new HttpError(404, "Route not found");
   const m = url.pathname.match(r.re);
   const params = {}; r.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); });
-  const u = userFromReq(req);
-  if (u && u.school_id) {
-    const s = q.get('SELECT status FROM schools WHERE id = ?', u.school_id);
-    if (s && s.status === 'blocked' && !url.pathname.startsWith('/api/me')) throw new HttpError(403, "The school account is suspended. Contact HUGO TECH");
+  const u = device?.parent || userFromReq(req);
+  const recoveryRoute = ['/api/me', '/api/password', '/api/logout', '/api/billing'].includes(url.pathname) ||
+    /^\/api\/billing\/\d+\/pay$/.test(url.pathname);
+  const status = A.accessStatus(u);
+  if (u && status !== 'active' && !recoveryRoute) {
+    const error = new HttpError(403, status === 'pending' ? 'Your account is awaiting approval.' : 'Your account is suspended.');
+    error.accessStatus = status;
+    throw error;
   }
   return r.fn(u, body === undefined ? {} : body, req, params);
 }

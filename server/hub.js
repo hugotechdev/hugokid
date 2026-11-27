@@ -66,4 +66,5 @@ function attach(req, sock, ctx) {
   send(sock, { t: 'hello' });
 }
 
-module.exports = { attach, send, toUser, toChild, isOnline, calls };
+const closeUser = id => (users.get(id) || []).forEach(socket => socket.destroy());
+module.exports = { attach, send, toUser, toChild, isOnline, calls, closeUser };

@@ -9,10 +9,12 @@ const A = require('./auth');
 const hub = require('./hub');
 const router = require('./router');
 const tts = require('./tts');
+const { MAX_APK, sendAndroidApk } = require('./android-download');
 require('./routes-core');
 require('./password-reset');
 require('./routes-homework');
 require('./routes-family');
+require('./child-devices');
 require('./routes-school');
 require('./routes-admin');
 
@@ -28,7 +30,7 @@ function cors(res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 }
 function json(res, code, obj) {
-  res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' });
+  res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
   res.end(JSON.stringify(obj));
 }
 function readBody(req, limit) {
@@ -58,6 +60,14 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
   const url = new URL(req.url, 'http://x');
   try {
+    if (url.pathname === '/download/HUGO-KID.apk' && ['GET', 'HEAD'].includes(req.method)) {
+      return await sendAndroidApk(req, res);
+    }
+    if (url.pathname === '/api/admin/android-download' && req.method === 'POST') {
+      router.role(router.userFromReq(req), 'superadmin');
+      const bytes = await readBody(req, MAX_APK);
+      return json(res, 200, await router.handle(req, res, bytes, 'APK_UPLOAD'));
+    }
     if (url.pathname.startsWith('/api/')) {
       if (url.pathname === '/api/health') return json(res, 200, { ok: true });
 
@@ -86,7 +96,8 @@ const server = http.createServer(async (req, res) => {
     }
 
     let p = decodeURIComponent(url.pathname);
-    if (p === '/' || !path.extname(p)) p = '/index.html';
+    if (p === '/download' || p === '/download/') p = '/download.html';
+    else if (p === '/' || !path.extname(p)) p = '/index.html';
     const file = path.normalize(path.join(WEB, p));
     if (!file.startsWith(WEB) || !fs.existsSync(file)) { res.writeHead(404); return res.end('Haipo'); }
 
@@ -98,7 +109,9 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, head);
     fs.createReadStream(file).pipe(res);
   } catch (e) {
-    if (e instanceof router.HttpError) return json(res, e.code, { error: e.message });
+    if (res.destroyed) return;
+    if (res.headersSent) return res.destroy();
+    if (e instanceof router.HttpError) return json(res, e.code, { error: e.message, access_status: e.accessStatus });
     console.error(e);
     json(res, 500, { error: 'Hitilafu ya server' });
   }
@@ -112,13 +125,15 @@ server.on('upgrade', (req, sock) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname !== '/ws') return sock.destroy();
   const user = router.userFromReq(req);
-  if (!user) return sock.destroy();
+  if (!user || A.accessStatus(user) !== 'active') return sock.destroy();
   let child = null;
   const cid = url.searchParams.get('child');
   if (cid) { try { child = router.childFor(user, cid); } catch (e) { return sock.destroy(); } }
   hub.attach(req, sock, {
     user, child, friendsOf,
     onMessage: (s, m) => {
+      const current = router.userFromReq(req);
+      if (!current || A.accessStatus(current) !== 'active') return s.destroy();
       if (!child || !m || !m.to) return;
       const to = +m.to;
       if (!areFriends(child.id, to)) return;

@@ -165,7 +165,9 @@ CREATE TABLE IF NOT EXISTS calls (
 );
 `);
 
-for (const sql of ['ALTER TABLE children ADD COLUMN progress TEXT']) { try { db.exec(sql); } catch (e) { /* tayari ipo */ } }
+for (const sql of ['ALTER TABLE children ADD COLUMN progress TEXT', "ALTER TABLE users ADD COLUMN access_status TEXT NOT NULL DEFAULT 'active'"]) {
+  try { db.exec(sql); } catch (error) { if (!/duplicate column name/i.test(error.message)) throw error; }
+}
 
 const q = {
   get: (sql, ...a) => db.prepare(sql).get(...a),

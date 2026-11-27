@@ -1,5 +1,5 @@
 
-const { q } = require('./db');
+const { db, q } = require('./db');
 const hub = require('./hub');
 const ai = require('./ai');
 const { route, fail, need, J, now, role, classFor, childFor, className } = require('./router');
@@ -174,6 +174,7 @@ route('POST', '/api/billing/:id/pay', (u, b, req, p) => {
   if (!u) fail(401, "Sign in first");
   const inv = q.get('SELECT * FROM invoices WHERE id = ?', +p.id); if (!inv) fail(404, "Invoice not found");
   if (!((u.role === 'school_admin' && inv.school_id === u.school_id) || (u.role === 'parent' && inv.parent_id === u.id))) fail(403, 'Huna ruhusa');
+  if (inv.status === 'paid') fail(409, 'This invoice is already paid.');
   q.run(`UPDATE invoices SET status = 'pending', method = ?, reference = ? WHERE id = ?`, (b.method || 'M-Pesa').slice(0, 40), need(b.reference, "Enter the transaction number").slice(0, 60), inv.id);
   return { ok: true };
 });
@@ -184,14 +185,35 @@ route('PUT', '/api/admin/plans', (u, b) => {
 });
 route('POST', '/api/admin/invoices', (u, b) => {
   role(u, 'superadmin');
-  const amount = Math.round(+b.amount || 0); if (amount <= 0) fail(400, "Enter an amount");
-  q.run('INSERT INTO invoices(school_id, parent_id, plan, amount, period, created) VALUES (?,?,?,?,?,?)', b.school_id ? +b.school_id : null, b.parent_id ? +b.parent_id : null, (b.plan || 'HUGO KID').slice(0, 60), amount, need(b.period, "Enter a period").slice(0, 40), now());
+  const amount = Math.round(Number(b.amount));
+  if (!Number.isSafeInteger(amount) || amount <= 0) fail(400, 'Enter a valid amount.');
+  const schoolId = b.school_id ? Number(b.school_id) : null;
+  const parentId = b.parent_id ? Number(b.parent_id) : null;
+  if (Boolean(schoolId) === Boolean(parentId)) fail(400, 'Choose one school or parent.');
+  if (schoolId && !q.get('SELECT id FROM schools WHERE id = ?', schoolId)) fail(404, 'School not found.');
+  if (parentId && !q.get("SELECT id FROM users WHERE id = ? AND role = 'parent'", parentId)) fail(404, 'Parent not found.');
+  q.run('INSERT INTO invoices(school_id, parent_id, plan, amount, period, created) VALUES (?,?,?,?,?,?)', schoolId, parentId, String(b.plan || 'HUGO KID').slice(0, 60), amount, need(b.period, 'Enter a period.').slice(0, 40), now());
   return { ok: true };
 });
 route('POST', '/api/admin/invoices/:id/status', (u, b, req, p) => {
   role(u, 'superadmin');
-  const st = ['unpaid', 'pending', 'paid'].includes(b.status) ? b.status : 'paid';
-  q.run('UPDATE invoices SET status = ?, paid = ? WHERE id = ?', st, st === 'paid' ? now() : null, +p.id);
+  const st = b.status;
+  if (!['unpaid', 'pending', 'paid'].includes(st)) fail(400, 'Choose a payment status.');
+  const invoice = q.get('SELECT * FROM invoices WHERE id = ?', +p.id);
+  if (!invoice) fail(404, 'Invoice not found.');
+  if (invoice.status === st) return { ok: true };
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    q.run('UPDATE invoices SET status = ?, paid = ? WHERE id = ?', st, st === 'paid' ? now() : null, invoice.id);
+    if (st === 'paid') {
+      if (invoice.parent_id) q.run("UPDATE users SET access_status = 'active' WHERE id = ? AND role = 'parent'", invoice.parent_id);
+      if (invoice.school_id) q.run("UPDATE schools SET status = 'active' WHERE id = ?", invoice.school_id);
+    }
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
   return { ok: true };
 });
 route('PUT', '/api/admin/ai', (u, b) => {

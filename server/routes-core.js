@@ -20,11 +20,11 @@ route('POST', '/api/register', (u, b) => {
     const s = b.school || {};
     const sname = kind === 'tutor' ? (s.name || name) : need(s.name, "Enter the school name");
     const levels = Array.isArray(s.levels) && s.levels.length ? s.levels.filter(l => typeof l === 'string').slice(0, 30) : LEVELS;
-    schoolId = Number(q.run('INSERT INTO schools(name, type, region, district, phone, levels, created) VALUES (?,?,?,?,?,?,?)',
+    schoolId = Number(q.run("INSERT INTO schools(name, type, region, district, phone, levels, created, status) VALUES (?,?,?,?,?,?,?,'pending')",
       sname, kind, s.region || '', s.district || '', phone, JSON.stringify(levels), now()).lastInsertRowid);
   }
-  const id = Number(q.run('INSERT INTO users(role, name, phone, email, pass, school_id, terms, created) VALUES (?,?,?,?,?,?,?,?)',
-    kind === 'parent' ? 'parent' : 'school_admin', name, phone || null, email || null, A.hashPass(b.password), schoolId, JSON.stringify({ v: TERMS_VERSION, at: now() }), now()).lastInsertRowid);
+  const id = Number(q.run('INSERT INTO users(role, name, phone, email, pass, school_id, terms, created, access_status) VALUES (?,?,?,?,?,?,?,?,?)',
+    kind === 'parent' ? 'parent' : 'school_admin', name, phone || null, email || null, A.hashPass(b.password), schoolId, JSON.stringify({ v: TERMS_VERSION, at: now() }), now(), kind === 'parent' ? 'pending' : 'active').lastInsertRowid);
   const user = q.get('SELECT * FROM users WHERE id = ?', id);
   return { token: A.newToken(id), user: A.publicUser(user) };
 });
