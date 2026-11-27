@@ -233,14 +233,12 @@ HK.screens.accountAccess = el => {
       const heading = $('h2', el);
       const message = heading.nextElementSibling;
       if (!invoices.length) {
-        heading.textContent = 'Waiting for invoice';
         message.textContent = 'Your registration is complete. Your invoice will appear here when pricing is available.';
       } else if (invoices.some(invoice => invoice.status === 'pending')) {
         heading.textContent = 'Awaiting verification';
         message.textContent = 'HUGO TECH is reviewing your payment.';
       } else if (invoices.some(invoice => invoice.status === 'unpaid')) {
-        heading.textContent = 'Payment required';
-        message.textContent = 'Open your invoice to see how to pay and submit proof of payment.';
+        message.textContent = 'Open your invoice to see how to pay and submit proof of payment for approval.';
       }
     }).catch(() => {});
   }
