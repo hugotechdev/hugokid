@@ -15,23 +15,25 @@ const GK = {
     const maxLevel = opts.maxLevel || GAME_EPISODES;
     const level = Math.max(1, Math.min(maxLevel, prog.level, opts.level || prog.level));
     const fun = gm.kind === 'fun';
+    const episode = EpisodeContent.game(id,level);
+    let completedStops=0, stopOpen=false, finishing=false, releaseStop;
     let coins = 0, ended = false, disposed = false, acc = 0;
     let tutorialTimer;
 
     el.classList.add('game-world', 'scene-' + GAME_SCENES[id]);
     el.innerHTML = `
       <div class="topbar game-topbar" style="--game-color:${gm.color}">
-        <button class="icon-btn" id="gk-back">${icon('back')}</button>
+        <button class="icon-btn" id="gk-back" aria-label="Back">${icon('back')}</button>
         <span class="game-medal" aria-hidden="true">${icon(gm.icon, 21)}</span>
-        <div class="grow"><h1 style="font-size:19px">${esc(gm.name)}</h1><div class="sub">Episode ${level} of ${maxLevel}</div></div>
-        <button class="icon-btn" id="gk-help" style="width:42px;height:42px">${icon('help', 22)}</button>
+        <div class="grow"><h1 style="font-size:19px">${esc(gm.name)}</h1><div class="sub">Episode ${level} of ${maxLevel} · ${esc(episode.topic)}</div></div>
+        <button class="icon-btn" id="gk-help" aria-label="Game help" style="width:42px;height:42px">${icon('help', 22)}</button>
         <span class="hud-pill" style="background:#fff"><span style="color:var(--sun-d)">${icon('coin', 18)}</span><span id="gk-coins">0</span></span>
       </div>
       <div class="g-body" id="gk-body"></div>`;
     const body = $('#gk-body', el);
 
     const tick = setInterval(() => {
-      if (ended || kit.paused) return;
+      if (ended || kit.paused || document.hidden) return;
       acc++;
       if (acc >= 5) {
         if (fun) HK.addGameTime(child, acc); else HK.addLearnTime(child, acc);
@@ -41,6 +43,7 @@ const GK = {
     }, 1000);
 
     const exit = () => {
+      if (kit.ended || $('.overlay', el)) return;
       kit.paused = true;
       const resume = () => { kit.paused = false; };
       const dialog = modal(el, {
@@ -55,6 +58,28 @@ const GK = {
     $('#gk-back', el).onclick = exit;
     HK.setBack(() => { if (ended) return false; exit(); return true; });
 
+    function learningStop(done) {
+      if (disposed || ended || stopOpen || kit.paused || $('.overlay',el) || completedStops>=episode.items.length) return false;
+      stopOpen=true;
+      releaseStop=done;
+      kit.paused=true;
+      EpisodePlay.ask(kit,episode.items[completedStops],completedStops+1,independent=>{
+        if (disposed) return;
+        completedStops++;
+        stopOpen=false;
+        kit.paused=false;
+        if (independent) kit.addCoins(1);
+        releaseStop=null;
+        if (done) done();
+        if (finishing) finishPending();
+      });
+      return true;
+    }
+    let pendingResult;
+    function finishPending() {
+      if (completedStops>=episode.items.length) results(pendingResult);
+      else learningStop();
+    }
     const first = !GT.seen(child, id);
     const kit = {
       el, body, child, group, level, gm, paused: first, first, afterTut: [], hint: '',
@@ -62,7 +87,34 @@ const GK = {
       addCoins(n) { coins += n; const ce = $('#gk-coins', el); ce.textContent = coins; if (n > 0) { Sfx.coin(); const pill = ce.closest('.hud-pill'); if (pill) { pill.classList.remove('coin-pop'); void pill.offsetWidth; pill.classList.add('coin-pop'); } } },
       get coins() { return coins; },
       get ended() { return ended || disposed; },
-      finish({ won = true, stars = 3, text = '' } = {}) {
+      episode,
+      curriculumProgress(ratio) {
+        if (!episode.direct && completedStops < Math.min(2,Math.floor(ratio*3))) {
+          let resume;
+          const waiting=new Promise(resolve=>{ resume=resolve; });
+          if (learningStop(resume)) return waiting;
+        }
+      },
+      finish(result = {}) {
+        if (ended || disposed || finishing) return;
+        if (result.won!==false && !episode.direct && completedStops<episode.items.length) {
+          finishing=true;
+          pendingResult=result;
+          if (!stopOpen) finishPending();
+          return;
+        }
+        results(result);
+      },
+      cleanup() {
+        if (disposed) return;
+        disposed = true;
+        if (releaseStop) releaseStop();
+        clearTimeout(tutorialTimer);
+        clearInterval(tick);
+        if (!ended && acc) { if (fun) HK.addGameTime(child, acc); else HK.addLearnTime(child, acc); }
+      },
+    };
+    function results({ won = true, stars = 3, text = '' } = {}) {
         if (ended || disposed) return;
         ended = true;
         if (fun) HK.addGameTime(child, acc); else HK.addLearnTime(child, acc);
@@ -79,11 +131,11 @@ const GK = {
           speak(stars === 3 ? "Congratulations! You did very well!" : "Good! You finished this level.");
         } else { Sfx.bad(); speak("Oops, try again. You can do it!"); }
         Store.saveChild(cc);
-        if (gm.kind === 'learn') markMission('game');
+        if (won && gm.kind === 'learn') markMission('game');
         if (SKILL_OF[id]) logSkill(SKILL_OF[id], won ? stars / 3 * 100 : 20);
         const canPlay = !fun || HK.gameLeft(cc) > 0;
         const last = level >= maxLevel;
-        const results = modal(el, {
+        const resultDialog = modal(el, {
           iconName: won ? 'nuru' : 'repeat', iconColor: won ? 'var(--sun)' : 'var(--coral)',
           title: won ? (last ? 'Champion!' : "Congratulations!") : 'Try again',
           html: `${won ? `<div class="earned">${starsHTML(stars, 3, 44)}</div>` : ''}<p>${esc(text)}${text ? ' · ' : ''}Coins ${coins}</p>`,
@@ -93,26 +145,18 @@ const GK = {
             { label: canPlay ? 'More games' : 'Time is up', cls: 'ghost', onClick: () => canPlay ? HK.leave() : HK.go('timeUp', {}, { replace: true }) },
           ],
         });
-        if (results) results.onGameBack = () => { results.remove(); HK.leave(); };
-      },
-      cleanup() {
-        if (disposed) return;
-        disposed = true;
-        clearTimeout(tutorialTimer);
-        clearInterval(tick);
-        if (!ended && acc) { if (fun) HK.addGameTime(child, acc); else HK.addLearnTime(child, acc); }
-      },
-    };
+        if (resultDialog) resultDialog.onGameBack = () => { resultDialog.remove(); HK.leave(); };
+    }
     const resume = () => { kit.paused = false; const f = kit.afterTut.splice(0); f.forEach(fn => fn()); };
     if (first) tutorialTimer = setTimeout(() => GT.show(el, id, kit.g, resume), 80);
     $('#gk-help', el).onclick = () => {
-      if (ended) return;
+      if (ended || $('.overlay', el)) return;
       kit.paused = true;
       const help = modal(el, {
         iconName: 'nuru', title: "Do you need help?",
         buttons: [
           { label: "How to play", icon: 'play', onClick: () => GT.show(el, id, kit.g, () => { kit.paused = false; }) },
-          { label: 'Ask Nuru', cls: 'blue', icon: 'help', onClick: async () => { await GT.askHugo(el, id, kit.hint); kit.paused = false; } },
+          { label: 'Ask Nuru', cls: 'blue', icon: 'help', onClick: () => GT.askHugo(el, id, kit.hint, () => { kit.paused = false; }) },
           { label: 'Keep playing', cls: 'ghost', onClick: () => { kit.paused = false; } },
         ],
       });
@@ -121,11 +165,17 @@ const GK = {
     return kit;
   },
 
-  quiz(kit, { total = 8, make, render, cols = 2, explainAnswer = false }) {
+  quiz(kit, { total = 8, make, render, cols = 2, explainAnswer = false, fixedTotal = false }) {
     kit.body.classList.add('g-quiz-body');
-    if ((kit.child.needs || []).includes('attention')) total = Math.min(total, 5);
+    if (!fixedTotal && (kit.child.needs || []).includes('attention')) total = Math.min(total, 5);
     let i = 0, locked = false, demo = kit.first;
     const marks = [];
+    const advance=()=>{
+      if(kit.ended) return;
+      i++;
+      if(i>=total) end();
+      else { draw(); kit.curriculumProgress(i/total); }
+    };
     const draw = () => {
       if (kit.ended) return;
       const q = make(i);
@@ -135,6 +185,7 @@ const GK = {
         <div class="g-q"><span>${q.html || esc(q.text)}</span>${q.say ? `<button class="icon-btn say" id="say" aria-label="Repeat question">${icon('volume', 22)}</button>` : ''}</div>
         ${explainAnswer ? '<p class="quiz-feedback" aria-live="polite"></p>' : ''}
         ${render ? render(q) : ''}
+        ${q.write ? EpisodePlay.draftForm(q.write) : ''}
         <div class="g-opts" style="grid-template-columns:repeat(${q.cols || cols},1fr)">${q.opts.map((o, k) => `<button class="g-opt" data-k="${k}" style="${o.style || ''}">${o.html || esc(o.label)}</button>`).join('')}</div>`;
       const sayButton = $('#say', kit.body);
       if (sayButton) {
@@ -142,6 +193,10 @@ const GK = {
         if (!demo) setTimeout(() => { if (sayButton.isConnected && !kit.ended && !kit.paused && !locked) speak(q.say); }, 250);
       }
       locked = false;
+      if (q.write) {
+        EpisodePlay.draft(kit.body,()=>{ if (!kit.paused && !kit.ended) { marks[i]='draft'; advance(); } });
+        return;
+      }
       if (demo) { locked = true; kit.afterTut.push(() => showDemo(q)); return; }
       $$('.g-opt', kit.body).forEach(b => b.onclick = () => {
         if (locked || kit.paused || kit.ended) return;
@@ -149,11 +204,11 @@ const GK = {
         if (o.ok) {
           locked = true; b.classList.add('ok'); celebrateMascot(kit.el); marks[i] = marks[i] || 'done';
           kit.addCoins(marks[i] === 'done' ? 3 : 1);
-          const feedback = explainAnswer ? 'Correct! You found the ' + o.label.toLowerCase() + '.'
+          const feedback = q.explanation ? 'Correct. '+q.explanation : explainAnswer ? 'Correct! You found the ' + o.label.toLowerCase() + '.'
             : pick(['Correct!', 'Great job!', 'Congratulations!', 'You did it!']);
           if (explainAnswer) $('.quiz-feedback', kit.body).textContent = feedback;
           speak(feedback);
-          setTimeout(() => { if (kit.ended) return; i++; if (i >= total) end(); else draw(); }, explainAnswer ? 2100 : 750);
+          setTimeout(advance, explainAnswer ? 2100 : 750);
         } else {
           b.classList.add('no'); Sfx.bad(); marks[i] = 'miss'; vibrate(60);
           $$('.g-progress i', kit.body)[i].className = 'miss';
@@ -175,8 +230,9 @@ const GK = {
     };
     const end = () => {
       const firstTry = marks.filter(m => m === 'done').length;
-      const stars = firstTry >= total - 1 ? 3 : firstTry >= Math.ceil(total * 0.6) ? 2 : 1;
-      kit.finish({ won: true, stars, text: `Correct on the first try: ${firstTry}/${total}` });
+      const scored = total - marks.filter(m=>m==='draft').length;
+      const stars = firstTry >= scored ? 3 : firstTry >= Math.ceil(scored * 0.6) ? 2 : 1;
+      kit.finish({ won: true, stars, text: `Correct on the first try: ${firstTry}/${scored}` });
     };
     draw();
   },

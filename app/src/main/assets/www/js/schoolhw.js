@@ -1,7 +1,7 @@
 
 
 const PROFILE_KEYS = ['religion', 'faithOn', 'grade', 'lang', 'needs', 'acc', 'avatar', 'place', 'placeAsked', 'modeOverride'];
-const PROGRESS_KEYS = ['stars', 'coins', 'racing', 'gp', 'learned', 'skillLog', 'tut', 'daily', 'saladStory', 'safariSeries'];
+const PROGRESS_KEYS = ['stars', 'coins', 'racing', 'gp', 'learned', 'skillLog', 'tut', 'daily', 'saladStory', 'safariSeries', 'safariField'];
 function progressOf(c) {
   const o = { profile: {}, at: Date.now(), lessons: Store.get('lessons_' + c.id, {}), week: Store.weekUsage(c.id).map(w => ({ game: w.game || 0, learn: w.learn || 0 })) };
   PROFILE_KEYS.forEach(k => { if (c[k] !== undefined) o.profile[k] = c[k]; });
@@ -21,6 +21,7 @@ const SchoolSync = {
       const cc = Store.child(c.id); if (!cc) continue;
       cc.serverId = r.id; cc.school = r.school; cc.className = r.class_name; Store.saveChild(cc);
       await Net.put(`/api/children/${r.id}/progress`, { progress: progressOf(cc) }).catch(() => {});
+      await Curriculum.sync(cc).catch(() => {});
     }
     if (Net.token() === token && !Net.accessScreen()) Store.set('lastPush', Date.now());
   },
@@ -51,10 +52,16 @@ const SchoolSync = {
 
   async pull(c) {
     if (!(Net.online() && ['parent','child'].includes(Net.role()) && c && c.serverId)) return;
+    const token = Net.token();
     const list = await Net.get(`/api/children/${c.serverId}/homework`);
+    if (Net.token() !== token) return;
     for (const h of list) {
-      const id = 's' + h.id;
-      const ex = await HWDB.get(id);
+      const legacyId = 's' + h.id;
+      const id = legacyId + ':' + c.id;
+      const stored = await HWDB.get(id);
+      const legacy = !stored && await HWDB.get(legacyId);
+      const ex = stored || (legacy?.childId === c.id ? { ...legacy, id } : null);
+      if (Net.token() !== token) return;
       const sub = h.submission;
       const st = !sub ? (ex && ex.status === 'doing' ? 'doing' : 'new') : sub.status === 'marked' ? 'approved' : sub.status === 'returned' ? 'returned' : 'submitted';
       const pages = ex ? ex.pages : (h.pages && h.pages.length ? h.pages.map(p => ({ ...p, strokes: [] })) : (h.kind === 'quiz' ? [] : [{ bg: null, questions: [h.instructions || h.title], strokes: [] }]));
@@ -64,6 +71,7 @@ const SchoolSync = {
         teacher: h.teacher, status: ex && ex.status === 'doing' && !sub ? 'doing' : st,
         score: sub ? sub.score : null, stars: sub ? sub.stars : 0, feedback: sub ? sub.feedback : '', marked: sub ? sub.marked : null,
       }));
+      if (legacy?.childId === c.id) await HWDB.del(legacyId);
     }
   },
   async submit(hw, extra = {}) {
@@ -124,28 +132,68 @@ async function uploadResponse(root, hw, blob, label, c) {
 }
 const myAttHTML = hw => (hw.attach || []).length ? `<span class="muted" style="font-size:12px;font-weight:600">Umeambatisha: ${hw.attach.map(a => esc(a.label)).join(', ')}</span>` : '';
 function recordAudio(root, hw) {
-  let rec, chunks = [], stream, t0;
-  const ov = modal(root, { iconName: 'mic', iconColor: 'var(--coral)', title: "Record audio", html: '<p id="rt" style="font-size:28px;font-weight:700">0:00</p>', buttons: [
-    { label: "Start recording", cls: 'coral', icon: 'mic', keepOpen: true, onClick: async (o) => {
-      const btn = $$('.btn', o)[0];
-      if (rec && rec.state === 'recording') { rec.stop(); btn.disabled = true; return; }
-      try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { o.remove(); return toast("Microphone permission was denied"); }
-      rec = new MediaRecorder(stream); chunks = [];
-      rec.ondataavailable = e => chunks.push(e.data);
-      rec.onstop = async () => { stream.getTracks().forEach(t => t.stop()); o.remove(); await uploadResponse(root, hw, new Blob(chunks, { type: rec.mimeType || 'audio/webm' }), 'Sauti', Store.child(hw.childId)); };
-      rec.start(); t0 = Date.now(); btn.innerHTML = icon('check', 20) + ' Maliza';
-      const tick = setInterval(() => { const r = $('#rt', o); if (!r || rec.state !== 'recording') return clearInterval(tick); const s = Math.floor((Date.now() - t0) / 1000); r.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }, 300);
-    } },
-    { label: 'Ghairi', cls: 'ghost', onClick: () => { if (rec && rec.state === 'recording') { rec.onstop = null; rec.stop(); } if (stream) stream.getTracks().forEach(t => t.stop()); } },
-  ] });
-  return ov;
+  let recorder, stream, timer;
+  const chunks = [];
+  function release() {
+    clearInterval(timer);
+    stream?.getTracks().forEach(track => track.stop());
+  }
+  function cancel() {
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.onstop = null;
+      recorder.stop();
+    }
+    release();
+    dialog.remove();
+  }
+  const dialog = modal(root, {
+    iconName: 'mic', iconColor: 'var(--coral)', title: 'Record audio',
+    html: '<p id="rt" style="font-size:28px;font-weight:700">0:00</p>',
+    buttons: [
+      { label: 'Start recording', cls: 'coral', icon: 'mic', keepOpen: true, onClick: async () => {
+        const button = $('.btn', dialog);
+        if (button.disabled) return;
+        button.disabled = true;
+        if (recorder?.state === 'recording') { recorder.stop(); return; }
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          if (!dialog.isConnected) { release(); return; }
+          recorder = new MediaRecorder(stream);
+          recorder.ondataavailable = event => chunks.push(event.data);
+          recorder.onerror = () => { cancel(); toast('Could not record audio.'); };
+          recorder.onstop = async () => {
+            release();
+            if (!dialog.isConnected) return;
+            dialog.remove();
+            await uploadResponse(root, hw, new Blob(chunks, { type: recorder.mimeType || 'audio/webm' }), 'Audio', Store.child(hw.childId));
+          };
+          recorder.start();
+        } catch {
+          cancel();
+          return toast('Could not start the microphone.');
+        }
+        const start = Date.now();
+        button.innerHTML = icon('check', 20) + ' Finish';
+        button.disabled = false;
+        timer = setInterval(() => {
+          const seconds = Math.floor((Date.now() - start) / 1000);
+          if (!dialog.isConnected) { cancel(); return; }
+          $('#rt', dialog).textContent = Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+        }, 300);
+      } },
+      { label: 'Cancel', cls: 'ghost', onClick: cancel },
+    ],
+  });
+  dialog.onGameBack = cancel;
+  return cancel;
 }
 
 HK.screens.hwQuiz = (el, p) => {
   const c = Store.active();
   const t0 = Date.now();
   HWDB.get(p.id).then(hw => {
-    if (!hw) return HK.back();
+    if (!el.isConnected) return;
+    if (!hw || hw.childId !== c?.id) return HK.back();
     const answers = hw.answers || [];
     const done = hw.status === 'approved' || hw.status === 'submitted';
     const qHTML = (qn, i) => {

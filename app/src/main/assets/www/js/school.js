@@ -250,7 +250,7 @@ HK.screens.tHwNew = (el, p) => {
           <button class="chip" id="addfile">${icon('plus', 16)} Ongeza faili</button></div>
 
         ${st.kind === 'paper' ? `<label class="label">Pages to write on (worksheet images)</label>
-          <div class="pages-grid">${st.pages.map((pg, i) => `<div class="page-thumb"><img src="${pg.bg}"><span class="num">${i + 1}</span><button class="rm" data-rmp="${i}">${icon('x', 16)}</button></div>`).join('')}</div>
+          <div class="pages-grid">${st.pages.map((pg, i) => `<div class="page-thumb"><img src="${esc(pg.bg)}"><span class="num">${i + 1}</span><button class="rm" data-rmp="${i}">${icon('x', 16)}</button></div>`).join('')}</div>
           <button class="btn small ghost" id="addpage" style="margin-top:10px">${icon('camera', 18)} Ongeza ukurasa</button>
           <p class="muted" style="font-size:12px;margin-top:6px">Without a picture, the student gets a lined paper with your instructions on top.</p>` : ''}
 
@@ -322,7 +322,11 @@ HK.screens.tHwNew = (el, p) => {
 };
 function pickFile(accept, fn, multiple) {
   const i = document.createElement('input'); i.type = 'file'; i.accept = accept; if (multiple) i.multiple = true;
-  i.onchange = () => Array.from(i.files || []).forEach(fn);
+  i.onchange = async () => {
+    for (const file of Array.from(i.files || [])) {
+      try { await fn(file); } catch (error) { toast(error.message || 'Could not open this file.'); }
+    }
+  };
   i.click();
 }
 
@@ -361,7 +365,7 @@ HK.screens.tReview = (el, p) => {
         <button class="tool on" data-m="pen" title="Kalamu nyekundu"><span class="dot" style="width:16px;height:16px;background:#E53935"></span></button>
         <button class="tool" data-m="tick" title="Vema">${icon('check', 22)}</button><button class="tool" data-m="cross" title="Kosa">${icon('x', 22)}</button>
         <button class="tool" id="mundo">${icon('undo', 22)}</button></div>
-        <div id="pages">${s.pages.map((pg, i) => `<div class="mark-wrap" data-i="${i}"><img src="${pg}" class="review-page" style="margin:0"><canvas></canvas></div>`).join('')}</div>` : ''}
+        <div id="pages">${s.pages.map((pg, i) => `<div class="mark-wrap" data-i="${i}"><img src="${esc(pg)}" class="review-page" style="margin:0"><canvas></canvas></div>`).join('')}</div>` : ''}
       ${(s.attachments || []).length ? `<div class="card"><h3>Extra answers</h3>${(s.attachments || []).map(a => /^audio/.test(a.mime) ? `<p>${esc(a.label)}</p><audio controls src="${Net.fileUrl(a.file)}" style="width:100%"></audio>` : /^video/.test(a.mime) ? `<p>${esc(a.label)}</p><video controls playsinline src="${Net.fileUrl(a.file)}" style="width:100%;border-radius:12px"></video>` : `<img class="review-page" src="${Net.fileUrl(a.file)}">`).join('')}</div>` : ''}
       <div class="card ai-card"><div class="row"><span>${mascot('nuru', 40)}</span><div class="grow"><h3 style="margin:0">Pendekezo la AI</h3>
         <p id="aitext">${s.ai_score != null ? `Alama inayopendekezwa: <b>${s.ai_score}/${s.max_score}</b><br>${esc(s.ai_comment || '')}` : s.auto_score != null ? `Alama ya moja kwa moja: <b>${s.auto_score}/${s.max_score}</b>` : "No suggestion yet."}</p></div></div>

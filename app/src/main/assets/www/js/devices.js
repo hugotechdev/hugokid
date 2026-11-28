@@ -54,6 +54,7 @@ async function syncDevice(request=false){
   const token=Net.token();
   const work=await HWDB.byChild(c.id).catch(()=>[]);
   if(token!==Net.token())return;
+  Curriculum.sync(c,true).catch(()=>{});
   const d=await Net.post('/api/device/status',{...Store.usage(c.id),stars:c.stars,request,homework:work.filter(h=>['approved','submitted'].includes(h.status)).length});
   if(token!==Net.token())return;
   Store.set('remoteUntil',d.until);

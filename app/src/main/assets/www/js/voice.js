@@ -4,7 +4,7 @@ const Voice = {
   audio: null,
   async check() {
     try {
-      const r = await fetch(Net.base() + '/api/tts/status', { cache: 'no-store' });
+      const r = await fetch(Net.base() + '/api/tts/status', { cache: 'no-store', signal: AbortSignal.timeout ? AbortSignal.timeout(6000) : undefined });
       this.enabled = !!(await r.json()).enabled;
     } catch (e) { this.enabled = false; }
   },
@@ -28,7 +28,7 @@ function spokenText(text, lang) {
   let t = String(text || '');
   if (lang !== 'en') return t;
   const num = s => +String(s).replace(/,/g, '');
-  const words = n => enNum(n);
+  const words = n => Number.isSafeInteger(n) && n >= 0 && n < 1e9 ? enNum(n) : String(n);
   const money = n => words(n) + ' shillings';
   t = t.replace(/TSh\.?\s?(\d[\d,]*)/gi, (_, n) => money(num(n)));
   t = t.replace(/(\d[\d,]*)\s?\/=/g, (_, n) => money(num(n)));

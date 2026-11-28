@@ -12,7 +12,7 @@ const NEEDS = { vision: 'Kuona hafifu', hearing: 'Kusikia hafifu', dyslexia: 'Ug
 
 function kidMode(c) {
   if (!c) return 'explorer';
-  if (c.modeOverride && MODES[c.modeOverride]) return c.modeOverride;
+  if (MODE_ORDER.includes(c.modeOverride)) return c.modeOverride;
   const a = ageYears(c.birth);
   let i = a <= 4 ? 0 : a <= 6 ? 1 : a <= 9 ? 2 : 3;
   const pl = c.place;
@@ -31,7 +31,9 @@ function kidMode(c) {
 
 function skillTrend(c) {
   const log = c.skillLog || {};
-  const all = [...(log.read || []), ...(log.math || [])].slice(-8);
+  const read = Array.isArray(log.read) ? log.read : [];
+  const maths = Array.isArray(log.math) ? log.math : [];
+  const all = [...read, ...maths].filter(Number.isFinite).slice(-8);
   if (all.length < 6) return 0;
   const avg = all.reduce((a, b) => a + b, 0) / all.length;
   return avg >= 88 ? 1 : avg < 35 ? -1 : 0;

@@ -20,7 +20,7 @@ function bindTiles(el, c) {
     Sfx.tap();
     const to = b.dataset.go, prm = b.dataset.p ? JSON.parse(b.dataset.p) : {};
     if (to === 'raceMenu' && HK.gameLeft(c) <= 0) return HK.go('timeUp');
-    if (talk && b.dataset.say) { speak(b.dataset.say); setTimeout(() => HK.go(to, prm), 650); }
+    if (talk && b.dataset.say) { speak(b.dataset.say); setTimeout(() => { if (b.isConnected) HK.go(to, prm); }, 650); }
     else HK.go(to, prm);
   });
 }
@@ -45,7 +45,10 @@ HK.screens.home = (el) => {
   if (HK.isBedtime()) { HK.go('sleep', {}, { replace: true }); return; }
   applyNeeds(c);
   if (Net.online() && Net.role() === 'parent') { SchoolSync.pull(c).then(() => homeworkBadge(el, c)).catch(() => {}); Net.connect(c.serverId); SchoolSync.maybePush(); }
-  if (Net.role()==='child') SchoolSync.pull(c).then(()=>homeworkBadge(el,c)).catch(()=>{});
+  if (Net.role() === 'child') {
+    SchoolSync.pull(c).then(() => homeworkBadge(el, c)).catch(() => {});
+    if (c.serverId) Net.connect(c.serverId);
+  }
   const mode = kidMode(c);
   if (mode === 'toddler') return homeToddler(el, c);
   return homeStandard(el, c, mode);
@@ -222,6 +225,7 @@ HK.screens.myReport = (el) => {
       <div class="hero" style="margin:0"><div class="row">${kidAvatar(c, 64)}<div><div class="nm">${esc(c.name)}</div><div class="hi">${esc(MODES[kidMode(c)].name)} · Ngazi ${kidLevel(c).level}</div></div></div>
         <div class="hero-stats"><div>${icon('star', 20)}<span><b>${c.stars || 0}</b>Stars</span></div><div>${icon('coin', 20)}<span><b>${c.coins || 0}</b>Sarafu</span></div><div>${icon('book', 20)}<span><b>${Object.keys(Store.get('lessons_' + c.id, {})).length}</b>Lessons</span></div></div></div>
       <div class="card" style="margin-top:14px"><h3>Ujuzi</h3>${bar('Kusoma na lugha', read, 'var(--teal)')}${bar('Hesabu na mantiki', math, 'var(--blue)')}</div>
+      <div class="card"><h3>Curriculum progress</h3>${Curriculum.summary(c)}</div>
       <div class="card"><h3>Nimejifunza</h3><p>Herufi ${(L.letters || []).length} · Maneno ${(L.words || []).length} · Rangi ${(L.colors || []).length} · Wanyama ${(L.animals || []).length}</p></div>
       <div class="card" id="school"><h3>School homework</h3><p class="muted">Inapakia...</p></div>
     </div>`;

@@ -66,6 +66,7 @@ function icon(name, size = 24, stroke = 2.2) {
 const AVATAR_COLORS = ['#0FB394', '#1EA7F0', '#FFC20E', '#F65B4F', '#7B61FF', '#FF8A3D'];
 
 function avatarSVG(color, size = 56, mood = 'happy', acc = '') {
+  if (!/^#[0-9a-f]{6}$/i.test(color)) color = AVATAR_COLORS[1];
   const mouth = mood === 'sleep'
     ? '<path d="M40 66 Q50 70 60 66" stroke="#0D2461" stroke-width="4" fill="none" stroke-linecap="round"/>'
     : '<path d="M36 62 Q50 76 64 62" stroke="#0D2461" stroke-width="4.5" fill="none" stroke-linecap="round"/>';
@@ -235,7 +236,7 @@ function confetti(root) {
 function modal(root, { iconName, iconColor = 'var(--teal)', title, text, html = '', buttons = [] }) {
   const ov = document.createElement('div');
   ov.className = 'overlay';
-  ov.innerHTML = `<div class="modal">
+  ov.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title || 'HUGO KID')}">
     ${iconName === 'nuru' ? `<div style="display:flex;justify-content:center;margin-bottom:4px">${mascot('nuru', 100)}</div>` : iconName ? `<div class="big-ic" style="background:${iconColor}">${icon(iconName, 50, 2.4)}</div>` : ''}
     ${title ? `<h2>${esc(title)}</h2>` : ''}
     ${text ? `<p>${esc(text)}</p>` : ''}
@@ -247,7 +248,12 @@ function modal(root, { iconName, iconColor = 'var(--teal)', title, text, html = 
     const bt = document.createElement('button');
     bt.className = 'btn block ' + (b.cls || '');
     bt.innerHTML = (b.icon ? icon(b.icon, 22) : '') + esc(b.label);
-    bt.onclick = () => { Sfx.tap(); if (b.keepOpen !== true) ov.remove(); b.onClick && b.onClick(ov); };
+    bt.onclick = async () => {
+      Sfx.tap();
+      if (b.keepOpen !== true) ov.remove();
+      try { await b.onClick?.(ov); }
+      catch (error) { toast(error.message || 'Could not complete this action.'); }
+    };
     row.appendChild(bt);
   });
   (root || document.getElementById('app')).appendChild(ov);

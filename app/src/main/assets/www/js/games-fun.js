@@ -4,13 +4,20 @@ function gameCanvas(kit) {
   kit.body.innerHTML = '<canvas class="full"></canvas>';
   const cv = $('canvas', kit.body), ctx = cv.getContext('2d');
   const s = { W: 0, H: 0 };
+  let density;
   const resize = () => {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    s.W = kit.body.clientWidth; s.H = kit.body.clientHeight;
+    const width = kit.body.clientWidth, height = kit.body.clientHeight;
+    if (width === s.W && height === s.H && density === dpr) return;
+    s.W = width; s.H = height; density = dpr;
     cv.width = s.W * dpr; cv.height = s.H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   };
-  resize(); window.addEventListener('resize', resize);
-  s.cv = cv; s.ctx = ctx; s.off = () => window.removeEventListener('resize', resize);
+  resize();
+  const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null;
+  observer?.observe(kit.body);
+  window.addEventListener('resize', resize);
+  s.cv = cv; s.ctx = ctx;
+  s.off = () => { observer?.disconnect(); window.removeEventListener('resize', resize); };
   return s;
 }
 function loopRun(fn) {
@@ -91,6 +98,7 @@ HK.screens.g_runner = (el, p) => {
       }
     }
     S.obs = S.obs.filter(o => !o.gone && o.x > -80);
+    if(S.dist<LEN) kit.curriculumProgress(S.dist/LEN);
     if (S.dist >= LEN) kit.finish({ stars: hearts0 > 9 ? 3 : Math.max(1, S.hearts), text: 'You reached the finish!' });
     draw();
   });
@@ -162,6 +170,7 @@ HK.screens.g_pilot = (el, p) => {
         if (!r.done && r.x < px) { r.done = true; if (Math.abs(S.y - r.y) < r.r * 0.8) { S.got++; r.ok = true; kit.addCoins(2); Sfx.good(); } else { r.ok = false; Sfx.bad(); } }
       });
       S.birds.forEach(b => { b.x -= dx * 1.15; if (!b.hit && S.inv <= 0 && Math.abs(b.x - px) < 30 && Math.abs(b.y - S.y) < 24) { b.hit = true; S.hearts--; S.inv = 1.3; Sfx.crash(); vibrate(100); if (S.hearts <= 0) kit.finish({ won: false, text: 'The plane hit a bird' }); } });
+      if(S.made<TOTAL) kit.curriculumProgress(S.made/TOTAL);
       S.rings = S.rings.filter(r => r.x > -60); S.birds = S.birds.filter(b => b.x > -60);
       if (S.made >= TOTAL && !S.rings.length && !kit.ended) {
         const ratio = S.got / TOTAL;
@@ -244,6 +253,7 @@ HK.screens.g_penalty = (el, p) => {
       return kit.finish({ won: won || (keepTurns && S.me === S.cpu && S.me >= 3), stars, text: keepTurns ? `You ${S.me} – ${S.cpu} Computer` : `Goals ${S.me}/5` });
     }
     S.turn = 'shoot'; say("Kick again!");
+    kit.curriculumProgress(S.n/rounds);
   };
 
   const stop = loopRun(dt => {
@@ -358,7 +368,7 @@ HK.screens.g_bubbles = (el, p) => {
     $$('#bb button', el).forEach(b => b.onclick = () => pop(+b.dataset.c, +b.dataset.r));
   };
   const pop = (c, r) => {
-    if (kit.ended) return;
+    if (kit.ended || kit.paused) return;
     const g = group(c, r);
     if (g.length < 2) { Sfx.bad(); return; }
     g.forEach(([x, y]) => grid[x][y] = null);
@@ -368,7 +378,9 @@ HK.screens.g_bubbles = (el, p) => {
     grid = grid.map(col => { const v = col.filter(x => x != null); while (v.length < ROWS) v.push(null); return v; }).filter(col => col[0] != null);
     while (grid.length < COLS) grid.push(Array(ROWS).fill(null));
     draw();
-    if (!anyMove()) {
+    const movesRemain=anyMove();
+    if (movesRemain) kit.curriculumProgress(score/target);
+    else {
       const left = grid.flat().filter(x => x != null).length;
       if (left === 0) score += 50;
       setTimeout(() => kit.finish({ won: score >= target, stars: score >= target * 1.6 || left === 0 ? 3 : score >= target * 1.25 ? 2 : 1, text: `Score ${score}` }), 400);
@@ -421,7 +433,7 @@ HK.screens.g_village = (el, p) => {
     $$('#pal button', el).forEach(b => b.onclick = () => { sel = b.dataset.b; Sfx.tap(); speak(BUILDS.find(x => x.id === sel).name); draw(); });
   };
   const place = i => {
-    if (kit.ended) return;
+    if (kit.ended || kit.paused) return;
     if (sel === 'erase') { if (map[i]) { money += BUILDS.find(x => x.id === map[i]).cost; map[i] = null; Sfx.tap(); draw(); } return; }
     if (map[i]) return;
     const b = BUILDS.find(x => x.id === sel);
@@ -429,6 +441,8 @@ HK.screens.g_village = (el, p) => {
       money += reward; assistance += reward; place(i);
     });
     money -= b.cost; map[i] = sel; Sfx.tone(440, 0.1, 'triangle', 0.15); draw();
+    const needed=Object.entries(need);
+    kit.curriculumProgress(needed.reduce((n,[id,qty])=>n+Math.min(qty,count(id)),0)/needed.reduce((n,[,qty])=>n+qty,0));
   };
   $('#erase', el).onclick = () => { sel = sel === 'erase' ? 'house' : 'erase'; draw(); };
   $('#done', el).onclick = () => {
@@ -472,22 +486,23 @@ HK.screens.g_kitchen = (el, p) => {
   const offset = (kit.level - 1) % RECIPES.length;
   const rotations = [...RECIPES.slice(offset), ...RECIPES.slice(0, offset)];
   const list = rotations.slice(0, 3 + Math.floor((kit.level - 1) / 6));
+  const batchSize=kit.level>=19 ? 3 : kit.level>=9 ? 2 : 1;
   let ri = 0, perfect = 0, pot = {}, tries = 0;
 
   const draw = () => {
     if (ri >= list.length) return kit.finish({ stars: perfect === list.length ? 3 : perfect >= Math.ceil(list.length * 2 / 3) ? 2 : 1, text: `${perfect} of ${list.length} recipes on the first try` });
     let cooked = false;
     const rc = list[ri];
-    const want = kit.g === 0 ? Object.fromEntries(Object.keys(rc.items).map(k => [k, 1])) : rc.items;
+    const want = Object.fromEntries(Object.entries(rc.items).map(([key,qty])=>[key,kit.g===0 && kit.level<=4 ? 1 : qty*batchSize]));
     const shelf = shuffle([...Object.keys(want), ...shuffle(['sabuni', 'mchanga', 'pipi', ...Object.keys(INGR).filter(k => !want[k] && !['sabuni', 'mchanga', 'pipi'].includes(k))]).slice(0, kit.g === 0 ? 2 : 5)]);
     kit.body.innerHTML = `
       <div class="g-progress">${list.map((_, k) => `<i class="${k < ri ? 'done' : ''}"></i>`).join('')}</div>
-      <div class="card" style="margin:0 16px 10px"><div class="row"><b style="font-size:19px" class="grow">${esc(rc.name)}</b><button class="icon-btn" id="say" style="width:40px;height:40px">${icon('volume', 20)}</button></div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${Object.entries(want).map(([k, n]) => `<span class="chip-tag recipe-item ${(pot[k] || 0) === n ? 'teal' : ''}">${pic(k, 22)}${INGR[k][0]}${kit.g ? ' × ' + n : ''}</span>`).join('')}</div></div>
+      <div class="card" style="margin:0 16px 10px"><div class="row"><b style="font-size:19px" class="grow">${esc(rc.name)}${batchSize>1?' · batch ×'+batchSize:''}</b><button class="icon-btn" id="say" style="width:40px;height:40px">${icon('volume', 20)}</button></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${Object.entries(want).map(([k, n]) => `<span class="chip-tag recipe-item ${(pot[k] || 0) === n ? 'teal' : ''}">${pic(k, 22)}${INGR[k][0]}${kit.g || kit.level>4 ? ' × ' + n : ''}</span>`).join('')}</div></div>
       <div class="cook-pot"><img src="img/life/white-pot.webp" alt="White cooking pot"><span>${Object.values(pot).reduce((a,b) => a+b,0)}</span></div>
       <div class="ingredients">${shelf.map(k => `<button class="ing" data-k="${k}">${pot[k] ? `<span class="cnt">${pot[k]}</span>` : ''}<span class="dot2" style="--ingredient:${INGR[k][1]}" aria-hidden="true">${pic(k, 40)}</span>${INGR[k][0]}</button>`).join('')}</div>
       <div class="btn-row" style="padding:0 16px 16px"><button class="btn ghost" id="empty">${icon('repeat', 20)} Empty pot</button><button class="btn coral" id="cook" style="flex:2">${icon('pot', 20)} Cook</button></div>`;
-    const sayIt = () => speak('Let’s make ' + T(rc.name) + '. We need ' + Object.entries(want).map(([k, n]) => (kit.g ? n + ' ' : '') + T(INGR[k][0])).join(', '));
+    const sayIt = () => speak('Let’s make ' + T(rc.name) + '. We need ' + Object.entries(want).map(([k, n]) => (kit.g || kit.level>4 ? n + ' ' : '') + T(INGR[k][0])).join(', '));
     $('#say', el).onclick = sayIt;
     if (!Object.keys(pot).length && !tries) sayIt();
     $$('.ing', el).forEach(b => b.onclick = () => { if (cooked) return; const k = b.dataset.k; pot[k] = (pot[k] || 0) + 1; Sfx.tap(); if (['sabuni', 'mchanga', 'pipi'].includes(k)) speak(T(INGR[k][0]) + "? That's not for this meal!"); draw(); });
@@ -508,7 +523,7 @@ HK.screens.g_kitchen = (el, p) => {
             <picture><source media="(prefers-reduced-motion: reduce)" srcset="img/life/mama.webp"><img class="mum" src="img/life/mum-clap.webp" alt="Mum clapping"></picture>
             <h2>${esc(rc.name)} is ready!</h2><p>Look what you made!</p>
             <button class="btn" id="serve">Serve and continue</button></div>`;
-          $('#serve', kit.body).onclick = () => { ri++; pot = {}; tries = 0; draw(); };
+          $('#serve', kit.body).onclick = () => { ri++; pot = {}; tries = 0; draw(); if(ri<list.length) kit.curriculumProgress(ri/list.length); };
         };
         if (rc.name === 'Chapati') {
           kit.body.innerHTML = '<div class="card meal-result"><h2>Roll the dough</h2><p>Swipe across the dough or tap it three times to make a round chapati.</p><button class="dough" aria-label="Roll dough"></button></div>';

@@ -8,18 +8,20 @@ HK.screens.lessons = (el) => {
     <div class="topbar"><h1 style="font-size:24px">Lessons</h1></div>
     <div class="scroll">
       ${sceneBanner('herufi', 'twiga')}
+      ${tile('curriculum', 'Learning paths', 'Practise skills and unlock new challenges', 'book', 'teal')}
       ${studioAllowed(c) ? `<button class="tile navy wide" data-go="aiStudio" style="margin-top:6px;background:linear-gradient(135deg,#7B61FF,#1EA7F0);--cd:#5A43D6">
         <span>${mascot('nuru', 58)}</span><div class="grow"><div class="t-name">AI Studio</div><div class="t-sub">Create stories, games, pictures and videos</div></div>${icon('chevR', 26)}</button>` : ''}
-      <div class="section-title">Language</div>
       <div class="tiles">
-        ${tile('langCats', 'English', 'Vocabulary', 'letters', 'blue', '{"lang":"en"}')}
         ${tile('swahiliLesson', 'Kiswahili', 'Everyday words', 'book', 'teal')}
       </div>
-      <div class="section-title">Math and more</div>
-      <div class="tiles">
-        ${tile('mathLesson', 'Maths', 'Numbers and counting', 'balloon', 'navy')}
-        ${Object.entries(LESSONS).filter(([, l]) => !l.hidden).map(([k, l]) => tile('cardLesson', l.name, (done[k] ? done[k] + ' stars' : 'Start lesson'), l.icon, { sayansi: 'teal', maisha: 'coral', hisia: 'blue' }[k], JSON.stringify({ key: k }))).join('')}
-      </div>
+      <details class="curriculum-parent">
+        <summary>Extra practice</summary>
+        <div class="tiles">
+          ${tile('langCats', 'English vocabulary', 'Word cards', 'letters', 'blue', '{"lang":"en"}')}
+          ${tile('mathLesson', 'Maths quiz', 'Number practice', 'balloon', 'navy')}
+          ${Object.entries(LESSONS).filter(([, l]) => !l.hidden).map(([k, l]) => tile('cardLesson', l.name, (done[k] ? done[k] + ' stars' : 'Start lesson'), l.icon, { sayansi: 'teal', maisha: 'coral', hisia: 'blue' }[k], JSON.stringify({ key: k }))).join('')}
+        </div>
+      </details>
     </div>`;
   kidNav(el, 'lessons');
   HK.setBack(() => { HK.go('home', {}, { reset: true }); return true; });
@@ -132,13 +134,18 @@ HK.screens.mathLesson = (el) => {
     const t = rnd(3);
     if (t === 0) { const a = 3 + rnd(9), b = 3 + rnd(9); return { text: `${a} × ${b} = ?`, say: `${a} times ${b}`, opts: numOpts(a * b, 4, 8) }; }
     if (t === 1) { const b = 2 + rnd(9), r = 2 + rnd(11); return { text: `${b * r} ÷ ${b} = ?`, say: `${b * r} divided by ${b}`, opts: numOpts(r, 4, 3, 1) }; }
-    const d = [2, 4, 5, 10][rnd(4)], n = 1 + rnd(d - 1); return { text: `${n}/${d} ya ${d * 10} ni?`, say: `${n} ya ${d} ya ${d * 10}`, opts: numOpts(n * 10, 4, 10, 1) };
+    const denominators = [[2, 'half', 'halves'], [4, 'quarter', 'quarters'], [5, 'fifth', 'fifths'], [10, 'tenth', 'tenths']];
+    const [d, singular, plural] = pick(denominators);
+    const n = 1 + rnd(d - 1);
+    return { text: `What is ${n}/${d} of ${d * 10}?`, say: `What is ${n} ${n === 1 ? singular : plural} of ${d * 10}?`, opts: numOpts(n * 10, 4, 10, 1) };
   };
   runQuiz(el, 'Maths', Array.from({ length: 8 }, make), stars => saveLesson(c, 'math', stars), 'math');
   return () => HK.addLearnTime(c, Math.round((Date.now() - t0) / 1000));
 };
 
 function saveLesson(c, key, stars) {
+  const objectives = {math:'math.number',sayansi:'science.living',maisha:'knowledge.everyday',hisia:'knowledge.community',ai:'science.investigate'};
+  Curriculum.legacy(c, key.startsWith('lang_en_') ? 'english.words' : objectives[key]);
   const k = 'lessons_' + c.id;
   const d = Store.get(k, {});
   const prev = d[key] || 0;
@@ -227,12 +234,16 @@ HK.screens.swahiliLesson = el => {
       </div>
       <div class="btn-row">
         <button class="btn ghost" id="sw-prev" ${index === 0 ? 'disabled' : ''}>Previous</button>
-        <button class="btn" id="sw-next" ${index === words.length - 1 ? 'disabled' : ''}>Next</button>
+        <button class="btn" id="sw-next">${index === words.length - 1 ? 'Finish lesson' : 'Next'}</button>
       </div>
     </div>`;
     $('#sw-back', el).onclick = () => HK.back();
     $('#sw-prev', el).onclick = () => { if (index > 0) { index--; draw(); } };
-    $('#sw-next', el).onclick = () => { if (index < words.length - 1) { index++; draw(); } };
+    $('#sw-next', el).onclick = () => {
+      if (index < words.length - 1) { index++; draw(); return; }
+      saveLesson(child,'swahili',3);
+      modal(el,{title:'Lesson complete!',text:'You reached the end of the Kiswahili word cards.',buttons:[{label:'Back to lessons',onClick:()=>HK.back()}]});
+    };
   };
   draw();
   return () => HK.addLearnTime(child, Math.round((Date.now() - started) / 1000));

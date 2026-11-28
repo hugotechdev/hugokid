@@ -138,27 +138,40 @@ const GT = {
     draw();
   },
 
-  async askHugo(root, id, current) {
+  async askHugo(root, id, current, onClose) {
     const T = TUT[id] || { rules: '' };
     const c = Store.active();
     const gm = (typeof GAMES !== 'undefined' && GAMES.find(g => g.id === id)) || { name: id === 'homework' ? 'Homework' : id };
-    const fallback = () => {
-      const t = "These are the rules: " + T.rules;
-      speak(t);
-      modal(root, { iconName: 'nuru', title: 'Nuru says', text: t, buttons: [{ label: 'OK' }] });
+    const show = (text, repeat = false) => {
+      speak(text);
+      const dialog = modal(root, {
+        iconName: 'nuru', title: 'Nuru says', text,
+        buttons: [
+          ...(repeat ? [{ label: 'Listen again', icon: 'volume', keepOpen: true, onClick: () => speak(text) }] : []),
+          { label: repeat ? 'Thank you, Nuru' : 'OK', onClick: onClose },
+        ],
+      });
+      dialog.onGameBack = () => { dialog.remove(); onClose?.(); };
     };
+    const fallback = () => show('These are the rules: ' + T.rules);
     if (!AI.ready()) return fallback();
     const wait = modal(root, { iconName: 'nuru', title: 'Nuru is thinking…', text: 'One moment', buttons: [] });
+    wait.onGameBack = () => { wait.remove(); onClose?.(); };
     try {
       const a = await AI.ask({
         text: `Help a child aged ${ageYears(c.birth)} play ${gm.name}. Rules: ${T.rules}
 ${current ? "Current question: " + current + ". Give a hint without revealing the answer." : "Explain how to play."} Reply in two or three short English sentences.`,
         maxTokens: 250,
       });
-      wait.remove(); speak(a);
+      if (!wait.isConnected) return;
       AI.log(c.id, '[Help: ' + gm.name + ']', a);
-      modal(root, { iconName: 'nuru', title: 'Nuru says', text: a, buttons: [{ label: "Listen again", icon: 'volume', keepOpen: true, onClick: () => speak(a) }, { label: 'Thank you, Nuru' }] });
-    } catch (e) { wait.remove(); fallback(); }
+      wait.remove();
+      show(a, true);
+    } catch (error) {
+      if (!wait.isConnected) return;
+      wait.remove();
+      fallback();
+    }
   },
 
   pointAt(target, root) {

@@ -88,7 +88,7 @@ HK.screens.parentSub = (el, p) => {
   Net.get('/api/submissions/' + p.id).then(s => {
     $('#b', el).innerHTML = `<div class="trophy-hero" style="margin:0 0 14px"><div style="font-weight:600">${esc(s.homework.title)}</div><div class="big">${s.score ?? '-'}/${s.max_score}</div><div class="earned" style="margin:8px 0 0">${starsHTML(s.stars || 0, 3, 30)}</div></div>
       ${s.feedback ? `<div class="card"><h3>Teacher's comments</h3><p>${esc(s.feedback)}</p></div>` : ''}
-      ${(s.marked || s.pages || []).map(x => `<img class="review-page" src="${x}">`).join('')}
+      ${(s.marked || s.pages || []).map(x => `<img class="review-page" src="${esc(x)}">`).join('')}
       ${(s.attachments || []).map(a => /^audio/.test(a.mime) ? `<audio controls src="${Net.fileUrl(a.file)}" style="width:100%"></audio>` : /^video/.test(a.mime) ? `<video controls playsinline src="${Net.fileUrl(a.file)}" style="width:100%;border-radius:12px"></video>` : `<img class="review-page" src="${Net.fileUrl(a.file)}">`).join('')}`;
   }).catch(e => { $('#b', el).innerHTML = `<div class="empty">${esc(e.message)}</div>`; });
 };

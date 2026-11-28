@@ -75,7 +75,7 @@ const Net = {
         method,
         headers: { 'content-type': 'application/json', ...(token ? { authorization: 'Bearer ' + token } : {}) },
         body: body !== undefined ? JSON.stringify(body) : undefined,
-        signal,
+        signal: signal || (AbortSignal.timeout ? AbortSignal.timeout(25_000) : undefined),
         cache: 'no-store',
       });
     } catch (e) { throw new Error("No internet or the server is unavailable"); }
@@ -108,7 +108,7 @@ const Net = {
   },
   fileUrl(name) { return this.base() + '/api/files/' + encodeURIComponent(name) + '?token=' + encodeURIComponent(this.token() || ''); },
   openExternal(url) {
-    if (window.HugoNative && HugoNative.openUrl) HugoNative.openUrl(url); else window.open(url, '_blank');
+    if (window.HugoNative && HugoNative.openUrl) HugoNative.openUrl(url); else window.open(url, '_blank', 'noopener,noreferrer');
   },
 
   /* ----- WebSocket ----- */

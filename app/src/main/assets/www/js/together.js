@@ -66,14 +66,16 @@ Net.on(m => {
   }
   if (m.t === 'game' && m.data && m.data.type === 'invite') {
     modal(null, { iconName: 'game', title: m.name + ' anakualika kucheza', buttons: [
-      { label: 'Cheza', onClick: () => HK.go('battle', { to: m.from, name: m.name, host: false, seed: m.data.seed }) },
+      { label: 'Cheza', onClick: () => HK.go('battle', { to: m.from, name: m.name, host: false, seed: m.data.seed, group: m.data.group }) },
       { label: 'Baadaye', cls: 'ghost', onClick: () => Net.send({ t: 'game', to: m.from, data: { type: 'decline' } }) }] });
   }
 });
 
 /* ---------- Simu (WebRTC) ---------- */
 HK.screens.call = (el, p) => {
-  let pc = null, stream = null, t0 = null, timer = null, ended = false;
+  let pc = null, stream = null, t0 = null, timer = null, navigation = null, ended = false, starting = false;
+  const candidates = [];
+  let processing = Promise.resolve();
   el.classList.add('call-screen');
   el.innerHTML = `
     <video id="rv" autoplay playsinline class="${p.media === 'video' ? '' : 'hidden'}"></video>
@@ -88,16 +90,21 @@ HK.screens.call = (el, p) => {
     try { pc && pc.close(); } catch (e) {}
     if (stream) stream.getTracks().forEach(t => t.stop());
     if (msg) toast(msg);
-    setTimeout(() => HK.leave(), 300);
+    navigation = setTimeout(() => { if (el.isConnected) HK.leave(); }, 300);
   };
   const start = async () => {
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: p.media === 'video' ? { facingMode: 'user', width: 640, height: 480 } : false }); }
+    if (ended || starting) return false;
+    starting = true;
+    let media;
+    try { media = await navigator.mediaDevices.getUserMedia({ audio: true, video: p.media === 'video' ? { facingMode: 'user', width: 640, height: 480 } : false }); }
     catch (e) { finish("Microphone/camera permission was denied"); Net.send({ t: 'hangup', to: p.to }); return false; }
+    if (ended || !el.isConnected) { media.getTracks().forEach(track => track.stop()); return false; }
+    stream = media;
     $('#lv', el).srcObject = stream;
     pc = new RTCPeerConnection(RTC_CFG);
     stream.getTracks().forEach(t => pc.addTrack(t, stream));
     pc.onicecandidate = e => { if (e.candidate) Net.send({ t: 'signal', to: p.to, data: { ice: e.candidate } }); };
-    pc.ontrack = e => { $('#rv', el).srcObject = e.streams[0]; $('#ra', el).srcObject = e.streams[0]; };
+    pc.ontrack = e => { $(p.media === 'video' ? '#rv' : '#ra', el).srcObject = e.streams[0]; };
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'connected' && !t0) {
         t0 = Date.now();
@@ -108,46 +115,58 @@ HK.screens.call = (el, p) => {
           if (s >= CALL_LIMIT_MIN * 60) { Net.send({ t: 'hangup', to: p.to }); finish("Call time is over"); }
         }, 1000);
       }
-      if (['failed', 'disconnected'].includes(pc.connectionState)) finish('Simu imekatika');
+      if (pc.connectionState === 'failed') { Net.send({ t: 'hangup', to: p.to }); finish('The call was disconnected.'); }
     };
     return true;
   };
-  const off = Net.on(async m => {
-    if (m.from !== p.to) return;
-    if (m.t === 'accepted' && p.caller) {
-      if (!(await start())) return;
-      const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
-      Net.send({ t: 'signal', to: p.to, data: { sdp: pc.localDescription } });
-      status('Inaunganisha...');
-    }
-    if (m.t === 'signal' && pc) {
-      const d = m.data;
-      if (d.sdp) {
-        await pc.setRemoteDescription(d.sdp);
-        if (d.sdp.type === 'offer') { const a = await pc.createAnswer(); await pc.setLocalDescription(a); Net.send({ t: 'signal', to: p.to, data: { sdp: pc.localDescription } }); }
-      } else if (d.ice) { try { await pc.addIceCandidate(d.ice); } catch (e) {} }
-    }
-    if (m.t === 'declined') finish('Simu imekataliwa');
-    if (m.t === 'hangup') finish('Simu imekatwa');
-    if (m.t === 'denied') finish(m.reason);
+  const off = Net.on(m => {
+    if (m.t === 'denied') return finish(m.reason);
+    if (m.from !== p.to || ended) return;
+    if (m.t === 'declined') return finish('The call was declined.');
+    if (m.t === 'hangup') return finish('The call ended.');
+    processing = processing.then(async () => {
+      if (ended) return;
+      if (m.t === 'accepted' && p.caller) {
+        if (!(await start())) return;
+        await pc.setLocalDescription(await pc.createOffer());
+        Net.send({ t: 'signal', to: p.to, data: { sdp: pc.localDescription } });
+        status('Connecting…');
+      }
+      if (m.t !== 'signal' || !m.data) return;
+      const { sdp, ice } = m.data;
+      if (ice) {
+        if (pc?.remoteDescription) await pc.addIceCandidate(ice);
+        else if (candidates.length < 128) candidates.push(ice);
+      }
+      if (sdp && pc) {
+        await pc.setRemoteDescription(sdp);
+        for (const candidate of candidates.splice(0)) await pc.addIceCandidate(candidate);
+        if (sdp.type === 'offer') {
+          await pc.setLocalDescription(await pc.createAnswer());
+          Net.send({ t: 'signal', to: p.to, data: { sdp: pc.localDescription } });
+        }
+      }
+    }).catch(() => {
+      if (!ended) { Net.send({ t: 'hangup', to: p.to }); finish('Could not connect this call.'); }
+    });
   });
-  const offDenied = Net.on(m => { if (m.t === 'denied') finish(m.reason); });
   (async () => {
     if (p.caller) Net.send({ t: 'call', to: p.to, media: p.media });
     else { if (await start()) Net.send({ t: 'accept', to: p.to, media: p.media }); }
   })();
   $('#end', el).onclick = () => { Net.send({ t: 'hangup', to: p.to }); finish(); };
-  $('#mute', el).onclick = e => { if (!stream) return; const tr = stream.getAudioTracks()[0]; tr.enabled = !tr.enabled; e.currentTarget.classList.toggle('off', !tr.enabled); };
+  $('#mute', el).onclick = e => { if (!stream) return; const tr = stream.getAudioTracks()[0]; if (!tr) return; tr.enabled = !tr.enabled; e.currentTarget.classList.toggle('off', !tr.enabled); };
   HK.setBack(() => { Net.send({ t: 'hangup', to: p.to }); finish(); return true; });
-  return () => { off(); offDenied(); if (!ended) { Net.send({ t: 'hangup', to: p.to }); ended = true; clearInterval(timer); try { pc && pc.close(); } catch (e) {} if (stream) stream.getTracks().forEach(t => t.stop()); } };
+  return () => { off(); clearTimeout(navigation); if (!ended) { Net.send({ t: 'hangup', to: p.to }); ended = true; clearInterval(timer); try { pc && pc.close(); } catch (e) {} if (stream) stream.getTracks().forEach(t => t.stop()); } };
 };
 
 function seeded(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 HK.screens.battle = (el, p) => {
   const c = Store.active();
-  const seed = p.seed || Math.floor(Math.random() * 1e9);
+  const seed = Number.isInteger(p.seed) ? p.seed : Math.floor(Math.random() * 1e9);
   const R = seeded(seed);
-  const g = kidMode(c) === 'advanced' ? 2 : kidMode(c) === 'explorer' ? 1 : 0;
+  const mode = kidMode(c);
+  const g = !p.host && [0, 1, 2].includes(p.group) ? p.group : mode === 'advanced' ? 2 : mode === 'explorer' ? 1 : 0;
   const qs = Array.from({ length: 8 }, () => {
     const a = 2 + Math.floor(R() * (g ? 9 : 5)), b = 1 + Math.floor(R() * (g ? 9 : 5));
     const op = g === 2 && R() < 0.5 ? 'x' : '+'; const ans = op === 'x' ? a * b : a + b;
@@ -156,6 +175,7 @@ HK.screens.battle = (el, p) => {
     return { t: `${a} ${op === 'x' ? '×' : '+'} ${b}`, ans, opts };
   });
   let i = 0, mine = 0, theirs = 0, theirsDone = false, started = !p.host, finished = false;
+  let locked = false, next;
   const draw = () => {
     if (!started) {
       el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Cheza na ${esc(p.name)}</h1></div><div class="center-col">${mascot('nuru', 90)}<p style="margin-top:12px">Tunamsubiri ${esc(p.name)} akubali...</p></div>`;
@@ -170,6 +190,7 @@ HK.screens.battle = (el, p) => {
       return;
     }
     const q = qs[i];
+    locked = false;
     el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><div class="grow"></div>
       <span class="chip-tag blue">Wewe ${mine}</span><span class="chip-tag coral">${esc(p.name)} ${theirs}</span></div>
       <div class="g-progress">${qs.map((_, k) => `<i class="${k < i ? 'done' : ''}"></i>`).join('')}</div>
@@ -177,23 +198,25 @@ HK.screens.battle = (el, p) => {
       <div class="g-opts" style="grid-template-columns:1fr 1fr 1fr">${q.opts.map(o => `<button class="g-opt" data-v="${o}">${o}</button>`).join('')}</div>`;
     $('#bk', el).onclick = () => HK.back();
     $$('.g-opt', el).forEach(b => b.onclick = () => {
+      if (locked) return;
+      locked = true;
       const ok = +b.dataset.v === q.ans;
       b.classList.add(ok ? 'ok' : 'no');
       if (ok) { mine++; Sfx.good(); } else Sfx.bad();
       i++;
       Net.send({ t: 'game', to: p.to, data: { type: 'score', score: mine, done: i >= qs.length } });
-      setTimeout(draw, 350);
+      next = setTimeout(draw, 350);
     });
   };
   const off = Net.on(m => {
     if (m.t !== 'game' || m.from !== p.to) return;
     const d = m.data || {};
-    if (d.type === 'accept' && p.host) { started = true; draw(); }
+    if (d.type === 'accept' && p.host && !started) { started = true; draw(); }
     if (d.type === 'decline') { toast(p.name + ' amekataa'); HK.back(); }
-    if (d.type === 'score') { theirs = d.score; if (d.done) theirsDone = true; if (i >= qs.length) draw(); else { const t = $$('.chip-tag.coral', el)[0]; if (t) t.textContent = p.name + ' ' + theirs; } }
+    if (d.type === 'score' && Number.isInteger(d.score) && d.score >= 0 && d.score <= qs.length) { theirs = d.score; if (d.done) theirsDone = true; if (i >= qs.length) draw(); else { const t = $$('.chip-tag.coral', el)[0]; if (t) t.textContent = p.name + ' ' + theirs; } }
   });
-  if (p.host) Net.send({ t: 'game', to: p.to, data: { type: 'invite', seed } });
+  if (p.host) Net.send({ t: 'game', to: p.to, data: { type: 'invite', seed, group: g } });
   else Net.send({ t: 'game', to: p.to, data: { type: 'accept' } });
   draw();
-  return off;
+  return () => { clearTimeout(next); off(); };
 };

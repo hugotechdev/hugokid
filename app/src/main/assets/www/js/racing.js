@@ -121,11 +121,12 @@ HK.screens.raceMenu = (el) => {
       <span class="hud-pill" style="background:#fff">${icon('coin', 18)} <span id="coins">${c.coins || 0}</span></span></div>
     <div class="scroll">
       <button class="btn small" id="shop-link">Car Shop</button>
+      ${EpisodePlay.map('racing',RACE_EPISODES)}
       ${RACE_THEMES.map((t, ti) => `
         <section class="race-region scene-${t.scene}"><h2>${t.name}</h2>
         <div class="levels">${[1, 2, 3].map(n => {
           const lv = ti * 3 + n, open = lv <= rd.unlocked, b = rd.best[lv] || 0;
-          return `<button class="level ${open ? '' : 'locked'}" data-lv="${lv}" style="--c:${t.c};--cd:${t.cd}">
+          return `<button class="level ${open ? '' : 'locked'}" data-lv="${lv}" title="${esc(EpisodeContent.game('racing',lv).topic)}" style="--c:${t.c};--cd:${t.cd}">
             ${open ? lv : icon('lock', 26)}
             <span class="lv-stars">${[1, 2, 3].map(s => `<svg width="14" height="14" viewBox="0 0 24 24" class="${s <= b ? 'on' : ''}"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6L3.4 9.5l6-.8z"/></svg>`).join('')}</span>
           </button>`;
@@ -183,33 +184,6 @@ HK.screens.raceMenu = (el) => {
   drawGarage();
 };
 
-const RACE_COLORS = [
-  { n: 'RED', c: '#F65B4F' }, { n: 'BLUE', c: '#1EA7F0' }, { n: 'YELLOW', c: '#FFC20E' },
-  { n: 'GREEN', c: '#0FB394' }, { n: 'PURPLE', c: '#7B61FF' },
-];
-function raceQuestion(group, level) {
-  const R = n => Math.floor(Math.random() * n);
-  const shuffle = a => a.sort(() => Math.random() - 0.5);
-  if (group === 'explorer') {
-    const opts = shuffle(RACE_COLORS.slice()).slice(0, 3);
-    const ans = opts[R(3)];
-    return { q: "Drive through the color " + ans.n, say: "Drive through the color " + ans.n.toLowerCase(), opts: opts.map(o => ({ label: '', color: o.c, ok: o === ans })) };
-  }
-  let a, b, op, res;
-  if (group === 'adventurer') {
-    if (level <= 3 || Math.random() < 0.5) { a = 1 + R(9 + level); b = 1 + R(9); op = '+'; res = a + b; }
-    else { a = 5 + R(10 + level); b = 1 + R(Math.min(a, 9)); op = '-'; res = a - b; }
-  } else {
-    if (Math.random() < 0.6) { a = 2 + R(9); b = 2 + R(level < 5 ? 5 : 9); op = 'x'; res = a * b; }
-    else { b = 2 + R(8); res = 2 + R(9); a = b * res; op = '÷'; }
-  }
-  const set = new Set([res]);
-  while (set.size < 3) { const w = res + (R(2) ? 1 : -1) * (1 + R(op === 'x' ? 6 : 3)); if (w >= 0) set.add(w); }
-  const opts = shuffle([...set]).map(v => ({ label: String(v), color: '#fff', ok: v === res }));
-  const say = `${a} ${{ '+': 'plus', '-': 'minus', 'x': 'times', '÷': 'divided by' }[op]} ${b}?`;
-  return { q: `${a} ${op} ${b} = ?`, say, opts };
-}
-
 HK.screens.racePlay = (el, p) => {
   const child = Store.active();
   const rd = raceData(child);
@@ -217,6 +191,7 @@ HK.screens.racePlay = (el, p) => {
   const theme = RACE_THEMES[Math.floor((level - 1) / 3)];
   const group = ageGroup(child);
   const car = RACE_CARS[rd.car] || RACE_CARS[0];
+  const episode = EpisodeContent.game('racing',level);
 
   const CFG = {
     explorer: { speed: 300 + level * 8, gap: 560, hearts: 99, double: 0 },
@@ -224,7 +199,7 @@ HK.screens.racePlay = (el, p) => {
     master: { speed: 460 + level * 22, gap: 320, hearts: 3, double: level >= 3 ? 0.4 : 0.15 },
   }[group];
   const cruisingSpeed = CFG.speed * 0.88;
-  const answerSeconds = group === 'explorer' ? 3 : 2.5;
+  const answerSeconds = group === 'explorer' ? 5 : 4;
   const LENGTH = 9000 + level * 1400;
 
   el.classList.add('race-screen', 'scene-' + theme.scene);
@@ -291,7 +266,12 @@ HK.screens.racePlay = (el, p) => {
     for (let k = 0; k < n; k++) S.objs.push({ type: 'coin', lane: free, y: -120 - k * 70 - (blocks ? 160 : 0) });
   }
   function spawnGate() {
-    const q = raceQuestion(group, level);
+    const item=episode.items[S.answered];
+    const dots=level===1 ? item.context : '';
+    const q={
+      q:[dots,item.text].filter(Boolean).join(' '), say:item.text,
+      opts:shuffle(item.choices.slice()).map(label=>({label,color:'#fff',ok:label===item.answer})),
+    };
     S.gate = { y: -140, q, done: false, visibleFrom: 0 };
     const box = $('#q', el);
     box.textContent = q.q;
@@ -433,7 +413,7 @@ HK.screens.racePlay = (el, p) => {
     let v = cruisingSpeed * (S.boost > 0 ? 1.45 : 1) * (S.slow > 0 ? 0.45 : 1);
     if (S.gate && !S.gate.done && S.gate.y >= S.gate.visibleFrom) {
       const visibleDistance = Math.max(1, playerY() - 10 - S.gate.visibleFrom);
-      v = Math.min(v, visibleDistance / answerSeconds);
+      v = Math.min(v, visibleDistance / Math.max(answerSeconds,Math.min(9,S.gate.q.q.length/27+2)));
     }
     let dy = v * dt;
     if (S.gate && !S.gate.done && S.gate.y < S.gate.visibleFrom) {
@@ -443,7 +423,7 @@ HK.screens.racePlay = (el, p) => {
 
     S.x += (laneX(S.lane) - S.x) * Math.min(1, dt * 14);
 
-    if (S.dist >= S.nextGate && S.answered < 5 && !S.gate) {
+    if (S.dist >= S.nextGate && S.answered < episode.items.length && !S.gate) {
       spawnGate(); S.noSpawnUntil = S.dist + 900; S.nextGate += LENGTH / 6;
     }
     if (S.dist >= S.nextRow && S.dist < LENGTH - 500) {
@@ -498,7 +478,7 @@ HK.screens.racePlay = (el, p) => {
       if (left <= 60 && !S.warned) { S.warned = true; toast("1 minute of games left"); speak("One minute left"); }
       if (left <= 0) { S.over = true; HK.go('timeUp', {}, { replace: true }); return; }
     }
-    if (S.dist >= LENGTH && S.answered === 5) finish(true);
+    if (S.dist >= LENGTH && S.answered === episode.items.length) finish(true);
   }
 
   function render() {

@@ -31,7 +31,13 @@ const Store = {
   saveChild(c) {
     const list = this.children();
     const i = list.findIndex(x => x.id === c.id);
-    if (i >= 0) list[i] = c; else list.push(c);
+    if (i >= 0) {
+      const saved = list[i].curriculum;
+      if (saved && c.curriculum && JSON.stringify(saved)!==JSON.stringify(c.curriculum)) {
+        c.curriculum = CurriculumState.merge(saved,c.curriculum);
+      } else if (saved && !c.curriculum) c.curriculum = saved;
+      list[i] = c;
+    } else list.push(c);
     this.set('children', list);
   },
   removeChild(id) { this.set('children', this.children().filter(c => c.id !== id)); },
@@ -59,8 +65,9 @@ const Store = {
 function faithOn(child) { return !child || child.faithOn !== false; }
 
 function ageYears(birth) {
-  if (!birth) return 7;
-  const b = new Date(birth), n = new Date();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birth || '')) return 7;
+  const b = new Date(birth + 'T00:00:00'), n = new Date();
+  if (!Number.isFinite(b.getTime()) || b > n) return 7;
   let a = n.getFullYear() - b.getFullYear();
   if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--;
   return a;
@@ -118,13 +125,19 @@ const HWDB = {
       Promise.resolve(fn(s, v => (out = v))).catch(rej);
       t.oncomplete = () => res(out);
       t.onerror = () => rej(t.error);
+      t.onabort = () => rej(t.error || new Error('Homework could not be saved.'));
     });
   },
   all() {
     return this.tx('readonly', (s, set) => { const r = s.getAll(); r.onsuccess = () => set(r.result || []); })
       .then(list => list.sort((a, b) => b.created - a.created));
   },
-  async byChild(childId) { return (await this.all()).filter(h => h.childId === childId); },
+  byChild(childId) {
+    return this.tx('readonly', (s, set) => {
+      const request = s.index('childId').getAll(childId);
+      request.onsuccess = () => set(request.result);
+    }).then(list => list.sort((a, b) => b.created - a.created));
+  },
   get(id) { return this.tx('readonly', (s, set) => { const r = s.get(id); r.onsuccess = () => set(r.result || null); }); },
   put(obj) { obj.updated = Date.now(); return this.tx('readwrite', s => { s.put(obj); }); },
   del(id) { return this.tx('readwrite', s => { s.delete(id); }); },

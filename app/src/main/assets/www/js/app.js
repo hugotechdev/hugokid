@@ -13,7 +13,8 @@ const HK = window.HK = {
   go(name, params = {}, opts = {}) {
     if (opts.reset) this.stack = [];
     else if (opts.replace) this.stack.pop();
-    this.stack.push({ name, params });
+    const learning = Curriculum.nextRoute(name, params);
+    this.stack.push(learning || { name, params });
     this.render();
   },
 

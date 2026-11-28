@@ -144,7 +144,9 @@ HK.screens.changePass = (el, p) => {
     if ($('#new', el).value !== $('#new2', el).value) return toast("The new passwords don't match");
     try {
       await Net.post('/api/password', { old: $('#old', el).value, new: $('#new', el).value });
-      const a = Net.acct(); a.user.must_change = false; Net.setAcct(a);
+      const a = Net.acct();
+      if (!el.isConnected || !a) return;
+      a.user.must_change = false; Net.setAcct(a);
       toast("Password changed"); routeByRole();
     } catch (e) { toast(e.message); }
   };

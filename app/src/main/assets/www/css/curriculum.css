@@ -1,0 +1,14 @@
+.curriculum { padding: 12px 14px 24px; }
+.curriculum .card { margin: 0 0 14px; }
+.curriculum h2 { color: var(--navy); overflow-wrap: anywhere; }
+.curriculum .item { width: 100%; text-align: left; }
+.curriculum .item strong, .curriculum .i-sub { display: block; }
+.curriculum .item:disabled { color: var(--navy-2); opacity: .78; }
+.curriculum .btn { white-space: normal; height: auto; min-height: 46px; }
+.curriculum .btn.block { margin-top: 10px; }
+.skill-choices { display: grid; gap: 8px; margin: 16px 0; grid-template-columns: 1fr; }
+.skill-choices .btn { text-align: left; justify-content: flex-start; color: var(--navy); }
+.curriculum-context { background: #edf5fb; color: #182e51; border-radius: 14px; padding: 13px; }
+.curriculum-parent { margin: 14px 0; color: var(--navy); }
+.curriculum-parent summary { cursor: pointer; font-weight: 800; }
+.curriculum-parent p { margin: 8px 0; }

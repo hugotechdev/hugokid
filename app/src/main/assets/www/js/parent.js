@@ -280,6 +280,7 @@ HK.screens.parentHome = (el, p) => {
             <div class="muted" style="font-size:13px;font-weight:600">${esc(g.name)} · Miaka ${ageYears(c.birth)}${c.grade && c.grade !== GRADES[0] ? ' · ' + esc(c.grade) : ''} · ${faithOn(c) ? esc((RELIGIONS[c.religion] || RELIGIONS.values).name) : 'Imani: imezimwa'}</div>
           </div>
         </div>
+        <details class="curriculum-parent" data-skill-report="${esc(c.id)}"><summary>Learning skills</summary><div>${Curriculum.summary(c)}</div></details>
         <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
           <span class="chip-tag sun">${icon('star', 14)} Nyota ${c.stars || 0}</span>
           <span class="chip-tag blue">${icon('clock', 14)} Play today: ${used}/${limit} min</span>
@@ -310,6 +311,13 @@ HK.screens.parentHome = (el, p) => {
       </div>`;
     }).join('') + `<button class="btn block blue" id="addkid">${icon('plus', 22)} Ongeza mtoto</button>`;
 
+    $$('[data-skill-report]',body).forEach(report=>report.ontoggle=()=>{
+      if (!report.open) return;
+      const child=Store.child(report.dataset.skillReport);
+      Curriculum.sync(child).then(()=>{
+        if (report.isConnected) report.querySelector('div').innerHTML=Curriculum.summary(Store.child(child.id));
+      }).catch(()=>{});
+    });
     $$('[data-use]', body).forEach(b => b.onclick = () => { Store.setActive(b.dataset.use); toast("Changed"); renderKids(body); });
     $$('[data-device]',body).forEach(btn=>btn.onclick=()=>HK.go('devices',{id:btn.dataset.device}));
     $$('[data-edit]', body).forEach(b => b.onclick = () => HK.go('childForm', { id: b.dataset.edit }));

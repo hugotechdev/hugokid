@@ -125,7 +125,7 @@ HK.screens.hwNew = (el) => {
   const drawPages = () => {
     const box = $('#pages', el);
     box.innerHTML = hw.pages.map((p, i) => `<div class="page-thumb">
-      ${p.bg ? `<img src="${p.bg}">` : `<div class="ph-text">${esc((p.questions || []).join('\n'))}</div>`}
+      ${p.bg ? `<img src="${esc(p.bg)}">` : `<div class="ph-text">${esc((p.questions || []).join('\n'))}</div>`}
       <span class="num">${i + 1}</span><button class="rm" data-i="${i}">${icon('x', 16)}</button></div>`).join('')
       || '<p class="muted" style="grid-column:span 3;font-weight:700;margin:0">Piga picha ya kila ukurasa wa homework, au andika swali.</p>';
     $$('.rm', box).forEach(b => b.onclick = () => { hw.pages.splice(+b.dataset.i, 1); drawPages(); });
@@ -224,7 +224,8 @@ HK.screens.hwNew = (el) => {
 HK.screens.hwReview = (el, p) => {
   el.innerHTML = '<div class="center-col">Inapakia...</div>';
   HWDB.get(p.id).then(async hw => {
-    if (!hw) { HK.back(); return; }
+    if (!el.isConnected) return;
+    if (!hw || !Store.child(hw.childId)) { HK.back(); return; }
     const c = Store.child(hw.childId);
     const st = HW_STATUS[hw.status];
     const imgs = hw.status === 'submitted' || hw.status === 'approved' || hw.status === 'returned'
@@ -237,8 +238,8 @@ HK.screens.hwReview = (el, p) => {
         <span class="chip-tag ${st.cls}">${st.label}</span></div>
       <div class="scroll">
         ${attachmentsHTML(hw.files)}
-        ${imgs.map(s => `<img class="review-page" src="${s}">`).join('')}
-        ${hw.original ? `<div class="section-title">Original photo</div>${hw.original.map(s => `<img class="review-page" src="${s}">`).join('')}` : ''}
+        ${imgs.map(s => `<img class="review-page" src="${esc(s)}">`).join('')}
+        ${hw.original ? `<div class="section-title">Original photo</div>${hw.original.map(s => `<img class="review-page" src="${esc(s)}">`).join('')}` : ''}
         ${hw.status === 'submitted' ? `
           <div class="card" style="text-align:center">
             <h3>Give stars</h3>
@@ -315,6 +316,7 @@ HK.screens.hwDo = (el, p) => {
   el.innerHTML = '<div class="center-col">Inafungua...</div>';
   let hw, pageI = 0, tool = 'pen', color = '#0D2461', width = 5;
   let bgCanvas, inkCanvas, ictx, paper, drawing = null, saveT = null, renderId = 0;
+  let cancelRecording;
   const t0 = Date.now();
   const readOnly = () => hw.status === 'approved';
 
@@ -323,12 +325,12 @@ HK.screens.hwDo = (el, p) => {
   HWDB.get(p.id).then(h => {
     if (!el.isConnected) return;
     hw = h;
-    if (!hw) return HK.back();
+    if (!hw || hw.childId !== c?.id) { hw = null; return HK.back(); }
     const school = hw.origin === 'school';
     if (school && readOnly() && hw.marked && hw.marked.length) {
       el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><div class="grow"><h1 style="font-size:18px">${esc(hw.title)}</h1><div class="sub">Imesahihishwa na Mwl. ${esc(hw.teacher || '')}</div></div></div>
         <div class="scroll"><div class="trophy-hero" style="margin:0 0 14px"><div class="big">${hw.score ?? '-'}/${hw.max_score}</div><div class="earned" style="margin:8px 0 0">${starsHTML(hw.stars || 0, 3, 32)}</div>${hw.feedback ? `<p style="color:inherit;margin-top:8px">${esc(hw.feedback)}</p>` : ''}</div>
-        ${hw.marked.map(m => `<img class="review-page" src="${m}">`).join('')}</div>`;
+        ${hw.marked.map(m => `<img class="review-page" src="${esc(m)}">`).join('')}</div>`;
       $('#bk', el).onclick = () => HK.back();
       if (hw.feedback) speak(hw.feedback);
       return;
@@ -392,7 +394,7 @@ HK.screens.hwDo = (el, p) => {
     bindAttachments(el, hw.files);
     if (school) {
       const si = $('#sayins', el); if (si) { si.onclick = () => speak(hw.instructions); if (['toddler', 'beginner'].includes(kidMode(c))) setTimeout(() => speak(hw.instructions), 600); }
-      const rb = (id, t) => { const b = $('#' + id, el); if (b) b.onclick = () => addResponse(el, hw, t); };
+      const rb = (id, t) => { const b = $('#' + id, el); if (b) b.onclick = () => { cancelRecording = addResponse(el, hw, t); }; };
       rb('r-photo', 'photo'); rb('r-audio', 'audio'); rb('r-video', 'video');
     }
     bindDrawing();
@@ -533,6 +535,7 @@ HK.screens.hwDo = (el, p) => {
   }
 
   return () => {
+    cancelRecording?.();
     window.removeEventListener('resize', fit);
     clearTimeout(saveT);
     if (hw && !readOnly()) HWDB.put(hw);

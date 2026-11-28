@@ -1,6 +1,5 @@
 /* Episode selection and short challenges for recovering an in-game balance. */
 const GAME_EPISODES = 24;
-const GAME_CHAPTERS = ['First Steps', 'New Challenges', 'Skill Builders', 'Trail Masters'];
 
 HK.screens.gameEpisodes = (el, { id }) => {
   const child = Store.active();
@@ -9,18 +8,23 @@ HK.screens.gameEpisodes = (el, { id }) => {
   if (!game) return HK.back();
   const progress = GK.prog(child, id);
   const cap = GAME_EPISODES;
+  const groups=new Map();
+  for(let level=1;level<=cap;level++) {
+    const episode=EpisodeContent.game(id,level);
+    if (!groups.has(episode.stage)) groups.set(episode.stage,[]);
+    groups.get(episode.stage).push(episode);
+  }
   el.innerHTML = `<div class="topbar"><button class="icon-btn" id="episode-back" aria-label="Back">${icon('back')}</button><h1>${esc(T(game.name))}</h1></div>
     <div class="scroll">
       ${id === 'jungle' ? `<h2 class="section-title">Choose your runner</h2>${jungleRunnerOptions(jungleRunner(child))}` : sceneBanner(GAME_SCENES[id], 'simba')}
-      ${GAME_CHAPTERS.map((name, chapter) => {
-        const levels = Array.from({ length: 6 }, (_, i) => chapter * 6 + i + 1).filter(n => n <= cap);
-        if (!levels.length) return '';
-        return `<h2 class="section-title">${name}</h2><div class="levels episode-grid">${levels.map(n => {
+      ${EpisodePlay.map(id,cap)}
+      ${[...groups].map(([stage,episodes])=>`<h2 class="section-title">${esc(stage)}</h2><div class="levels episode-grid">${episodes.map(episode=>{
+          const n=episode.level;
           const locked = n > progress.level;
           const stars = progress.best[n] || 0;
-          return `<button class="level ${locked ? 'locked' : ''}" data-episode="${n}" ${locked ? 'disabled' : ''} style="--c:#d7efdf;--cd:#a0c6af" aria-label="Episode ${n}${locked ? ', locked' : ', ' + stars + ' stars'}">${locked ? icon('lock', 20) : n}<span class="lv-stars">${stars ? starsHTML(stars, 3, 15) : ''}</span></button>`;
-        }).join('')}</div>`;
-      }).join('')}
+          const objectiveName = episode.topic;
+          return `<button class="level ${locked ? 'locked' : ''}" data-episode="${n}" ${locked ? 'disabled' : ''} style="--c:#d7efdf;--cd:#a0c6af" title="${esc(objectiveName)}" aria-label="Episode ${n} · ${esc(objectiveName)}${locked ? ', locked' : ', ' + stars + ' stars'}">${locked ? icon('lock', 20) : n}<span class="lv-stars">${stars ? starsHTML(stars, 3, 15) : ''}</span></button>`;
+        }).join('')}</div>`).join('')}
     </div>`;
   $('#episode-back', el).onclick = () => HK.back();
   if (id === 'jungle') bindJungleRunners(el);

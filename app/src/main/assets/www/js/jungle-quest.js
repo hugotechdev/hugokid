@@ -48,22 +48,6 @@ TUT.jungle = {
   ],
 };
 
-function jungleQuestion(group, episode, leg) {
-  const a = 2 + rnd([4, 8, 12][group]) + Math.floor((episode - 1) / 6);
-  const b = 1 + rnd([3, 7, 10][group]);
-  const multiply = group === 2 && (episode + leg) % 3 === 0;
-  const subtract = group > 0 && !multiply && (episode + leg) % 2 === 0;
-  const number = subtract ? a + b : a;
-  const sign = multiply ? '×' : subtract ? '−' : '+';
-  const word = multiply ? 'times' : subtract ? 'minus' : 'plus';
-  const answer = multiply ? a * b : subtract ? a : a + b;
-  const hint = multiply ? 'Think of ' + a + ' groups of ' + b + '.'
-    : subtract ? 'Start at ' + number + ' and count back ' + b + '.'
-    : 'Start at ' + a + ' and count up ' + b + '.';
-  const values = [answer, answer + 1, answer > 1 ? answer - 1 : answer + 2];
-  return { text: number + ' ' + sign + ' ' + b + ' = ?', say: 'What is ' + number + ' ' + word + ' ' + b + '?', hint, answer, values: shuffle(values) };
-}
-
 function jungleTrail(group, episode, leg, length) {
   const items = [];
   const spacing = [28, 23, 19][group];
@@ -278,7 +262,7 @@ HK.screens.g_jungle = (el, { level } = {}) => {
   const kit = GK.frame(el, 'jungle', { level });
   const board = gameCanvas(kit);
   const group = kit.g ?? 0;
-  const legs = group === 2 ? 4 : 3;
+  const legs = kit.episode.items.length;
   const length = [114, 132, 150][group] + (kit.level - 1) % 6 * 3;
   const speed = [12, 15, 18][group] + Math.floor((kit.level - 1) / 6);
   const asset = src => { const image = new Image(); image.src = src; return image; };
@@ -341,8 +325,10 @@ HK.screens.g_jungle = (el, { level } = {}) => {
     state.guardian = 0;
     state.nextStep = state.travel + 3;
     state.items = jungleTrail(group, kit.level, state.leg, length);
-    state.question = jungleQuestion(group, kit.level, state.leg);
-    kit.hint = 'Swipe sideways to dodge, or press Jump. Choose the correct number at the next fork.';
+    const item=kit.episode.items[state.leg];
+    const line=[item.context,item.text].filter(Boolean).join(' ');
+    state.question={...item,text:line,say:line,hint:item.explanation || 'Read the clue carefully.',values:item.choices?shuffle(item.choices.slice()):[]};
+    kit.hint = 'Swipe sideways to dodge, or press Jump. Read the clue at the next fork.';
     $('b', status).textContent = region.name;
     $('span', status).textContent = 'Trail ' + (state.leg + 1) + ' of ' + legs;
     progress.value = 100 * state.leg / legs;
@@ -403,12 +389,22 @@ HK.screens.g_jungle = (el, { level } = {}) => {
     notice.textContent = '';
     const q = state.question;
     kit.hint = q.say + ' ' + q.hint;
+    if (q.format==='writing') {
+      fork.innerHTML=`<h2>${esc(q.text)}</h2>${EpisodePlay.draftForm('Write your own ending before you cross.')}`;
+      fork.hidden=false;
+      EpisodePlay.draft(fork,()=>{
+        if (kit.paused || kit.ended) return;
+        state.phase='crossing'; state.crossing=0; state.lane=0;
+        fork.hidden=true;
+      });
+      return;
+    }
     fork.innerHTML = `
-      <div class="jungle-clue">${mascot('nuru', 44)}<div><span>${region.landmark}</span><h2 tabindex="-1">${q.text}</h2></div>
+      <div class="jungle-clue">${mascot('nuru', 44)}<div><span>${esc(kit.episode.topic)}</span><h2 tabindex="-1">${esc(q.text)}</h2></div>
         <button type="button" class="icon-btn" aria-label="Repeat question">${icon('volume', 22)}</button></div>
       <p class="jungle-feedback" aria-live="polite">Choose the correct path to stay ahead.</p>
       <div class="jungle-paths">${q.values.map((value, index) =>
-        `<button type="button" data-path="${index}" aria-label="${['Left', 'Middle', 'Right'][index]} path, ${value}">${value}</button>`).join('')}</div>`;
+        `<button type="button" data-path="${index}" aria-label="${['Left', 'Middle', 'Right'][index]} path, ${esc(value)}">${esc(value)}</button>`).join('')}</div>`;
     fork.hidden = false;
     $('.jungle-clue button', fork).onclick = () => { if (!kit.paused) speak(q.say); };
     $$('.jungle-paths button', fork).forEach((button, index) => {
@@ -456,7 +452,7 @@ HK.screens.g_jungle = (el, { level } = {}) => {
   board.cv.addEventListener('pointercancel', () => { gesture = null; });
   const keydown = event => {
     if (event.repeat || kit.paused || kit.ended) return;
-    if (state.phase === 'question' && /^[123]$/.test(event.key)) {
+    if (state.phase === 'question' && state.question.format!=='writing' && /^[123]$/.test(event.key)) {
       event.preventDefault();
       const index = +event.key - 1;
       $$('[data-path]', fork)[index]?.click();
@@ -481,8 +477,9 @@ HK.screens.g_jungle = (el, { level } = {}) => {
         if (state.leg < legs) startLeg();
         else {
           state.phase = 'finished';
-          const stars = state.firstTry === legs ? 3 : state.firstTry >= legs - 1 ? 2 : 1;
-          kit.finish({ stars, text: 'Trail complete! Correct on the first try: ' + state.firstTry + '/' + legs });
+          const scored=kit.episode.items.filter(item=>item.format!=='writing').length;
+          const stars = state.firstTry === scored ? 3 : state.firstTry >= scored - 1 ? 2 : 1;
+          kit.finish({ stars, text: 'Trail complete! Correct on the first try: ' + state.firstTry + '/' + scored });
         }
       }
       return;

@@ -253,7 +253,8 @@ HK.screens.safariPassport = el => {
     ${kidAvatar(child, 72)}<h2>${esc(child.name)}</h2>
     ${earned ? `<button class="salad-seal" id="sticker">${saladSticker()}<strong>${saladTitle()}</strong>${icon('volume', 20)}</button>` :
       `<p>${'Help Tembo make a fruit salad to earn your first sticker.'}</p>`}
-    ${SAFARI_STORIES.slice(1).map((story, i) => child.safariSeries?.[i + 1]?.done ? `<button class="salad-seal" data-replay="${i+1}">${mascot(story.guide, 65)}<strong>${story.title}</strong><small>Replay episode</small></button>` : '').join('')}
+    ${SAFARI_STORIES.slice(1).map((story, i) => child.safariField?.[i + 1]?.done ? `<button class="salad-seal" data-replay="${i+1}">${mascot(story.guide, 65)}<strong>${story.title}</strong><small>Replay episode</small></button>` : '').join('')}
+    ${SAFARI_LEGACY_TITLES.some((_,i)=>child.safariSeries?.[i+1]?.done)?`<details><summary>Earlier passport stamps</summary>${SAFARI_LEGACY_TITLES.filter((_,i)=>child.safariSeries?.[i+1]?.done).map(title=>`<p>${esc(title)}</p>`).join('')}</details>`:''}
     <button class="btn ghost" id="all-stories">All episodes</button>
     <button class="btn" id="play-story">${icon('play', 22)}${earned ? 'Play the story again' : saladTitle()}</button></div></div>`;
   $('#pb', el).onclick = () => HK.back();
