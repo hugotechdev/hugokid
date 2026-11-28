@@ -94,8 +94,8 @@ route('POST', '/api/homework', (u, b) => {
       const file = q.get('SELECT name, mime, label FROM files WHERE name = ? AND owner_id = ? AND school_id = ? AND child_id IS NULL', a.file, u.id, c.school_id);
       return file ? [{ file: file.name, mime: file.mime, label: file.label || '' }] : [];
     });
-  if (kind === 'quiz' && !questions.length) fail(400, 'Ongeza maswali');
-  if (kind === 'paper' && !pages.length && !b.instructions && !attachments.length) fail(400, "Add a page or instructions");
+  if (kind === 'quiz' && !questions.length) fail(400, 'Add at least one question.');
+  if (kind === 'paper' && !pages.length && !b.instructions && !attachments.length) fail(400, 'Add a page, instructions or an attachment.');
   const id = Number(q.run(`INSERT INTO homework(class_id, author_id, title, subject, kind, instructions, pages, questions, attachments, max_score, due, created) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
     c.id, u.id, title, b.subject || '', kind, (b.instructions || '').slice(0, 4000), JSON.stringify(pages), JSON.stringify(questions), JSON.stringify(attachments),
     Math.max(1, Math.min(100, +b.max_score || 10)), b.due || null, now()).lastInsertRowid);

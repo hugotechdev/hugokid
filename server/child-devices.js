@@ -1,7 +1,7 @@
 const { randomBytes, randomInt, createHash } = require('node:crypto');
 const { db, q } = require('./db');
 const A = require('./auth');
-const { route, role, childFor, fail } = require('./router');
+const { route, role, childFor, fail, J } = require('./router');
 const digest = value => createHash('sha256').update(value).digest('hex');
 db.exec(`CREATE TABLE IF NOT EXISTS child_devices (
  child INTEGER PRIMARY KEY, parent INTEGER NOT NULL, code TEXT UNIQUE, expires INTEGER DEFAULT 0,
@@ -37,14 +37,22 @@ route('DELETE','/api/children/:id/device',(u,b,r,p)=>{
   const ch=owned(u,p); q.run('DELETE FROM child_devices WHERE child=? AND parent=?',ch.id,u.id);return {ok:true};
 });
 const join = ' FROM child_devices d JOIN children c ON c.id=d.child AND c.parent_id=d.parent JOIN users u ON u.id=d.parent ';
-const fields = 'SELECT d.*,c.name,c.birth,c.color,u.access_status ';
+const fields = 'SELECT d.*,c.name,c.birth,c.color,c.progress,u.access_status ';
 function publicChild(d){return {id:d.child,role:'child',name:d.name,access_status:d.access_status};}
 route('POST','/api/device/link',(_,b)=>{
   const d=q.get(fields+join+'WHERE d.code=? AND d.expires>?',digest(String(b.code||'').trim().toUpperCase()),Date.now());
   if (!d || d.access_status!=='active') fail(400,'Invalid or expired link code.');
   const token='kid_'+randomBytes(32).toString('hex');
   q.run("UPDATE child_devices SET next_pin=NULL,code=NULL,token=?,seen=?,until_ms=0,requested=0,activity='{}' WHERE child=?",digest(token),Date.now(),d.child);
-  return {token,offlinePin:d.next_pin,user:publicChild(d),profile:{id:'linked-'+d.child,serverId:d.child,name:d.name,birth:d.birth,color:d.color,religion:'values'},bedtime:d.bedtime};
+  const saved = J(d.progress)?.profile;
+  const profile = {
+    id: 'linked-' + d.child, serverId: d.child, name: d.name, birth: d.birth, color: d.color,
+    grade: saved?.grade || '', avatar: saved?.avatar || '',
+    religion: ['values', 'islam', 'christian'].includes(saved?.religion) ? saved.religion : 'values',
+    faithOn: saved?.faithOn !== false,
+    needs: Array.isArray(saved?.needs) ? saved.needs : [],
+  };
+  return { token, offlinePin: d.next_pin, user: publicChild(d), profile, bedtime: d.bedtime };
 });
 function resolve(token){return q.get(fields+join+'WHERE d.token=?',digest(token));}
 function authorize(req,path,method,b){

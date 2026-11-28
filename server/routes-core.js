@@ -13,7 +13,7 @@ route('POST', '/api/register', (u, b) => {
   const email = (b.email || '').trim().toLowerCase();
   if (!phone && !email) fail(400, "Enter a phone number or email");
   if (String(b.password || '').length < 6) fail(400, "The password must have 6 or more characters");
-  if (phone && q.get('SELECT id FROM users WHERE phone = ?', phone)) fail(409, 'Namba hii imeshasajiliwa');
+  if (phone && q.get('SELECT id FROM users WHERE phone = ?', phone)) fail(409, 'This phone number is already registered.');
   if (email && q.get('SELECT id FROM users WHERE email = ?', email)) fail(409, "This email is already registered");
   db.exec('BEGIN IMMEDIATE');
   try {
@@ -41,7 +41,7 @@ route('POST', '/api/login', (u, b) => {
   const login = need(b.login, "Enter a phone or email").replace(/\s+/g, '').toLowerCase();
   const t = tries.get(login) || { n: 0, at: Date.now() };
   if (Date.now() - t.at > 15 * 60e3) { t.n = 0; t.at = Date.now(); }
-  if (t.n >= 8) fail(429, 'Umejaribu mara nyingi. Subiri dakika 15');
+  if (t.n >= 8) fail(429, 'Too many sign-in attempts. Try again in 15 minutes.');
   const user = q.get('SELECT * FROM users WHERE phone = ? OR lower(email) = ?', login, login);
   if (!user || !A.checkPass(b.password || '', user.pass)) { t.n++; tries.set(login, t); fail(401, "Wrong sign-in details"); }
   tries.delete(login);
@@ -120,7 +120,7 @@ route('POST', '/api/teachers', (u, b) => {
   const name = need(b.name, "Enter the teacher's name");
   const phone = (b.phone || '').replace(/\s+/g, ''); const email = (b.email || '').trim().toLowerCase();
   if (!phone && !email) fail(400, "Enter the teacher's phone number or email");
-  if (phone && q.get('SELECT id FROM users WHERE phone = ?', phone)) fail(409, 'Namba hii imeshasajiliwa');
+  if (phone && q.get('SELECT id FROM users WHERE phone = ?', phone)) fail(409, 'This phone number is already registered.');
   if (email && q.get('SELECT id FROM users WHERE email = ?', email)) fail(409, "This email is already registered");
   const pass = A.tempPassword();
   const id = q.run(`INSERT INTO users(role, name, phone, email, pass, school_id, must_change, created) VALUES ('teacher',?,?,?,?,?,1,?)`, name, phone || null, email || null, A.hashPass(pass), u.school_id, now()).lastInsertRowid;
