@@ -1,7 +1,12 @@
 
 const { q } = require('./db');
 const A = require('./auth');
-const userFromReq = req => A.userFromToken(A.tokenOf(req) || new URL(req.url, 'http://x').searchParams.get('token'));
+const userFromReq = req => A.userFromToken(A.tokenOf(req) || queryToken(req));
+
+function queryToken(req) {
+  const url = new URL(req.url, 'http://x');
+  return url.pathname === '/ws' || url.pathname.startsWith('/api/files/') ? url.searchParams.get('token') : null;
+}
 
 const LEVELS = [
   'Awali - Baby Class', 'Awali - Middle Class', 'Awali - Pre-Unit',
@@ -11,7 +16,7 @@ const TERMS_VERSION = '1.0';
 
 class HttpError extends Error { constructor(code, msg) { super(msg); this.code = code; } }
 const fail = (code, msg) => { throw new HttpError(code, msg); };
-const need = (v, msg) => { if (v === undefined || v === null || String(v).trim() === '') fail(400, msg); return typeof v === 'string' ? v.trim() : v; };
+const need = (v, msg) => { if (!['string', 'number'].includes(typeof v) || String(v).trim() === '') fail(400, msg); return typeof v === 'string' ? v.trim() : v; };
 const J = s => { try { return JSON.parse(s || 'null'); } catch (e) { return null; } };
 const now = () => Date.now();
 
@@ -19,6 +24,7 @@ function role(u, ...roles) { if (!u) fail(401, "Sign in first"); if (!roles.incl
 function classFor(u, classId) {
   const c = q.get('SELECT * FROM classes WHERE id = ?', +classId);
   if (!c) fail(404, 'Darasa halipo');
+  role(u, 'superadmin', 'school_admin', 'teacher');
   if (u.role === 'superadmin') return c;
   if (c.school_id !== u.school_id) fail(403, "You don't have access to this class");
   if (u.role === 'teacher' && c.teacher_id !== u.id) fail(403, "Not your class");
@@ -64,6 +70,9 @@ async function handle(req, res, body, method) {
   const u = device?.parent || userFromReq(req);
   const recoveryRoute = ['/api/me', '/api/password', '/api/logout', '/api/billing', '/api/registration', '/api/customer/notices', '/api/customer/notices/read'].includes(url.pathname) ||
     /^\/api\/billing\/\d+\/(?:pay|receipt)$/.test(url.pathname);
+  if (u?.must_change && !['/api/me', '/api/password', '/api/logout'].includes(url.pathname)) {
+    fail(403, 'Change your temporary password before continuing.');
+  }
   const status = A.accessStatus(u);
   if (u && status !== 'active' && !recoveryRoute) {
     const error = new HttpError(403, status === 'pending' ? 'Your account is awaiting approval.' : 'Your account is suspended.');

@@ -55,18 +55,32 @@ route('PUT', '/api/children/:id', (u, b, req, p) => {
 route('PUT', '/api/children/:id/progress', (u, b, req, p) => {
   role(u, 'parent');
   const ch = childFor(u, p.id);
+  if (b.progress != null && (typeof b.progress !== 'object' || Array.isArray(b.progress))) fail(400, 'Enter valid progress data.');
   const txt = JSON.stringify(b.progress || {});
   if (txt.length > 300000) fail(413, "Too much data");
   q.run('UPDATE children SET progress = ?, name = COALESCE(?, name), birth = COALESCE(?, birth), color = COALESCE(?, color) WHERE id = ?', txt, b.name || null, b.birth || null, b.color || null, ch.id);
   return { ok: true };
 });
 
+route('PUT', '/api/children/:id/curriculum', (u, b, req, p) => {
+  role(u,'parent');
+  return require('./curriculum-progress').syncCurriculum(childFor(u,p.id),b.progress);
+});
+
 route('DELETE', '/api/account', (u) => {
   role(u, 'parent');
-  q.run('UPDATE children SET parent_id = NULL, progress = NULL, local_id = NULL WHERE parent_id = ? AND school_id IS NOT NULL', u.id);
-  q.run('DELETE FROM children WHERE parent_id = ?', u.id);
-  q.run('DELETE FROM messages WHERE from_id = ? OR to_id = ?', u.id, u.id);
-  q.run('DELETE FROM users WHERE id = ?', u.id);
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    q.run('UPDATE children SET parent_id = NULL, progress = NULL, local_id = NULL WHERE parent_id = ? AND school_id IS NOT NULL', u.id);
+    q.run('DELETE FROM children WHERE parent_id = ?', u.id);
+    q.run('DELETE FROM messages WHERE from_id = ? OR to_id = ?', u.id, u.id);
+    q.run('DELETE FROM users WHERE id = ?', u.id);
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+  hub.closeUser(u.id);
   return { ok: true };
 });
 

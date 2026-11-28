@@ -11,6 +11,7 @@ const db = new DatabaseSync(path.join(DATA_DIR, 'hugokid.db'));
 db.exec(`
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
+PRAGMA busy_timeout = 5000;
 
 CREATE TABLE IF NOT EXISTS schools (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -180,6 +181,19 @@ CREATE TABLE IF NOT EXISTS calls (
   a INTEGER NOT NULL, b INTEGER NOT NULL,
   media TEXT, started INTEGER NOT NULL, ended INTEGER
 );
+CREATE INDEX IF NOT EXISTS sessions_by_user ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS classes_by_school ON classes(school_id);
+CREATE INDEX IF NOT EXISTS classes_by_teacher ON classes(teacher_id);
+CREATE INDEX IF NOT EXISTS children_by_class ON children(class_id);
+CREATE INDEX IF NOT EXISTS children_by_parent_local ON children(parent_id, local_id);
+CREATE INDEX IF NOT EXISTS homework_by_class ON homework(class_id, created);
+CREATE INDEX IF NOT EXISTS submissions_by_child ON submissions(child_id);
+CREATE INDEX IF NOT EXISTS attendance_by_class_date ON attendance(class_id, day);
+CREATE INDEX IF NOT EXISTS messages_by_recipient ON messages(to_id, child_id, seen);
+CREATE INDEX IF NOT EXISTS invoices_by_parent ON invoices(parent_id);
+CREATE INDEX IF NOT EXISTS invoices_by_school ON invoices(school_id);
+CREATE INDEX IF NOT EXISTS friends_by_second_child ON friends(b);
+
 `);
 
 for (const sql of ['ALTER TABLE children ADD COLUMN progress TEXT', "ALTER TABLE users ADD COLUMN access_status TEXT NOT NULL DEFAULT 'active'"]) {

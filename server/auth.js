@@ -9,7 +9,7 @@ function hashPass(p) {
 }
 function checkPass(p, stored) {
   const [salt, h] = String(stored || '').split(':');
-  if (!salt || !h) return false;
+  if (!/^[a-f0-9]{32}$/i.test(salt) || !/^[a-f0-9]{128}$/i.test(h || '')) return false;
   const x = crypto.scryptSync(String(p), salt, 64);
   return crypto.timingSafeEqual(x, Buffer.from(h, 'hex'));
 }

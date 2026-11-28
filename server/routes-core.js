@@ -4,15 +4,30 @@ const A = require('./auth');
 const hub = require('./hub');
 const { route, fail, need, J, now, role, classFor, childFor, className, childOut, hwOut, uniqueLinkCode, LEVELS, TERMS_VERSION } = require('./router');
 
+function accountContact(body) {
+  if ((body.phone != null && typeof body.phone !== 'string') || (body.email != null && typeof body.email !== 'string')) {
+    fail(400, 'Enter a valid phone number or email.');
+  }
+  const phone = (body.phone || '').replace(/\s+/g, '');
+  const email = (body.email || '').trim().toLowerCase();
+  if (phone && !/^\+?\d{7,20}$/.test(phone)) fail(400, 'Enter a valid phone number.');
+  if (email && (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) fail(400, 'Enter a valid email address.');
+  return { phone, email };
+}
+
+function suppliedPassword(value) {
+  return typeof value === 'string' && value.length >= 6 && value.length <= 128;
+}
+
 route('POST', '/api/register', (u, b) => {
   const kind = need(b.kind, "Choose an account type");
   if (!['parent', 'school', 'tutor'].includes(kind)) fail(400, "Invalid type");
   if (b.terms !== TERMS_VERSION) fail(400, "Accept the terms first");
   const name = need(b.name, "Enter a name");
-  const phone = (b.phone || '').replace(/\s+/g, '');
-  const email = (b.email || '').trim().toLowerCase();
+  if (typeof name !== 'string' || name.length > 100) fail(400, 'Enter a name of up to 100 characters.');
+  const { phone, email } = accountContact(b);
   if (!phone && !email) fail(400, "Enter a phone number or email");
-  if (String(b.password || '').length < 6) fail(400, "The password must have 6 or more characters");
+  if (!suppliedPassword(b.password)) fail(400, 'Choose a password between 6 and 128 characters.');
   if (phone && q.get('SELECT id FROM users WHERE phone = ?', phone)) fail(409, 'This phone number is already registered.');
   if (email && q.get('SELECT id FROM users WHERE email = ?', email)) fail(409, "This email is already registered");
   db.exec('BEGIN IMMEDIATE');
@@ -20,6 +35,9 @@ route('POST', '/api/register', (u, b) => {
     let schoolId = null;
     if (kind !== 'parent') {
       const school = b.school || {};
+      if (['name', 'region', 'district'].some(key => school[key] != null && typeof school[key] !== 'string')) {
+        fail(400, 'Enter valid school details.');
+      }
       const levels = Array.isArray(school.levels) ? LEVELS.filter(level => school.levels.includes(level)) : [];
       schoolId = Number(q.run("INSERT INTO schools(name, type, region, district, phone, levels, created, status) VALUES (?,?,?,?,?,?,?,'pending')",
         school.name || name, kind, school.region || '', school.district || '', phone, JSON.stringify(levels), now()).lastInsertRowid);
@@ -37,23 +55,43 @@ route('POST', '/api/register', (u, b) => {
 });
 
 const tries = new Map();
+const loginWindow = 15 * 60_000;
+setInterval(() => {
+  const cutoff = Date.now() - loginWindow;
+  for (const [key, value] of tries) if (value.at <= cutoff) tries.delete(key);
+}, loginWindow).unref();
 route('POST', '/api/login', (u, b) => {
-  const login = need(b.login, "Enter a phone or email").replace(/\s+/g, '').toLowerCase();
+  if (typeof b.login !== 'string' || b.login.length > 254 || !b.login.trim()) fail(400, 'Enter a phone or email.');
+  if (typeof b.password !== 'string' || b.password.length > 128) fail(400, 'Enter a valid password.');
+  const login = b.login.replace(/\s+/g, '').toLowerCase();
   const t = tries.get(login) || { n: 0, at: Date.now() };
-  if (Date.now() - t.at > 15 * 60e3) { t.n = 0; t.at = Date.now(); }
+  if (Date.now() - t.at > loginWindow) { t.n = 0; t.at = Date.now(); }
   if (t.n >= 8) fail(429, 'Too many sign-in attempts. Try again in 15 minutes.');
   const user = q.get('SELECT * FROM users WHERE phone = ? OR lower(email) = ?', login, login);
-  if (!user || !A.checkPass(b.password || '', user.pass)) { t.n++; tries.set(login, t); fail(401, "Wrong sign-in details"); }
+  if (!user || !A.checkPass(b.password, user.pass)) {
+    if (!tries.has(login) && tries.size >= 5000) tries.delete(tries.keys().next().value);
+    t.n++; tries.set(login, t);
+    fail(401, 'Wrong sign-in details');
+  }
   tries.delete(login);
   return { token: A.newToken(user.id), user: A.publicUser(user) };
 });
 route('POST', '/api/logout', (u, b, req) => { q.run('DELETE FROM sessions WHERE token = ?', A.tokenOf(req)); return { ok: true }; });
 route('GET', '/api/me', u => { if (!u) fail(401, "Sign in first"); return { user: A.publicUser(u), levels: LEVELS }; });
-route('POST', '/api/password', (u, b) => {
+route('POST', '/api/password', (u, b, req) => {
   if (!u) fail(401, "Sign in first");
-  if (!A.checkPass(b.old || '', u.pass)) fail(400, "The old password is wrong");
-  if (String(b.new || '').length < 6) fail(400, "The new password must have 6 or more characters");
-  q.run('UPDATE users SET pass = ?, must_change = 0 WHERE id = ?', A.hashPass(b.new), u.id);
+  if (typeof b.old !== 'string' || b.old.length > 128 || !A.checkPass(b.old, u.pass)) fail(400, 'The old password is wrong');
+  if (!suppliedPassword(b.new)) fail(400, 'Choose a password between 6 and 128 characters.');
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    q.run('UPDATE users SET pass = ?, must_change = 0 WHERE id = ?', A.hashPass(b.new), u.id);
+    q.run('DELETE FROM sessions WHERE user_id = ? AND token <> ?', u.id, A.tokenOf(req));
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+  hub.closeUser(u.id);
   return { ok: true };
 });
 
@@ -96,6 +134,7 @@ route('POST', '/api/classes', (u, b) => {
   role(u, 'school_admin');
   const level = need(b.level, "Choose a class");
   const teacher = b.teacher_id ? q.get(`SELECT id FROM users WHERE id = ? AND school_id = ? AND role IN ('teacher','school_admin')`, +b.teacher_id, u.school_id) : null;
+  if (b.teacher_id && !teacher) fail(400, 'Choose a teacher from this school.');
   const sch = q.get('SELECT type FROM schools WHERE id = ?', u.school_id);
   const id = q.run('INSERT INTO classes(school_id, level, stream, teacher_id, created) VALUES (?,?,?,?,?)', u.school_id, level, (b.stream || '').trim(), teacher ? teacher.id : (sch.type === 'tutor' ? u.id : null), now()).lastInsertRowid;
   return { id: Number(id) };
@@ -103,8 +142,10 @@ route('POST', '/api/classes', (u, b) => {
 route('PUT', '/api/classes/:id', (u, b, req, p) => {
   role(u, 'school_admin');
   const c = classFor(u, p.id);
-  const teacher = b.teacher_id ? q.get(`SELECT id FROM users WHERE id = ? AND school_id = ?`, +b.teacher_id, u.school_id) : null;
-  q.run('UPDATE classes SET level = ?, stream = ?, teacher_id = ? WHERE id = ?', b.level || c.level, b.stream ?? c.stream, teacher ? teacher.id : null, c.id);
+  const teacher = b.teacher_id ? q.get(`SELECT id FROM users WHERE id = ? AND school_id = ? AND role IN ('teacher','school_admin')`, +b.teacher_id, u.school_id) : null;
+  if (b.teacher_id && !teacher) fail(400, 'Choose a teacher from this school.');
+  const teacherId = b.teacher_id === undefined ? c.teacher_id : teacher?.id ?? null;
+  q.run('UPDATE classes SET level = ?, stream = ?, teacher_id = ? WHERE id = ?', b.level || c.level, b.stream ?? c.stream, teacherId, c.id);
   return { ok: true };
 });
 route('DELETE', '/api/classes/:id', (u, b, req, p) => { role(u, 'school_admin'); const c = classFor(u, p.id); q.run('DELETE FROM classes WHERE id = ?', c.id); return { ok: true }; });
@@ -118,7 +159,7 @@ route('GET', '/api/teachers', u => {
 route('POST', '/api/teachers', (u, b) => {
   role(u, 'school_admin');
   const name = need(b.name, "Enter the teacher's name");
-  const phone = (b.phone || '').replace(/\s+/g, ''); const email = (b.email || '').trim().toLowerCase();
+  const { phone, email } = accountContact(b);
   if (!phone && !email) fail(400, "Enter the teacher's phone number or email");
   if (phone && q.get('SELECT id FROM users WHERE phone = ?', phone)) fail(409, 'This phone number is already registered.');
   if (email && q.get('SELECT id FROM users WHERE email = ?', email)) fail(409, "This email is already registered");
@@ -173,7 +214,7 @@ route('PUT', '/api/students/:id', (u, b, req, p) => {
 route('DELETE', '/api/students/:id', (u, b, req, p) => {
   role(u, 'school_admin');
   const ch = childFor(u, p.id);
-  if (ch.parent_id) q.run('UPDATE children SET school_id = NULL, class_id = NULL WHERE id = ?', ch.id);
+  if (ch.parent_id) q.run('UPDATE children SET school_id = NULL, class_id = NULL, link_code = NULL WHERE id = ?', ch.id);
   else q.run('DELETE FROM children WHERE id = ?', ch.id);
   return { ok: true };
 });

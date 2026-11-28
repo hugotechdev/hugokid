@@ -6,7 +6,7 @@ const DEF = { gemini: 'gemini-2.0-flash', claude: 'claude-sonnet-4-5', openai: '
 
 function cfg() {
   const s = q.get(`SELECT value FROM settings WHERE key = 'ai'`);
-  const db = s ? JSON.parse(s.value) : {};
+  const db = s ? JSON.parse(s.value || '{}') || {} : {};
   return {
     provider: db.provider || process.env.AI_PROVIDER || 'gemini',
     key: db.key || process.env.AI_KEY || '',
@@ -20,10 +20,11 @@ async function ask({ system, text, images = [], max = 900 }) {
   if (!c.key) throw new Error('AI haijawekwa kwenye server');
   const model = c.model || DEF[c.provider];
   const imgs = images.map(d => { const m = /^data:(image\/[a-z+]+);base64,(.*)$/i.exec(d) || []; return { mime: m[1] || 'image/jpeg', data: m[2] || '' }; }).filter(i => i.data);
+  const signal = AbortSignal.timeout(20_000);
   let r, j;
   if (c.provider === 'claude') {
     r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': c.key, 'anthropic-version': '2023-06-01' },
+      method: 'POST', signal, headers: { 'content-type': 'application/json', 'x-api-key': c.key, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model, max_tokens: max, system, messages: [{ role: 'user', content: [...imgs.map(i => ({ type: 'image', source: { type: 'base64', media_type: i.mime, data: i.data } })), { type: 'text', text }] }] }),
     });
     j = await r.json(); if (!r.ok) throw new Error((j.error && j.error.message) || 'Claude error');
@@ -31,14 +32,14 @@ async function ask({ system, text, images = [], max = 900 }) {
   }
   if (c.provider === 'openai') {
     r = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer ' + c.key },
+      method: 'POST', signal, headers: { 'content-type': 'application/json', authorization: 'Bearer ' + c.key },
       body: JSON.stringify({ model, max_tokens: max, messages: [{ role: 'system', content: system }, { role: 'user', content: [{ type: 'text', text }, ...imgs.map(i => ({ type: 'image_url', image_url: { url: `data:${i.mime};base64,${i.data}` } }))] }] }),
     });
     j = await r.json(); if (!r.ok) throw new Error((j.error && j.error.message) || 'OpenAI error');
-    return (j.choices[0].message.content || '').trim();
+    return (j.choices?.[0]?.message?.content || '').trim();
   }
   r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(c.key)}`, {
-    method: 'POST', headers: { 'content-type': 'application/json' },
+    method: 'POST', signal, headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts: [...imgs.map(i => ({ inline_data: { mime_type: i.mime, data: i.data } })), { text }] }], generationConfig: { maxOutputTokens: max } }),
   });
   j = await r.json(); if (!r.ok) throw new Error((j.error && j.error.message) || 'Gemini error');

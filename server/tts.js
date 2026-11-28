@@ -21,9 +21,14 @@ function cfg() {
 const ready = () => { const c = cfg(); return !!(c.key && /^[a-z0-9]+$/i.test(c.region) && c.enabled); };
 
 const hits = new Map();
+setInterval(() => {
+  const cutoff = Date.now() - 600_000;
+  for (const [key, samples] of hits) if (samples.at(-1) <= cutoff) hits.delete(key);
+}, 600_000).unref();
 function allow(ip) {
   const now = Date.now(), h = (hits.get(ip) || []).filter(t => now - t < 600000);
   if (h.length >= 150) return false;
+  if (!hits.has(ip) && hits.size >= 5000) hits.delete(hits.keys().next().value);
   h.push(now); hits.set(ip, h);
   return true;
 }

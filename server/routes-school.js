@@ -21,21 +21,41 @@ route('POST', '/api/subjects', (u, b) => {
 route('DELETE', '/api/subjects/:id', (u, b, req, p) => { role(u, 'school_admin'); q.run('DELETE FROM subjects WHERE id = ? AND school_id = ?', +p.id, u.school_id); return { ok: true }; });
 
 /* ---------- Mahudhurio ---------- */
+const dateInTanzania = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Dar_es_Salaam' });
+function attendanceDay(day) {
+  if (day == null || day === '') return dateInTanzania.format(new Date());
+  if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day)) fail(400, 'Choose a valid attendance date.');
+  const date = new Date(day + 'T00:00:00Z');
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== day) fail(400, 'Choose a valid attendance date.');
+  return day;
+}
+
 route('GET', '/api/classes/:id/attendance', (u, b, req, p) => {
   role(u, 'school_admin', 'teacher');
   const c = classFor(u, p.id);
-  const day = new URL(req.url, 'http://x').searchParams.get('day') || new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Dar_es_Salaam' }).format(new Date());
-  const rows = q.all('SELECT child_id, present FROM attendance WHERE class_id = ? AND day = ?', c.id, day);
-  return { day, students: q.all('SELECT id, name FROM children WHERE class_id = ? ORDER BY name', c.id).map(k => { const r = rows.find(x => x.child_id === k.id); return { id: k.id, name: k.name, present: r ? !!r.present : null }; }) };
+  const day = attendanceDay(new URL(req.url, 'http://x').searchParams.get('day'));
+  const rows = new Map(q.all('SELECT child_id, present FROM attendance WHERE class_id = ? AND day = ?', c.id, day).map(row => [row.child_id, !!row.present]));
+  return { day, students: q.all('SELECT id, name FROM children WHERE class_id = ? ORDER BY name', c.id).map(k => ({ id: k.id, name: k.name, present: rows.get(k.id) ?? null })) };
 });
 route('POST', '/api/classes/:id/attendance', (u, b, req, p) => {
   role(u, 'school_admin', 'teacher');
   const c = classFor(u, p.id);
-  const day = /^\d{4}-\d{2}-\d{2}$/.test(b.day || '') ? b.day : new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Dar_es_Salaam' }).format(new Date());
-  Object.entries(b.present || {}).forEach(([cid, v]) => {
-    if (!q.get('SELECT id FROM children WHERE id = ? AND class_id = ?', +cid, c.id)) return;
-    q.run('INSERT INTO attendance(class_id, child_id, day, present) VALUES (?,?,?,?) ON CONFLICT(child_id, day) DO UPDATE SET present = excluded.present, class_id = excluded.class_id', c.id, +cid, day, v ? 1 : 0);
-  });
+  const day = attendanceDay(b.day);
+  if (!b.present || typeof b.present !== 'object' || Array.isArray(b.present)) fail(400, 'Choose attendance for students in this class.');
+  const classIds = new Set(q.all('SELECT id FROM children WHERE class_id = ?', c.id).map(row => row.id));
+  const entries = Object.entries(b.present);
+  if (entries.some(([id, value]) => !classIds.has(Number(id)) || ![true, false, 0, 1].includes(value))) {
+    fail(400, 'Enter present or absent for students in this class.');
+  }
+  const save = db.prepare('INSERT INTO attendance(class_id, child_id, day, present) VALUES (?,?,?,?) ON CONFLICT(child_id, day) DO UPDATE SET present = excluded.present, class_id = excluded.class_id');
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    for (const [id, value] of entries) save.run(c.id, Number(id), day, value ? 1 : 0);
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
   return { ok: true };
 });
 
@@ -75,7 +95,7 @@ route('GET', '/api/children/:id/messages', (u, b, req, p) => {
   if (!u) fail(401, "Sign in first");
   const ch = childFor(u, p.id);
   q.run('UPDATE messages SET seen = 1 WHERE child_id = ? AND to_id = ?', ch.id, u.id);
-  return q.all('SELECT m.*, us.name from_name, us.role from_role FROM messages m JOIN users us ON us.id = m.from_id WHERE m.child_id = ? ORDER BY m.created', ch.id);
+  return q.all('SELECT m.*, us.name from_name, us.role from_role FROM messages m JOIN users us ON us.id = m.from_id WHERE m.child_id = ? AND (m.from_id = ? OR m.to_id = ?) ORDER BY m.created', ch.id, u.id, u.id);
 });
 route('POST', '/api/children/:id/messages', (u, b, req, p) => {
   if (!u) fail(401, "Sign in first");
@@ -97,9 +117,9 @@ function childStats(ch) {
   const subs = q.all('SELECT * FROM submissions WHERE child_id = ?', ch.id);
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Dar_es_Salaam' }).format(new Date());
   const pending = hws.filter(h => !subs.find(s => s.homework_id === h.id));
-  const bySubject = {};
+  const bySubject = Object.create(null);
   subs.forEach(s => {
-    if (s.score === null || s.score === undefined) return;
+    if (s.score == null || !(s.max_score > 0)) return;
     const h = hws.find(x => x.id === s.homework_id); const k = (h && h.subject) || 'Mengineyo';
     (bySubject[k] = bySubject[k] || []).push(s.score / s.max_score * 100);
   });
@@ -257,6 +277,7 @@ route('POST', '/api/admin/invoices/:id/status', (u, b, req, p) => {
   const invoice = q.get('SELECT * FROM invoices WHERE id = ?', +p.id);
   if (!invoice) fail(404, 'Invoice not found.');
   if (invoice.status === st) return { ok: true };
+  if (st === 'paid') checkRegistration(invoice.parent_id, invoice.school_id);
   db.exec('BEGIN IMMEDIATE');
   try {
     q.run('UPDATE invoices SET status = ?, paid = ? WHERE id = ?', st, st === 'paid' ? now() : null, invoice.id);

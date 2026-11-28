@@ -7,6 +7,16 @@ db.exec(`CREATE TABLE IF NOT EXISTS child_devices (
  child INTEGER PRIMARY KEY, parent INTEGER NOT NULL, code TEXT UNIQUE, expires INTEGER DEFAULT 0,
  token TEXT UNIQUE, next_pin TEXT, bedtime TEXT, until_ms INTEGER DEFAULT 0, requested INTEGER DEFAULT 0,
  seen INTEGER DEFAULT 0, activity TEXT DEFAULT '{}')`);
+db.exec(`
+  CREATE TRIGGER IF NOT EXISTS expire_removed_child_device AFTER DELETE ON children
+  BEGIN DELETE FROM child_devices WHERE child = OLD.id; END;
+  CREATE TRIGGER IF NOT EXISTS expire_transferred_child_device AFTER UPDATE OF parent_id ON children
+  WHEN NEW.parent_id IS NOT OLD.parent_id
+  BEGIN DELETE FROM child_devices WHERE child = OLD.id; END;
+  DELETE FROM child_devices WHERE NOT EXISTS (
+    SELECT 1 FROM children WHERE id = child_devices.child AND parent_id = child_devices.parent
+  );
+`);
 function owned(u,p) {
   role(u,'parent');
   return childFor(u,p.id);
@@ -69,6 +79,9 @@ function authorize(req,path,method,b){
     q.run('UPDATE child_devices SET seen=?,activity=?,requested=CASE WHEN ? THEN 1 ELSE requested END WHERE child=?',Date.now(),JSON.stringify(activity),b.request===true?1:0,d.child);
     return {result:{until:d.until_ms,bedtime:d.bedtime}};
   }
+  if(method==='PUT' && path==='/api/children/'+d.child+'/curriculum'){
+    return {result:require('./curriculum-progress').syncCurriculum({id:d.child},b.progress)};
+  }
   if (method==='UPLOAD' && Number(url.searchParams.get('child_id'))===d.child) return {parent:q.get('SELECT * FROM users WHERE id=?',d.parent)};
   if (method==='FILE'){
     const file=path.split('/').pop();
@@ -77,7 +90,13 @@ function authorize(req,path,method,b){
       WHERE c.id=? AND json_extract(a.value,'$.file')=?`,d.child,file);
     if(own||attached)return {parent:q.get('SELECT * FROM users WHERE id=?',d.parent)};
   }
-  if ((method==='GET' && path==='/api/children/'+d.child+'/homework') || (method==='POST' && path==='/api/children/'+d.child+'/submit')) return {parent:q.get('SELECT * FROM users WHERE id=?',d.parent)};
+  if ((method==='GET' && ['/api/children/'+d.child+'/homework', '/api/children/'+d.child+'/friends'].includes(path)) || (method==='POST' && path==='/api/children/'+d.child+'/submit')) return {parent:q.get('SELECT * FROM users WHERE id=?',d.parent)};
   fail(403,'This action requires a parent account.');
 }
-module.exports={authorize};
+function socketChild(token, childId) {
+  if (!token?.startsWith('kid_')) return null;
+  const device = resolve(token);
+  if (!device || device.access_status !== 'active' || device.child !== Number(childId)) return null;
+  return { id: device.child, parent: device.parent };
+}
+module.exports = { authorize, socketChild };

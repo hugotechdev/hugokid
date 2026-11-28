@@ -1,12 +1,13 @@
 {
   "name": "hugo-kid",
-  "version": "2.8.1",
+  "version": "2.9.1",
   "private": true,
   "description": "HUGO KID - Learn, Play, Grow (server + web app)",
   "scripts": {
-    "start": "node --no-warnings server/server.js"
+    "start": "node --disable-warning=ExperimentalWarning server/server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.cjs"
   },
   "engines": {
-    "node": ">=22.12"
+    "node": ">=22.13"
   }
 }
