@@ -148,13 +148,13 @@ const ART = {
   faith: `<svg class="art" viewBox="0 0 110 110"><circle cx="58" cy="70" r="24" fill="#FFE27A"/><g stroke="#fff" stroke-width="5" stroke-linecap="round"><path d="M58 30v-10M38 44l-7-7M86 44l7-7M20 70H10M96 70h10"/></g><path d="M8 78q30-14 50-4t52-4v40H8z" fill="#fff"/></svg>`,
 };
 
-function speak(text, lang = 'sw') {
+function speak(text, lang = 'en') {
   try {
     if (window.HugoNative && HugoNative.speak) { HugoNative.speak(String(text), lang); return; }
     if ('speechSynthesis' in window) {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = { sw: 'sw-TZ', en: 'en-GB', fr: 'fr-FR', ar: 'ar', zh: 'zh-CN' }[lang] || 'sw-TZ';
+      u.lang = { sw: 'sw-TZ', en: 'en-GB', fr: 'fr-FR', ar: 'ar', zh: 'zh-CN' }[lang] || 'en-GB';
       u.rate = 0.95;
       speechSynthesis.speak(u);
     }

@@ -43,9 +43,22 @@ const ANIMAL_GROUPS = {
 
 const ANIMAL_NAMES = new Map(Object.values(ANIMAL_GROUPS).flatMap(group => group.animals));
 const ANIMAL_KEYS = new Map(Array.from(ANIMAL_NAMES.keys(), id => [id.toLowerCase(), id]));
+const ANIMAL_BIRDS = ['Ndege', 'Kuku', 'ostrich', 'secretary-bird', 'parrot', 'turaco',
+  'crowned-eagle', 'flamingo', 'penguin', 'fish-eagle', 'pelican'];
+const ANIMAL_FISH = ['Samaki', 'whale-shark', 'manta-ray', 'clownfish', 'seahorse'];
 const ANIMAL_MOVES = new Set(['Paka', 'Mbwa', 'Ndege', 'Kuku', 'Samaki', 'Tembo', 'Simba', 'Twiga']);
 const ANIMALS = Object.fromEntries(Array.from(ANIMAL_NAMES, ([id, name]) =>
   [id, () => `<img class="life-animal" src="img/life/${id.toLowerCase()}.webp" alt="${esc(name)}" decoding="async">`]));
+
+function animalChoices(target, pool) {
+  const distractors = shuffle(pool.filter(id => id !== target)).slice(0, 2);
+  return shuffle([target, ...distractors]).map(id => ({
+    id,
+    label: ANIMAL_NAMES.get(id),
+    html: ANIMALS[id](),
+    ok: id === target,
+  }));
+}
 
 HK.screens.animalGuide = (el, { habitat = 'familiar' } = {}) => {
   const group = ANIMAL_GROUPS[habitat] || ANIMAL_GROUPS.familiar;

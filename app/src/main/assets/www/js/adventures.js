@@ -1,12 +1,15 @@
 const rescueClues = [
-  ['Tembo', 'Find the animal with a long trunk.'], ['Simba', 'Find the animal with a mane.'],
-  ['Twiga', 'Find the animal with a very long neck.'], ['Samaki', 'Which animal has fins?'],
-  ['Kuku', 'Which animal lays eggs in the henhouse?'], ['Paka', 'Which animal meows?'],
-  ['Mbwa', 'Which animal barks?'], ['Ndege', 'Find the small bird that sings in the tree.'],
+  ['Tembo', 'Which animal has a long trunk?'],
+  ['Simba', 'Which animal has a mane and roars?'],
+  ['Twiga', 'Which animal has a very long neck and a spotted coat?'],
+  ['Samaki', 'Which fish has dark stripes and orange fins?', 'fish'],
+  ['Kuku', 'Which bird lays eggs in a henhouse?', 'bird'],
+  ['Paka', 'Which animal meows?'],
+  ['Mbwa', 'Which animal barks?'],
+  ['Ndege', 'Which bird is small and has a yellow belly?', 'bird'],
 ];
 const questRules = {
-  jungle: 'Run with Nuru to each fork. Tap the path marked with the correct number.',
-  rescue: 'Listen to the clue and find the missing animal.',
+  rescue: 'Read or listen to the clue, then tap the matching picture.',
   farm: 'Choose your tools, care for the crop, then count the harvest.',
   bridge: 'Choose the right pieces to finish the crossing.',
   ocean: 'Follow the compass and sail to the next landmark.',
@@ -18,19 +21,17 @@ function adventureRound(id, round, level, group) {
   });
   const numbers = (text, answer, scene) => ({ text, scene, opts: numOpts(answer, 3, 3) });
   switch (id) {
-    case 'jungle': {
-      const landmarks = ['the forest fork', 'the river crossing', 'the cave entrance'];
-      const next = round % 3;
-      return numbers('At ' + landmarks[next] + ', take path ' + count + ' + ' + (next + 1) + '.', count + next + 1, next);
-    }
     case 'rescue': {
       const groups = Object.values(ANIMAL_GROUPS);
       const animals = level <= 4 ? rescueClues.map(([id]) => id) : groups[(level - 5) % groups.length].animals.map(([id]) => id);
-      const name = animals[((level - 1) * 6 + round) % animals.length];
-      const clue = level <= 4 && rescueClues.find(([id]) => id === name);
-      const others = shuffle(animals.filter(id => id !== name)).slice(0, 2);
-      return { text: clue ? clue[1] : 'Help Nuru find the ' + ANIMAL_NAMES.get(name).toLowerCase() + '.', scene: 8,
-        opts: shuffle([name, ...others]).map(id => ({ label: ANIMAL_NAMES.get(id), html: ANIMALS[id](), ok: id === name })) };
+      const target = animals[((level - 1) * 6 + round) % animals.length];
+      const [, clue, category] = level <= 4 ? rescueClues.find(([id]) => id === target) : [];
+      const birds = ANIMAL_BIRDS.includes(target);
+      const fish = ANIMAL_FISH.includes(target);
+      const pool = category === 'bird' || (!clue && birds) ? ANIMAL_BIRDS
+        : category === 'fish' || (!clue && fish) ? ANIMAL_FISH : animals;
+      const name = ANIMAL_NAMES.get(target).toLowerCase();
+      return { text: clue || 'Find the ' + name + '.', scene: 8, opts: animalChoices(target, pool) };
     }
     case 'farm':
       if (round % 3 === 0) return sequence('What should we plant in the soil?', ['Seeds', 'Stones', 'Leaves'], 'Seeds', 3);
@@ -55,13 +56,13 @@ for (const [id, rule] of Object.entries(questRules)) {
   ] };
   HK.screens['g_' + id] = (el, p) => {
     const kit = GK.frame(el, id, { level: p.level });
-    GK.quiz(kit, { total: 6, cols: id === 'ocean' ? 2 : 3,
+    GK.quiz(kit, { total: 6, cols: id === 'ocean' ? 2 : 3, explainAnswer: id === 'rescue',
       make: round => {
         const q = adventureRound(id, round, kit.level, kit.g);
         q.say = q.text;
         return q;
       },
-      render: q => `<div class="quest-scene"><img src="img/life/quest-${q.scene}.webp" width="414" height="414" alt="${id === 'rescue' ? 'Paw prints on a dirt path' : ''}">${id === 'jungle' ? mascot('nuru', 64, 'quest-runner') : ''}</div>`,
+      render: q => `<div class="quest-scene"><img src="img/life/quest-${q.scene}.webp" width="414" height="414" alt="${id === 'rescue' ? 'Paw prints on a dirt path' : ''}"></div>`,
     });
     return () => kit.cleanup();
   };

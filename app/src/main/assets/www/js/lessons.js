@@ -17,8 +17,8 @@ HK.screens.lessons = (el) => {
       </div>
       <div class="section-title">Math and more</div>
       <div class="tiles">
-        ${tile('mathLesson', 'Hesabu', 'Namba na hesabu', 'balloon', 'navy')}
-        ${Object.entries(LESSONS).filter(([, l]) => !l.hidden).map(([k, l]) => tile('cardLesson', l.name, (done[k] ? 'Nyota ' + done[k] : 'Anza somo'), l.icon, { sayansi: 'teal', maisha: 'coral', hisia: 'blue' }[k], JSON.stringify({ key: k }))).join('')}
+        ${tile('mathLesson', 'Maths', 'Numbers and counting', 'balloon', 'navy')}
+        ${Object.entries(LESSONS).filter(([, l]) => !l.hidden).map(([k, l]) => tile('cardLesson', l.name, (done[k] ? done[k] + ' stars' : 'Start lesson'), l.icon, { sayansi: 'teal', maisha: 'coral', hisia: 'blue' }[k], JSON.stringify({ key: k }))).join('')}
       </div>
     </div>`;
   kidNav(el, 'lessons');
@@ -31,7 +31,7 @@ HK.screens.langCats = (el, p) => {
   el.innerHTML = `<div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(L.name)}</h1></div>
     <div class="scroll">${Object.keys(VOCAB).map(cat => `<button class="item" data-cat="${cat}">
       <div class="i-ic" style="background:var(--blue)">${icon('book', 26)}</div>
-      <div class="grow"><div class="i-title">${esc(cat)}</div><div class="i-sub">${VOCAB[cat].length} words</div></div>${icon('chevR', 22)}</button>`).join('')}</div>`;
+      <div class="grow"><div class="i-title">${esc(T(cat))}</div><div class="i-sub">${VOCAB[cat].length} words</div></div>${icon('chevR', 22)}</button>`).join('')}</div>`;
   $('#bk', el).onclick = () => HK.back();
   $$('[data-cat]', el).forEach(b => b.onclick = () => HK.go('langLesson', { cat: b.dataset.cat }));
 };
@@ -40,14 +40,13 @@ HK.screens.langLesson = (el, p) => {
   const c = Store.active();
   const words = VOCAB[p.cat];
 
-  const base = 1;
-  const tts = 'en';
+  const title = T(p.cat);
   let i = 0;
   const t0 = Date.now();
   const card = () => {
     const row = words[i], w = vocabWord(row);
     el.innerHTML = `
-      <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(p.cat)}</h1><span class="chip-tag">${i + 1}/${words.length}</span></div>
+      <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(title)}</h1><span class="chip-tag">${i + 1}/${words.length}</span></div>
       <div class="center-col" style="justify-content:flex-start;padding-top:10px">
         <div class="lesson-card" style="width:100%;max-width:380px">
           ${pic(row[1], 104)}
@@ -63,19 +62,20 @@ HK.screens.langLesson = (el, p) => {
           <button class="btn" id="next" style="flex:3">${i < words.length - 1 ? 'Next word' : 'Take the quiz'} ${icon('chevR', 22)}</button>
         </div>
       </div>`;
-    const sayIt = () => speak(w.say, tts);
-    $('#say', el).onclick = sayIt; setTimeout(sayIt, 250);
+    const sayButton = $('#say', el);
+    sayButton.onclick = () => speak(w.say);
+    setTimeout(() => { if (sayButton.isConnected) speak(w.say); }, 250);
     $('#bk', el).onclick = () => HK.back();
     $('#prev', el).onclick = () => { if (i > 0) { i--; card(); } };
     $('#next', el).onclick = () => { Sfx.tap(); if (i < words.length - 1) { i++; card(); } else quiz(); };
   };
   const quiz = () => {
     const qs = shuffle(words.slice()).slice(0, Math.min(5, words.length));
-    runQuiz(el, p.cat, qs.map(row => {
+    runQuiz(el, title, qs.map(row => {
       const w = vocabWord(row);
       const others = shuffle(words.filter(r => r !== row)).slice(0, 2);
-      return { text: 'Listen and choose the word you hear.', say: w.say, lang: 'en', notr: true,
-        opts: shuffle([row, ...others]).map(r => ({label:r[base], ok:r===row})) };
+      return { text: 'Listen and choose the word you hear.', say: w.say, notr: true,
+        opts: shuffle([row, ...others]).map(r => ({ label: vocabWord(r).word, ok: r === row })) };
     }), stars => saveLesson(c, 'lang_en_' + p.cat, stars));
   };
   card();
@@ -101,11 +101,13 @@ HK.screens.cardLesson = (el, p) => {
         </div>
         <div class="btn-row" style="width:100%;max-width:400px;margin-top:auto;padding-bottom:16px">
           <button class="btn ghost" id="prev" ${i === 0 ? 'disabled' : ''}>${icon('chevL', 22)}</button>
-          <button class="btn" id="next" style="flex:3">${i < cards.length - 1 ? 'Endelea' : 'Jipime sasa'} ${icon('chevR', 22)}</button>
+          <button class="btn" id="next" style="flex:3">${i < cards.length - 1 ? 'Continue' : 'Take the quiz'} ${icon('chevR', 22)}</button>
         </div>
       </div>`;
     const sayIt = () => speak(k.t + '. ' + k.x);
-    $('#say', el).onclick = sayIt; setTimeout(sayIt, 250);
+    const sayButton = $('#say', el);
+    sayButton.onclick = sayIt;
+    setTimeout(() => { if (sayButton.isConnected) sayIt(); }, 250);
     $('#bk', el).onclick = () => HK.back();
     $('#prev', el).onclick = () => { if (i > 0) { i--; card(); } };
     $('#next', el).onclick = () => { Sfx.tap(); if (i < cards.length - 1) { i++; card(); } else quiz(); };
@@ -132,7 +134,7 @@ HK.screens.mathLesson = (el) => {
     if (t === 1) { const b = 2 + rnd(9), r = 2 + rnd(11); return { text: `${b * r} ÷ ${b} = ?`, say: `${b * r} divided by ${b}`, opts: numOpts(r, 4, 3, 1) }; }
     const d = [2, 4, 5, 10][rnd(4)], n = 1 + rnd(d - 1); return { text: `${n}/${d} ya ${d * 10} ni?`, say: `${n} ya ${d} ya ${d * 10}`, opts: numOpts(n * 10, 4, 10, 1) };
   };
-  runQuiz(el, 'Hesabu', Array.from({ length: 8 }, make), stars => saveLesson(c, 'math', stars));
+  runQuiz(el, 'Maths', Array.from({ length: 8 }, make), stars => saveLesson(c, 'math', stars), 'math');
   return () => HK.addLearnTime(c, Math.round((Date.now() - t0) / 1000));
 };
 
@@ -146,29 +148,35 @@ function saveLesson(c, key, stars) {
   }
 }
 
-function runQuiz(el, title, qs, onDone) {
+function runQuiz(el, title, qs, onDone, skill = 'read') {
   let i = 0, first = 0, missed = false;
   const draw = () => {
     if (i >= qs.length) {
       const stars = first >= qs.length ? 3 : first >= Math.ceil(qs.length * 0.6) ? 2 : 1;
       onDone && onDone(stars);
       markMission('lesson');
-      logSkill(/Hesabu/.test(title) ? 'math' : 'read', first / qs.length * 100);
+      logSkill(skill, first / qs.length * 100);
       Sfx.win(); confetti(el); speak("Congratulations! You finished the lesson");
-      return modal(el, { iconName: 'nuru', title: "Lesson complete!", html: `<div class="earned">${starsHTML(stars, 3, 44)}</div><p>Sahihi mara ya kwanza ${first}/${qs.length}</p>`, buttons: [{ label: "Repeat lesson", cls: 'sun', icon: 'repeat', onClick: () => HK.render() }, { label: "More lessons", cls: 'ghost', onClick: () => HK.back() }] });
+      return modal(el, { iconName: 'nuru', title: 'Lesson complete!', html: `<div class="earned">${starsHTML(stars, 3, 44)}</div><p>Correct on the first try: ${first}/${qs.length}</p>`, buttons: [{ label: 'Repeat lesson', cls: 'sun', icon: 'repeat', onClick: () => HK.render() }, { label: 'More lessons', cls: 'ghost', onClick: () => HK.back() }] });
     }
     const q = qs[i]; missed = false;
     el.innerHTML = `
       <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>${esc(title)}</h1></div>
-      <div class="g-progress">${qs.map((_, k) => `<i class="${k < i ? 'done' : ''}"></i>`).join('')}</div>
-      <div class="g-q">${q.html || `<span>${esc(q.text)}</span>`}${q.say ? `<button class="icon-btn say" id="say">${icon('volume', 22)}</button>` : ''}</div>
-      <div class="g-opts" style="grid-template-columns:repeat(${q.cols || 2},1fr)">${q.opts.map((o, k) => `<button class="g-opt ${q.notr ? 'notr' : ''}" data-k="${k}" style="${o.style || ''}">${o.html || esc(o.label)}</button>`).join('')}</div>`;
+      <div class="g-body g-quiz-body">
+        <div class="g-progress">${qs.map((_, k) => `<i class="${k < i ? 'done' : ''}"></i>`).join('')}</div>
+        <div class="g-q">${q.html || `<span>${esc(q.text)}</span>`}${q.say ? `<button class="icon-btn say" id="say" aria-label="Repeat question">${icon('volume', 22)}</button>` : ''}</div>
+        <div class="g-opts" style="grid-template-columns:repeat(${q.cols || 2},1fr)">${q.opts.map((o, k) => `<button class="g-opt ${q.notr ? 'notr' : ''}" data-k="${k}" style="${o.style || ''}">${o.html || esc(o.label)}</button>`).join('')}</div>
+      </div>`;
     $('#bk', el).onclick = () => HK.back();
-    if (q.say) { $('#say', el).onclick = () => speak(q.say, q.lang || 'sw'); setTimeout(() => speak(q.say, q.lang || 'sw'), 250); }
+    const sayButton = $('#say', el);
+    if (sayButton) {
+      sayButton.onclick = () => speak(q.say);
+      setTimeout(() => { if (sayButton.isConnected && !$('.g-opt.ok', el)) speak(q.say); }, 250);
+    }
     $$('.g-opt', el).forEach(b => b.onclick = () => {
       const o = q.opts[+b.dataset.k];
       if (b.closest('.g-opts').querySelector('.ok')) return;
-      if (o.ok) { b.classList.add('ok'); if (!missed) first++; Sfx.good(); celebrateMascot(el); i++; setTimeout(draw, 650); }
+      if (o.ok) { b.classList.add('ok'); if (!missed) first++; Sfx.good(); celebrateMascot(el); i++; setTimeout(() => { if (b.isConnected) draw(); }, 650); }
       else { b.classList.add('no'); missed = true; Sfx.bad(); vibrate(60); }
     });
   };
@@ -195,8 +203,7 @@ HK.screens.faith = (el) => {
   $('#game', el).onclick = () => HK.go('g_faith');
   $$('[data-say]', el).forEach(b => b.onclick = () => {
     const k = f.cards[+b.dataset.say];
-    if (k.ar) speak(k.ar, 'ar');
-    else speak(k.t + '. ' + k.x);
+    speak(k.t + '. ' + k.x);
   });
   return () => HK.addLearnTime(c, Math.round((Date.now() - t0) / 1000));
 };

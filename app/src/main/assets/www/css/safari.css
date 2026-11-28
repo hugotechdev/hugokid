@@ -619,15 +619,12 @@
   margin:8px auto 12px;
 }
 .quest-scene>img {display:block;width:100%;height:auto;border-radius:18px}
-.quest-runner {position:absolute;bottom:4px;left:46%}
 .g-opt .life-animal {height:auto;aspect-ratio:1}
+.quiz-feedback:empty {display:none}
+.quiz-feedback {margin:4px 16px;color:var(--navy);font-weight:700;text-align:center}
 @media(max-width:400px) {
   [data-screen="g_rescue"] .g-opts {gap:8px}
   [data-screen="g_rescue"] .g-opt {padding:6px}
-}
-@media (prefers-reduced-motion:no-preference) {
- .quest-runner {animation:quest-run 1.3s ease-out both}
- @keyframes quest-run {from {transform:translateX(-120px) scale(.6)} 50% {transform:translate(-50px,-9px) scale(.82)}}
 }
 
 [data-screen="home"] .child-home-scroll {padding:0 0 calc(94px + env(safe-area-inset-bottom));scroll-padding-bottom:90px}

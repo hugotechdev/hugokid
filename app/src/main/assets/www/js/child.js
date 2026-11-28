@@ -26,7 +26,7 @@ const GAMES = [
 ];
 
 const GAMES_FOR = {
-  toddler: ['rescue', 'farm', 'racing', 'runner', 'pilot', 'bubbles', 'balloons', 'memory', 'shapes', 'kitchen'],
+  toddler: ['jungle', 'rescue', 'farm', 'racing', 'runner', 'pilot', 'bubbles', 'balloons', 'memory', 'shapes', 'kitchen'],
   beginner: ['jungle', 'rescue', 'farm', 'bridge', 'ocean', 'racing', 'runner', 'pilot', 'bubbles', 'balloons', 'memory', 'shapes', 'kitchen', 'letters', 'market', 'robot', 'penalty', 'speak', 'village'],
 };
 function gamesFor(c) { const allow = GAMES_FOR[kidMode(c)]; return GAMES.filter(g => (!allow || allow.includes(g.id)) && (g.id !== 'faith' || faithOn(c))); }
@@ -109,7 +109,7 @@ HK.screens.games = (el) => {
     </button>`;
   el.innerHTML = `
     <div class="topbar"><h1 style="font-size:24px">Games</h1>
-      <span class="hud-pill" style="background:#fff">${icon('clock', 18)} ${Math.ceil(left / 60)} dk</span></div>
+      <span class="hud-pill" style="background:#fff">${icon('clock', 18)} ${Math.ceil(left / 60)} min</span></div>
     <div class="scroll">
       ${sceneBanner('serengeti', 'simba')}
       <div class="section-title">Entertainment <span class="chip-tag blue" style="margin-left:6px">${Math.ceil(left / 60)} min today</span></div>

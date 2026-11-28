@@ -1,5 +1,8 @@
 /* English translations for legacy strings. */
 const I18N_EN = {
+"Familia": "Family",
+"Chakula": "Food",
+"Mwili": "Body",
 "! Gusa picha kuanza.": "! Tap a picture to start.",
 "! Kazi yako imetumwa kwa mwalimu.": "! Your work has been sent to the teacher.",
 "! Kazi yako imetumwa kwa mzazi.": "! Your work has been sent to your parent.",

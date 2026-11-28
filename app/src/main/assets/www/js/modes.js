@@ -100,18 +100,17 @@ HK.screens.tapGame = (el, p) => {
     }
     if (kind === 'numbers') {
       const nums = shuffle([1, 2, 3, 4, 5]).slice(0, 3); const a = pick(nums);
-      return { say: 'Tap ' + a + ' stars', item: String(a), opts: nums.map(n => ({ html: `<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;align-items:center;height:100%;padding:8px">${Array.from({ length: n }, () => `<svg width="34" height="34" viewBox="0 0 24 24" fill="#FFC20E" stroke="#D29E00" stroke-width="1.4"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6L3.4 9.5l6-.8z"/></svg>`).join('')}</span>`, ok: n === a })) };
+      return { say: 'Tap ' + a + (a === 1 ? ' star' : ' stars'), item: String(a), opts: nums.map(n => ({ html: `<span style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;align-items:center;height:100%;padding:8px">${Array.from({ length: n }, () => `<svg width="34" height="34" viewBox="0 0 24 24" fill="#FFC20E" stroke="#D29E00" stroke-width="1.4"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6L3.4 9.5l6-.8z"/></svg>`).join('')}</span>`, ok: n === a })) };
     }
     if (kind === 'shapes') {
       const opts = shuffle(SHAPES.slice(0, 6)).slice(0, 3); const a = pick(opts);
       return { say: 'Tap the ' + T(a[0]).toLowerCase(), item: a[0], opts: opts.map((s, k) => ({ html: shapeSvg(s, SHAPE_COLS[k], 96), ok: s === a })) };
     }
     const id = targets[i];
-    const others = shuffle(animalIds.filter(other => other !== id)).slice(0, 2);
     return {
       say: 'Tap the ' + ANIMAL_NAMES.get(id).toLowerCase(),
       item: id,
-      opts: shuffle([id, ...others]).map(name => ({ html: ANIMALS[name](), ok: name === id, name })),
+      opts: animalChoices(id, animalIds),
     };
   };
   const draw = () => {
@@ -121,26 +120,27 @@ HK.screens.tapGame = (el, p) => {
       if (stars > prev) { cc.stars = (cc.stars || 0) + (stars - prev); cc.gp[k] = { best: stars }; }
       cc.coins = (cc.coins || 0) + 3; Store.saveChild(cc);
       Sfx.win(); confetti(el); speak("Congratulations! You did very well!");
-      return modal(el, { iconName: 'trophy', iconColor: 'var(--sun)', title: '', html: `<div class="earned">${starsHTML(stars, 3, 56)}</div>`, buttons: [{ label: '', icon: 'repeat', onClick: () => HK.render() }, { label: '', cls: 'ghost', icon: 'home', onClick: () => HK.go('home', {}, { reset: true }) }] });
+      return modal(el, { iconName: 'trophy', iconColor: 'var(--sun)', title: 'Quiz complete!', html: `<div class="earned">${starsHTML(stars, 3, 56)}</div>`, buttons: [{ label: 'Play again', icon: 'repeat', onClick: () => HK.render() }, { label: 'Back to home', cls: 'ghost', icon: 'home', onClick: () => HK.go('home', {}, { reset: true }) }] });
     }
     const q = make(); missed = false;
     el.innerHTML = `
       <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><div class="grow"></div>
         <button class="icon-btn" id="say" aria-label="Repeat question" style="width:64px;height:64px;background:var(--blue-d);color:#fff">${icon('volume', 34)}</button><div class="grow"></div>
         <div class="g-progress" style="padding:0">${Array.from({ length: total }, (_, k) => `<i class="${k < i ? 'done' : ''}" style="width:12px"></i>`).join('')}</div></div>
-      <div class="tap-grid">${q.opts.map((o, k) => `<button class="tap-opt" data-k="${k}">${o.html}</button>`).join('')}</div>`;
+      <p class="tap-question">${esc(q.say)}</p><div class="tap-grid">${q.opts.map((o, k) => `<button class="tap-opt" data-k="${k}">${o.html}</button>`).join('')}</div>`;
     $('#bk', el).onclick = () => HK.back();
     $('#say', el).onclick = () => speak(q.say);
     speechTimer = setTimeout(() => speak(q.say), 250);
     $$('.tap-opt', el).forEach(b => b.onclick = () => {
       const o = q.opts[+b.dataset.k];
       if (o.ok) {
-        if (o.name) playAnimal(b, o.name);
+        clearTimeout(speechTimer);
+        if (o.id) playAnimal(b, o.id);
         if (!missed) first++;
         b.classList.add('ok'); Sfx.good(); learned(kind, q.item);
-        speak(pick(['Well done!', 'Very good!', 'You did it!']) + (o.name ? ' This is the ' + ANIMAL_NAMES.get(o.name).toLowerCase() + '.' : ''));
-        i++; $$('.tap-opt', el).forEach(choice => choice.disabled = true); answerTimer = setTimeout(draw, o.name ? 2200 : 1300);
-      } else { missed = true; b.classList.add('no'); Sfx.bad(); vibrate(80); speak('Try again. ' + q.say); }
+        speak(pick(['Well done!', 'Very good!', 'You did it!']) + (o.id ? ' This is the ' + o.label.toLowerCase() + '.' : ''));
+        i++; $$('.tap-opt', el).forEach(choice => choice.disabled = true); answerTimer = setTimeout(draw, o.id ? 2200 : 1300);
+      } else { clearTimeout(speechTimer); missed = true; b.classList.add('no'); Sfx.bad(); vibrate(80); speak('Try again. ' + q.say); }
     });
   };
   draw();
@@ -152,51 +152,59 @@ HK.screens.tapGame = (el, p) => {
 };
 
 const ABC_EN = [['A', 'Apple'], ['B', 'Ball'], ['C', 'Cat'], ['D', 'Dog'], ['E', 'Egg'], ['F', 'Fish'], ['G', 'Goat'], ['H', 'Hat'], ['I', 'Insect'], ['J', 'Jug'], ['K', 'Kite'], ['L', 'Lion'], ['M', 'Mango'], ['N', 'Nest'], ['O', 'Orange'], ['P', 'Pen'], ['Q', 'Queen'], ['R', 'Rabbit'], ['S', 'Sun'], ['T', 'Tree'], ['U', 'Umbrella'], ['V', 'Van'], ['W', 'Water'], ['X', 'Box'], ['Y', 'Yam'], ['Z', 'Zebra']];
-const EN_PIC = { Cat: 'Paka', Dog: 'Mbwa', Fish: 'Samaki', Lion: 'Simba' };
-HK.screens.abc = (el, p) => {
+HK.screens.abc = el => {
   const c = Store.active();
-  const lang = 'en';
-  const list = () => ABC_EN;
   let i = 0;
   const t0 = Date.now();
   const draw = () => {
-    const [L, w] = list()[i];
-    const art = pic(w, 120) || pic(EN_PIC[w], 120);
+    const [L, w] = ABC_EN[i];
+    const art = pic(w, 120);
+    const rule = L === 'X' ? 'X is the last letter in box.' : L + ' is the first letter in ' + w.toLowerCase() + '.';
+    window.HK_onSpeech = null;
     el.innerHTML = `
-      <div class="topbar"><button class="icon-btn" id="bk">${icon('back')}</button><h1>Herufi</h1>
+      <div class="topbar"><button class="icon-btn" id="bk" aria-label="Back">${icon('back')}</button><h1>Alphabet</h1>
         </div>
       <div class="center-col" style="justify-content:flex-start;padding-top:6px">
         <div class="lesson-card" style="width:100%;max-width:380px;padding:18px">
           <div style="font-size:120px;font-weight:700;line-height:1;color:var(--blue)">${L}<span style="font-size:80px;color:var(--coral)">${L.toLowerCase()}</span></div>
           ${art ? `<div style="display:flex;justify-content:center;margin:6px auto">${art}</div>` : ''}
           <div class="big notr" style="font-size:34px">${esc(w)}</div>
+          ${L === 'X' ? '<p>X comes at the end of box.</p>' : ''}
         </div>
         <div class="btn-row" style="width:100%;max-width:380px;margin:14px 0">
-          <button class="btn blue" id="say">${icon('volume', 24)} Sikiliza</button>
-          ${window.HugoNative && HugoNative.canListen && HugoNative.canListen() ? `<button class="btn coral" id="mic">${icon('mic', 24)} Rudia</button>` : ''}
+          <button class="btn blue" id="say">${icon('volume', 24)} Listen</button>
+          ${window.HugoNative?.canListen?.() ? `<button class="btn coral" id="mic">${icon('mic', 24)} Repeat</button>` : ''}
         </div>
         <p id="heard" class="muted" style="font-weight:600;min-height:20px"></p>
         <div class="btn-row" style="width:100%;max-width:380px;margin-top:auto;padding-bottom:16px">
-          <button class="btn ghost" id="prev" ${i ? '' : 'disabled'}>${icon('chevL', 24)}</button>
-          <button class="btn" id="next" style="flex:3">${icon('chevR', 24)}</button>
+          <button class="btn ghost" id="prev" aria-label="Previous letter" ${i ? '' : 'disabled'}>${icon('chevL', 24)}</button>
+          <button class="btn" id="next" aria-label="Next letter" style="flex:3">${icon('chevR', 24)}</button>
         </div>
       </div>`;
-    const sayIt = () => speak(`${L}. ${L} for ${w}`);
-    $('#say', el).onclick = sayIt; setTimeout(sayIt, 250);
+    const sayButton = $('#say', el);
+    sayButton.onclick = () => speak(rule);
+    setTimeout(() => { if (sayButton.isConnected && !window.HK_onSpeech) speak(rule); }, 250);
     learned('letters', L);
     $('#bk', el).onclick = () => HK.back();
     $('#prev', el).onclick = () => { if (i) { i--; draw(); } };
-    $('#next', el).onclick = () => { Sfx.tap(); i = (i + 1) % list().length; draw(); };
+    $('#next', el).onclick = () => { Sfx.tap(); i = (i + 1) % ABC_EN.length; draw(); };
     const mic = $('#mic', el);
     if (mic) mic.onclick = () => {
-      $('#heard', el).textContent = 'Nasikiliza...';
+      if (window.HK_onSpeech) return;
+      Voice.stop();
+      window.speechSynthesis?.cancel();
+      HugoNative.stopSpeaking?.();
+      $('#heard', el).textContent = 'Listening…';
       window.HK_onSpeech = res => {
-        const said = (res || [])[0] || '';
-        const ok = (res || []).some(x => x.toLowerCase().includes(w.toLowerCase()));
-        $('#heard', el).textContent = said ? 'Umesema: ' + said : 'Sijasikia vizuri';
+        window.HK_onSpeech = null;
+        if (!mic.isConnected) return;
+        const guesses = Array.isArray(res) ? res : [];
+        const said = guesses[0];
+        const ok = guesses.some(x => matchesDoorWord(x, w));
+        $('#heard', el).textContent = said ? 'Heard: ' + said : 'No speech detected. Try again.';
         if (ok) { Sfx.good(); celebrateMascot(el, 'kobe'); speak("Very good!"); learned('words', w); } else if (said) speak('Good try! Listen again: ' + w);
       };
-      HugoNative.listen(lang);
+      HugoNative.listen('en-TZ');
     };
   };
   draw();
@@ -236,7 +244,7 @@ HK.screens.placement = (el, p) => {
       <div class="topbar"><div class="g-progress" style="flex:1">${steps.map((_, k) => `<i class="${k < i ? 'done' : ''}"></i>`).join('')}</div>
         ${s.say ? `<button class="icon-btn" id="say">${icon('volume', 22)}</button>` : ''}</div>
       ${s.text ? `<div class="g-q" style="font-size:${s.text.length > 20 ? 20 : 36}px">${esc(s.text)}</div>` : ''}
-      <div class="tap-grid">${opts.map((o, k) => `<button class="tap-opt" data-k="${k}">${o.html}</button>`).join('')}</div>`;
+      <p class="tap-question">${esc(q.say)}</p><div class="tap-grid">${opts.map((o, k) => `<button class="tap-opt" data-k="${k}">${o.html}</button>`).join('')}</div>`;
     if (s.say) { $('#say', el).onclick = () => speak(s.say); setTimeout(() => speak(s.say), 250); }
     $$('.tap-opt', el).forEach(b => b.onclick = () => {
       const ok = opts[+b.dataset.k].ok;

@@ -468,6 +468,7 @@ const RECIPES = [
 ];
 HK.screens.g_kitchen = (el, p) => {
   const kit = GK.frame(el, 'kitchen', { level: p.level });
+  kit.body.classList.add('g-quiz-body');
   const offset = (kit.level - 1) % RECIPES.length;
   const rotations = [...RECIPES.slice(offset), ...RECIPES.slice(0, offset)];
   const list = rotations.slice(0, 3 + Math.floor((kit.level - 1) / 6));

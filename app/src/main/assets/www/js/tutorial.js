@@ -87,10 +87,13 @@ const TUT = {
 };
 
 const GT = {
-  seen(child, id) { return !!(child && child.tut && child.tut[id]); },
+  seen(child, id) {
+    const seen = child?.tut?.[id];
+    return TUT[id]?.revision ? seen === TUT[id].revision : !!seen;
+  },
   mark(id) {
     const c = Store.active(); if (!c) return;
-    c.tut = c.tut || {}; c.tut[id] = true; Store.saveChild(c);
+    c.tut = c.tut || {}; c.tut[id] = TUT[id]?.revision || true; Store.saveChild(c);
   },
 
   show(root, id, group, onClose) {

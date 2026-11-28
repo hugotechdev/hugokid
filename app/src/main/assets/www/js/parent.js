@@ -282,8 +282,8 @@ HK.screens.parentHome = (el, p) => {
         </div>
         <div class="row" style="margin-top:14px;gap:8px;flex-wrap:wrap">
           <span class="chip-tag sun">${icon('star', 14)} Nyota ${c.stars || 0}</span>
-          <span class="chip-tag blue">${icon('clock', 14)} Michezo leo: ${used}/${limit} dk</span>
-          <span class="chip-tag">${icon('book', 14)} Kujifunza leo: ${Math.round((u.learn || 0) / 60)} dk</span>
+          <span class="chip-tag blue">${icon('clock', 14)} Play today: ${used}/${limit} min</span>
+          <span class="chip-tag">${icon('book', 14)} Learning today: ${Math.round((u.learn || 0) / 60)} min</span>
         </div>
         ${(() => { const L = c.learned || {}; const n = k => (L[k] || []).length; return n('colors') + n('animals') + n('letters') + n('words') ? `<p style="font-size:13px;margin-top:10px">Amejifunza: rangi ${n('colors')} · wanyama ${n('animals')} · herufi ${n('letters')} · maneno ${n('words')}</p>` : ''; })()}
         <div style="display:flex;align-items:flex-end;gap:8px;height:74px;margin:16px 2px 4px">

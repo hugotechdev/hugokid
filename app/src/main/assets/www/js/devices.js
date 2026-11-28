@@ -17,7 +17,7 @@ HK.screens.deviceLink=el=>{
     try {
       const r=await Net.post('/api/device/link',{code:$('#code',el).value});
       Net.acceptSession(r.token,r.user);
-      const c=Store.child(r.profile.id)||{...r.profile,stars:0,coins:0};
+      const c={stars:0,coins:0,...Store.child(r.profile.id),...r.profile};
       Store.saveChild(c); Store.setActive(c.id);
       Store.set('offlinePin',r.offlinePin); Store.set('remoteUntil',0);Store.set('night_'+c.id,0);
       Store.saveSettings({...Store.settings(),bedtime:r.bedtime});

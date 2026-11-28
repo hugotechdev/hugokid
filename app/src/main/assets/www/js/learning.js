@@ -23,7 +23,7 @@ HK.nativeRoute = (route, app) => {
   setTimeout(() => {
     if (Net.accessScreen() || HK.startingAccess) return;
     if (route === 'appTimeUp') {
-      speak('Muda wa ' + app + ' umekwisha kwa leo');
+      speak('Your time for ' + app + ' is up for today.');
       modal(null, { iconName: 'clock', iconColor: 'var(--blue)', title: "Time's up", text: `Muda wa ${app} wa leo umekwisha. Twende tukasome au tucheze michezo ya kujifunza!`, buttons: [{ label: 'Sawa' }] });
     } else {
       speak("This app is not allowed");
@@ -117,7 +117,7 @@ function childAppsStrip() {
       const lim = st.allowed[a.pkg], used = (st.usage[a.pkg] || 0) / 60;
       const left = lim ? Math.max(0, Math.ceil(lim - used)) : null;
       return `<button class="game-card" data-app="${esc(a.pkg)}"><img src="${a.icon}" style="width:56px;height:56px;border-radius:16px">
-        <div class="g-name">${esc(a.name)}</div>${left == null ? '' : `<span class="chip-tag ${left ? 'blue' : 'coral'}">${left} dk</span>`}</button>`;
+        <div class="g-name">${esc(a.name)}</div>${left == null ? '' : `<span class="chip-tag ${left ? 'blue' : 'coral'}">${left} min</span>`}</button>`;
     }).join('')}</div>`;
 }
 function bindChildApps(el) {

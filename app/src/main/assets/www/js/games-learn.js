@@ -79,7 +79,7 @@ HK.screens.g_balloons = (el, p) => {
 };
 
 /* ===== 2. Missing Letters ===== */
-const WORDS_EN = [['ELEPHANT', 'A big animal with a trunk'], ['LION', 'The king of the jungle'], ['GIRAFFE', 'An animal with a long neck'], ['FISH', 'It lives in water'], ['BANANA', 'A long yellow fruit'], ['MANGO', 'A sweet fruit'], ['SCHOOL', 'Where we learn'], ['BOOK', 'We read it'], ['WATER', 'We drink it'], ['SUN', 'It shines in the sky'], ['HOUSE', 'We live in it'], ['BALL', 'We play with it'], ['CAR', 'It drives on the road'], ['PEN', 'We write with it'], ['DOG', 'It says woof'], ['CAT', 'It says meow'], ['BIRD', 'It can fly'], ['TREE', 'It has leaves'], ['APPLE', 'A red or green fruit'], ['CHAIR', 'We sit on it']];
+const WORDS_EN = [['ELEPHANT', 'A big animal with a trunk'], ['LION', 'A big cat with a loud roar'], ['GIRAFFE', 'An animal with a long neck'], ['FISH', 'It has gills and swims'], ['BANANA', 'A long yellow fruit'], ['MANGO', 'A sweet fruit'], ['SCHOOL', 'Where we learn'], ['BOOK', 'We read it'], ['WATER', 'We drink it'], ['SUN', 'It shines in the sky'], ['HOUSE', 'We live in it'], ['BALL', 'We play with it'], ['CAR', 'It drives on the road'], ['PEN', 'We write with it'], ['DOG', 'It says woof'], ['CAT', 'It says meow'], ['BIRD', 'It has feathers and a beak'], ['TREE', 'It has leaves'], ['APPLE', 'A red or green fruit'], ['CHAIR', 'We sit on it']];
 HK.screens.g_letters = (el, p) => {
   const kit = GK.frame(el, 'letters', { level: p.level });
   const list = shuffle(WORDS_EN.slice());
@@ -88,16 +88,15 @@ HK.screens.g_letters = (el, p) => {
     total: 8,
     make: (i) => {
       const [w, clue] = list[i % list.length];
-      const lang = 'en';
       if (kit.g === 0) {
         const opts = new Set([w[0]]); while (opts.size < 3) opts.add(pick(ABC));
-        return { html: `<span style="font-size:20px">Starts with which letter?<br>${pic(w, 84)}<b class="notr" style="font-size:30px;display:block">${esc(w)}</b></span>`, say: w.toLowerCase(), lang, cols: 3, opts: shuffle([...opts]).map(l => ({ label: l, ok: l === w[0] })) };
+        return { html: `<span style="font-size:20px">Which letter comes first?<br>${pic(w, 84)}<b class="notr" style="font-size:30px;display:block">${esc(w)}</b></span>`, say: 'Which letter comes first in ' + w.toLowerCase() + '?', cols: 3, opts: shuffle([...opts]).map(l => ({ label: l, ok: l === w[0] })) };
       }
       if (kit.g === 1) {
         const k = 1 + rnd(w.length - 1);
         const opts = new Set([w[k]]); while (opts.size < 4) opts.add(pick(ABC));
         const shown = w.slice(0, k) + '_' + w.slice(k + 1);
-        return { html: `<span>${pic(w, 76)}<span style="font-size:15px;color:var(--muted);display:block">${esc(clue)}</span><span class="notr" style="font-size:36px;letter-spacing:6px">${shown}</span></span>`, say: clue, lang, opts: shuffle([...opts]).map(l => ({ label: l, ok: l === w[k] })) };
+        return { html: `<span>${pic(w, 76)}<span style="font-size:15px;color:var(--muted);display:block">${esc(clue)}</span><span class="notr" style="font-size:36px;letter-spacing:6px">${shown}</span></span>`, say: 'Choose the missing letter. ' + clue + '.', opts: shuffle([...opts]).map(l => ({ label: l, ok: l === w[k] })) };
       }
 
       const wrong = new Set();
@@ -107,7 +106,7 @@ HK.screens.g_letters = (el, p) => {
         if (rnd(2) && a.length > 3) a.splice(k, 1); else a[k] = pick(ABC);
         const v = a.join(''); if (v !== w) wrong.add(v);
       }
-      return { html: `<span>${pic(w, 76)}<span style="font-size:18px;display:block">${esc(clue)}</span></span>`, say: clue, lang, cols: 1, notr: true, opts: shuffle([w, ...wrong]).map(v => ({ label: v, ok: v === w, style: 'font-size:24px;letter-spacing:3px;min-height:64px' })) };
+      return { html: `<span>${pic(w, 76)}<span style="font-size:18px;display:block">${esc(clue)}</span></span>`, say: 'Choose the correct spelling. ' + clue + '.', cols: 1, notr: true, opts: shuffle([w, ...wrong]).map(v => ({ label: v, ok: v === w, style: 'font-size:24px;letter-spacing:3px;min-height:64px' })) };
     },
   });
   return () => kit.cleanup();
@@ -419,21 +418,22 @@ function matchesDoorWord(transcript, target) {
   if (canonical(answer) === canonical(expected)) return true;
   // Accept genuine homophones without allowing short substrings or unrelated words.
   const sounds = [
-    ['two','too','to','2'], ['one','won','1'], ['four','for','4'],
-    ['eight','ate','8'], ['blue','blew'], ['red','read'], ['sea','see'],
-    ['eye','i'],
+    ['one', 'won', '1'], ['two', 'too', 'to', '2'], ['three', '3'],
+    ['four', 'for', '4'], ['five', '5'], ['six', '6'], ['seven', '7'],
+    ['eight', 'ate', '8'], ['nine', '9'], ['ten', '10'],
+    ['blue', 'blew'], ['red', 'read'], ['sea', 'see'], ['eye', 'i'],
   ];
   return sounds.some(group => group.includes(expected) && group.includes(answer));
 }
 
 HK.screens.g_speak = (el, p) => {
   const kit = GK.frame(el, 'speak', { level: p.level });
-  const lang = 'en';
+  kit.body.classList.add('g-quiz-body');
   const canListen = !!(window.HugoNative && HugoNative.canListen && HugoNative.canListen());
   const cats = Object.keys(VOCAB);
   const cat = cats[(kit.level - 1) % cats.length];
   const words = shuffle(VOCAB[cat].slice()).slice(0, 5);
-  let i = 0, firstTry = 0, tries = 0;
+  let i = 0, opened = 0, firstTry = 0, tries = 0;
 
   let advancing = false, listening = false, quiet = 0;
   let timer;
@@ -446,6 +446,7 @@ HK.screens.g_speak = (el, p) => {
   const win = () => {
     if (advancing || kit.ended) return;
     stopVoice(); advancing = true;
+    opened++;
     if (tries === 0) firstTry++;
     kit.addCoins(tries === 0 ? 4 : 2); Sfx.good();
     const d = $('#door', el); if (d) { d.style.transition = 'transform .6s'; d.style.transform = 'perspective(400px) rotateY(-75deg)'; }
@@ -456,8 +457,8 @@ HK.screens.g_speak = (el, p) => {
 
   const draw = () => {
     advancing = false; quiet = 0;
-    if (i >= words.length) return kit.finish({ stars: firstTry >= 5 ? 3 : firstTry >= 3 ? 2 : 1, text: `Words on the first try: ${firstTry}/${words.length}` });
-    const row = words[i], w = vocabWord(row, lang);
+    if (i >= words.length) return kit.finish({ won: opened > 0, stars: firstTry >= 5 ? 3 : firstTry >= 3 ? 2 : 1, text: `Words on the first try: ${firstTry}/${words.length}` });
+    const row = words[i], w = vocabWord(row);
     const opts = shuffle([row, ...shuffle(VOCAB[cat].filter(r => r !== row)).slice(0, 2)]);
     kit.body.innerHTML = `
       <div class="g-progress">${words.map((_, k) => `<i class="${k < i ? 'done' : ''}"></i>`).join('')}</div>
@@ -465,12 +466,15 @@ HK.screens.g_speak = (el, p) => {
         <span style="position:absolute;right:12px;top:70px;width:12px;height:12px;border-radius:50%;background:#FFC20E"></span>
         <span style="position:absolute;left:50%;top:22px;transform:translateX(-50%);color:#FFE07A">${icon('lock', 30)}</span></div></div>
       ${canListen ? `
-        <div class="lesson-card notr" style="margin-top:0">${pic(row[1], 80)}<div class="big ${lang === 'ar' ? 'arabic' : ''}" style="${lang === 'ar' ? 'font-size:40px' : ''}">${esc(w.word)}</div>${w.sub ? `<div class="tr">${esc(w.sub)}</div>` : ''}</div>
+        <div class="lesson-card notr" style="margin-top:0">${pic(w.word, 80)}<div class="big">${esc(w.word)}</div></div>
         <div class="btn-row" style="padding:6px 16px"><button class="btn ghost" id="hear">${icon('volume', 22)} Listen</button><button class="btn coral" id="mic" style="flex:2">${icon('mic', 22)} Say the word</button></div>
         <p class="muted" style="text-align:center;font-weight:800;margin:6px 16px" id="heard" aria-live="polite"></p>
         <div style="padding:0 16px"><button class="btn block ghost small" id="skip">Skip word</button></div>`
       : `<div class="g-q" style="font-size:18px">Listen, then choose the correct word <button class="icon-btn say" id="hear">${icon('volume', 22)}</button></div>
-        <div class="g-opts" style="grid-template-columns:1fr">${opts.map((r, k) => { const v = vocabWord(r, lang); return `<button class="g-opt notr word-opt ${lang === 'ar' ? 'arabic' : ''}" data-k="${k}" style="font-size:24px;min-height:64px">${pic(r[1], 44)}${esc(v.word)}${v.sub ? `<div style="font-size:14px;color:var(--muted)">${esc(v.sub)}</div>` : ''}</button>`; }).join('')}</div>`}`;
+        <div class="g-opts" style="grid-template-columns:1fr">${opts.map((r, k) => {
+          const { word } = vocabWord(r);
+          return `<button class="g-opt notr word-opt" data-k="${k}" style="font-size:24px;min-height:64px">${pic(word, 44)}${esc(word)}</button>`;
+        }).join('')}</div>`}`;
     const hear = () => { if (!listening && !advancing) speak(w.say); };
     $('#hear', el).onclick = hear;
     timer = setTimeout(hear, 300);

@@ -88,7 +88,7 @@ const GK = {
           title: won ? (last ? 'Champion!' : "Congratulations!") : 'Try again',
           html: `${won ? `<div class="earned">${starsHTML(stars, 3, 44)}</div>` : ''}<p>${esc(text)}${text ? ' · ' : ''}Coins ${coins}</p>`,
           buttons: [
-            ...(won && !last && canPlay ? [{ label: "Next level", icon: 'chevR', onClick: () => HK.go('g_' + id, { level: level + 1 }, { replace: true }) }] : []),
+            ...(won && !last && canPlay ? [{ label: "Next episode", icon: 'chevR', onClick: () => HK.go('g_' + id, { level: level + 1 }, { replace: true }) }] : []),
             ...(canPlay ? [{ label: "Play again", cls: won ? 'sun' : '', icon: 'repeat', onClick: () => HK.go('g_' + id, { level }, { replace: true }) }] : []),
             { label: canPlay ? 'More games' : 'Time is up', cls: 'ghost', onClick: () => canPlay ? HK.leave() : HK.go('timeUp', {}, { replace: true }) },
           ],
@@ -121,7 +121,7 @@ const GK = {
     return kit;
   },
 
-  quiz(kit, { total = 8, make, render, cols = 2 }) {
+  quiz(kit, { total = 8, make, render, cols = 2, explainAnswer = false }) {
     kit.body.classList.add('g-quiz-body');
     if ((kit.child.needs || []).includes('attention')) total = Math.min(total, 5);
     let i = 0, locked = false, demo = kit.first;
@@ -133,9 +133,14 @@ const GK = {
       kit.body.innerHTML = `
         <div class="g-progress">${Array.from({ length: total }, (_, k) => `<i class="${marks[k] || ''}"></i>`).join('')}</div>
         <div class="g-q"><span>${q.html || esc(q.text)}</span>${q.say ? `<button class="icon-btn say" id="say" aria-label="Repeat question">${icon('volume', 22)}</button>` : ''}</div>
+        ${explainAnswer ? '<p class="quiz-feedback" aria-live="polite"></p>' : ''}
         ${render ? render(q) : ''}
         <div class="g-opts" style="grid-template-columns:repeat(${q.cols || cols},1fr)">${q.opts.map((o, k) => `<button class="g-opt" data-k="${k}" style="${o.style || ''}">${o.html || esc(o.label)}</button>`).join('')}</div>`;
-      if (q.say) { $('#say', kit.body).onclick = () => speak(q.say); if (!demo) setTimeout(() => { if (!kit.ended && !kit.paused) speak(q.say); }, 250); }
+      const sayButton = $('#say', kit.body);
+      if (sayButton) {
+        sayButton.onclick = () => speak(q.say);
+        if (!demo) setTimeout(() => { if (sayButton.isConnected && !kit.ended && !kit.paused && !locked) speak(q.say); }, 250);
+      }
       locked = false;
       if (demo) { locked = true; kit.afterTut.push(() => showDemo(q)); return; }
       $$('.g-opt', kit.body).forEach(b => b.onclick = () => {
@@ -144,8 +149,11 @@ const GK = {
         if (o.ok) {
           locked = true; b.classList.add('ok'); celebrateMascot(kit.el); marks[i] = marks[i] || 'done';
           kit.addCoins(marks[i] === 'done' ? 3 : 1);
-          speak(['Correct!', 'Great job!', "Congratulations!", 'You did it!'][Math.floor(Math.random() * 4)]);
-          setTimeout(() => { i++; if (i >= total) end(); else draw(); }, 750);
+          const feedback = explainAnswer ? 'Correct! You found the ' + o.label.toLowerCase() + '.'
+            : pick(['Correct!', 'Great job!', 'Congratulations!', 'You did it!']);
+          if (explainAnswer) $('.quiz-feedback', kit.body).textContent = feedback;
+          speak(feedback);
+          setTimeout(() => { if (kit.ended) return; i++; if (i >= total) end(); else draw(); }, explainAnswer ? 2100 : 750);
         } else {
           b.classList.add('no'); Sfx.bad(); marks[i] = 'miss'; vibrate(60);
           $$('.g-progress i', kit.body)[i].className = 'miss';

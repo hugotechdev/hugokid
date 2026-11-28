@@ -518,7 +518,7 @@ HK.screens.hwDo = (el, p) => {
           const touched = hw.pages.map((pg, i) => (pg.strokes || []).length || pg.bg ? hw.merged[i] : null).filter(Boolean);
           await SchoolSync.submit(hw, { pages: touched });
           Sfx.win(); confetti(el);
-          speak('Hongera ' + c.name + '! Kazi yako imetumwa kwa mwalimu.');
+          speak('Well done, ' + c.name + '! Your homework was sent to your teacher.');
           return modal(el, { iconName: 'trophy', iconColor: 'var(--sun)', title: 'Imetumwa!', text: "The teacher will mark it and you will see your score here.", buttons: [{ label: 'Sawa', onClick: () => HK.back() }] });
         } catch (e) { return toast(e.message); }
       }
@@ -527,7 +527,7 @@ HK.screens.hwDo = (el, p) => {
       await HWDB.put(hw);
       markMission('hw');
       Sfx.win(); confetti(el);
-      speak('Hongera ' + c.name + '! Kazi yako imetumwa kwa mzazi.');
+      speak('Well done, ' + c.name + '! Your homework was sent to your parent.');
       modal(el, { iconName: 'trophy', iconColor: 'var(--sun)', title: 'Hongera!', text: "Your work has been sent to your parent. If they approve it, you get stars and extra game minutes.", buttons: [{ label: 'Sawa', onClick: () => HK.back() }] });
     }, '');
   }

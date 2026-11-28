@@ -11,7 +11,7 @@ HK.screens.gameEpisodes = (el, { id }) => {
   const cap = GAME_EPISODES;
   el.innerHTML = `<div class="topbar"><button class="icon-btn" id="episode-back" aria-label="Back">${icon('back')}</button><h1>${esc(T(game.name))}</h1></div>
     <div class="scroll">
-      ${sceneBanner(GAME_SCENES[id], 'simba')}
+      ${id === 'jungle' ? `<h2 class="section-title">Choose your runner</h2>${jungleRunnerOptions(jungleRunner(child))}` : sceneBanner(GAME_SCENES[id], 'simba')}
       ${GAME_CHAPTERS.map((name, chapter) => {
         const levels = Array.from({ length: 6 }, (_, i) => chapter * 6 + i + 1).filter(n => n <= cap);
         if (!levels.length) return '';
@@ -23,6 +23,7 @@ HK.screens.gameEpisodes = (el, { id }) => {
       }).join('')}
     </div>`;
   $('#episode-back', el).onclick = () => HK.back();
+  if (id === 'jungle') bindJungleRunners(el);
   $$('[data-episode]', el).forEach(button => button.onclick = () => {
     if (game.kind === 'fun' && HK.gameLeft(Store.active()) <= 0) return HK.go('timeUp');
     HK.go('g_' + id, { level: Number(button.dataset.episode) });
